@@ -173,6 +173,7 @@ function maybeOfferEnding() {
 export function chooseEnding(choice) {
   if (choice === 'feed') {
     state.shards += 5;
+    state.stats.flamesFed = (state.stats.flamesFed || 0) + 1;
     state.ending = state.ending || 'fed';
     hooks.queueModal(`
       <div class="modal-tag">◈ ◈ ◈</div>

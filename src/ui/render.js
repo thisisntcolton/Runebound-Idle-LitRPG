@@ -11,7 +11,15 @@ import { on } from '../core/events.js';
 import { skillPanel, combatPanel, inventoryPanel, equipmentPanel,
          characterPanel, ascensionPanel, settingsPanel } from './panels.js';
 import { journalPanel } from './journal.js';
+import { riftsPanel } from './rifts.js';
+import { achievementsPanel } from './achievements.js';
 import { leaderboardPanel, loadLeaderboard, lbState } from './leaderboard.js';
+import { startDungeon, currentMonster } from '../systems/combat.js';
+import { enchantItem } from '../systems/enchant.js';
+import { drinkPotion } from '../systems/potions.js';
+import { setTitle } from '../systems/achievements.js';
+import { activeBuffs } from '../core/state.js';
+import { fmtDuration as fmtDur } from '../core/format.js';
 import { setQuestUIHooks, chooseEnding, activeMainQuest } from '../systems/quests.js';
 import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
@@ -48,10 +56,12 @@ export function renderSidebar() {
     <div class="nav-section-label">Hero</div>
     ${navItem('character', '📜', 'Character', { level: 'Lv.' + charLevel() })}
     ${navItem('journal', '🗺️', 'Journal', { working: !!activeMainQuest() })}
+    ${navItem('achievements', '🏅', 'Achievements')}
     ${navItem('inventory', '🎒', 'Inventory')}
     ${navItem('equipment', '🛡️', 'Equipment')}
     <div class="nav-section-label">Combat</div>
-    ${navItem('combat', '⚔️', 'Fight', { level: 'Lv.' + combatLevel(), working: act?.type === 'combat' })}
+    ${navItem('combat', '⚔️', 'Fight', { level: 'Lv.' + combatLevel(), working: act?.type === 'combat' && !state.combat.dungeonId })}
+    ${navItem('rifts', '🌀', 'Rifts', { working: act?.type === 'combat' && !!state.combat.dungeonId })}
     <div class="nav-section-label">Skills</div>
     ${TRAINABLE_SKILLS.map(id => navItem('skill:' + id, SKILLS[id].icon, SKILLS[id].name, {
       level: skillLevel(id) + '/99',
@@ -65,7 +75,7 @@ export function renderSidebar() {
 }
 
 function hasWorkingHireling(skillId) {
-  const map = { woodcutting: 'h_wood', mining: 'h_mine', fishing: 'h_fish', smithing: 'h_smith', cooking: 'h_cook' };
+  const map = { woodcutting: 'h_wood', mining: 'h_mine', fishing: 'h_fish', smithing: 'h_smith', cooking: 'h_cook', alchemy: 'h_alch' };
   return (state.hirelings[map[skillId]] || 0) > 0;
 }
 
@@ -75,6 +85,8 @@ export function renderView() {
   const v = ui.view;
   if (v.startsWith('skill:')) el.innerHTML = skillPanel(v.slice(6));
   else if (v === 'journal') el.innerHTML = journalPanel();
+  else if (v === 'rifts') el.innerHTML = riftsPanel();
+  else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
   else if (v === 'equipment') el.innerHTML = equipmentPanel();
@@ -86,6 +98,8 @@ export function renderView() {
 
   const foodSel = document.getElementById('food-select');
   if (foodSel) foodSel.addEventListener('change', e => setFood(e.target.value || null));
+  const titleSel = document.getElementById('title-select');
+  if (titleSel) titleSel.addEventListener('change', e => setTitle(e.target.value || null));
 }
 
 export function setView(view) {
@@ -111,8 +125,10 @@ function updateTopbar() {
     disp.textContent = `${SKILLS[act.skillId].icon} ${action?.name || ''}`;
     disp.className = 'active-action working';
   } else if (act?.type === 'combat') {
-    const m = getMonster(state.combat.zoneId, state.combat.monsterId);
-    disp.textContent = `⚔️ Fighting ${m?.name || ''}`;
+    const m = currentMonster();
+    disp.textContent = state.combat.dungeonId
+      ? `🌀 Rift: ${m?.name || ''}`
+      : `⚔️ Fighting ${m?.name || ''}`;
     disp.className = 'active-action fighting';
   } else {
     disp.textContent = '💤 Idle';
@@ -120,8 +136,21 @@ function updateTopbar() {
   }
 }
 
+let lastBuffKey = '';
+function updateBuffBar() {
+  const el = document.getElementById('buff-bar');
+  if (!el) return;
+  const buffs = activeBuffs();
+  const key = buffs.map(b => b.id + Math.floor(b.remaining / 10)).join(',');
+  if (key === lastBuffKey) return;
+  lastBuffKey = key;
+  el.innerHTML = buffs.map(b =>
+    `<span class="buff-chip">${b.icon} ${fmtDur(b.remaining)}</span>`).join('');
+}
+
 function updateDynamic() {
   updateTopbar();
+  updateBuffBar();
   const act = state.activity;
 
   // active skill progress bar
@@ -136,7 +165,7 @@ function updateDynamic() {
   // combat bars
   if (act?.type === 'combat') {
     const c = state.combat;
-    const monster = getMonster(c.zoneId, c.monsterId);
+    const monster = currentMonster();
     if (monster) {
       const cap = maxHp();
       setBar('player-hp-bar', Math.max(0, c.playerHp) / cap * 100);
@@ -212,6 +241,7 @@ function showItemMenu(itemId) {
     <div class="modal-body" style="text-align:center">
       <p>Owned: <b>${fmt(qty)}</b> · Sells for <span class="cost">🪙 ${fmt(item.sell)}</span> each</p>
       ${item.heal ? `<p>🍖 Heals <b>${item.heal}</b> HP when set as combat food.</p>` : ''}
+      ${item.type === 'potion' ? `<p>🧪 ${Object.entries(item.effects || {}).map(([k, v]) => `+${Math.round(v * 100)}% ${k}`).join(' · ')} for 10 minutes</p>` : ''}
       ${item.stats ? `<p>${Object.entries(item.stats).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join(' · ')}</p>` : ''}
     </div>
     <div class="modal-actions">
@@ -219,6 +249,7 @@ function showItemMenu(itemId) {
       <button class="btn btn-sm btn-gold" data-act="sell-all-item" data-item="${itemId}">Sell all (🪙 ${fmt(item.sell * qty)})</button>
       ${item.type === 'equipment' ? `<button class="btn btn-sm btn-primary" data-act="equip-item" data-item="${itemId}">Equip</button>` : ''}
       ${item.type === 'food' ? `<button class="btn btn-sm btn-primary" data-act="set-food" data-item="${itemId}">Set as combat food</button>` : ''}
+      ${item.type === 'potion' ? `<button class="btn btn-sm btn-primary" data-act="drink-potion" data-item="${itemId}">🧪 Drink (10 min buff)</button>` : ''}
       <button class="btn btn-sm" data-act="close-modal">Close</button>
     </div>
   `);
@@ -300,6 +331,9 @@ function handleAction(target) {
       loadLeaderboard(target.dataset.board, renderView);
       renderView();
       break;
+    case 'enter-rift': startDungeon(target.dataset.dungeon); setView('combat'); break;
+    case 'enchant': enchantItem(target.dataset.item); break;
+    case 'drink-potion': drinkPotion(target.dataset.item); closeModal(); break;
     case 'read-lore': {
       const frag = FRAGMENTS[target.dataset.id];
       if (frag) showModal(`

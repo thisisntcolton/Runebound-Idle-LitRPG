@@ -77,6 +77,51 @@ for (const tier of TIERS) {
   }
 }
 
+// ---------- Herbs (alchemy foraging) ----------
+def({ id: 'herb_sagewort',   name: 'Sagewort',     icon: '🌿', type: 'resource', rarity: 'common',   sell: 3 });
+def({ id: 'herb_mooncap',    name: 'Mooncap',      icon: '🍄', type: 'resource', rarity: 'common',   sell: 9 });
+def({ id: 'herb_emberpetal', name: 'Emberpetal',   icon: '🌺', type: 'resource', rarity: 'uncommon', sell: 22 });
+def({ id: 'herb_voidbloom',  name: 'Voidbloom',    icon: '🥀', type: 'resource', rarity: 'rare',     sell: 70 });
+def({ id: 'herb_kingsleaf',  name: "King's Leaf",  icon: '☘️', type: 'resource', rarity: 'epic',     sell: 240 });
+
+// ---------- Potions (alchemy brews) — timed buffs, 10 min each ----------
+// effects keys: damage, xp, gold, speed, dropRate, reduction
+def({ id: 'minor_strength_potion', name: 'Minor Strength Potion', icon: '🧪', type: 'potion', rarity: 'common',
+      sell: 15, duration: 600, effects: { damage: 0.10 } });
+def({ id: 'sage_elixir', name: 'Sage Elixir', icon: '⚗️', type: 'potion', rarity: 'common',
+      sell: 35, duration: 600, effects: { xp: 0.15 } });
+def({ id: 'stoneskin_tonic', name: 'Stoneskin Tonic', icon: '🫙', type: 'potion', rarity: 'uncommon',
+      sell: 50, duration: 600, effects: { reduction: 0.10 } });
+def({ id: 'haste_tonic', name: 'Haste Tonic', icon: '💨', type: 'potion', rarity: 'uncommon',
+      sell: 70, duration: 600, effects: { speed: 0.10 } });
+def({ id: 'strength_potion', name: 'Strength Potion', icon: '🧪', type: 'potion', rarity: 'rare',
+      sell: 120, duration: 600, effects: { damage: 0.25 } });
+def({ id: 'lucky_brew', name: 'Lucky Brew', icon: '🍀', type: 'potion', rarity: 'rare',
+      sell: 160, duration: 600, effects: { gold: 0.20, dropRate: 0.25 } });
+def({ id: 'void_draught', name: 'Void Draught', icon: '🌌', type: 'potion', rarity: 'epic',
+      sell: 500, duration: 600, effects: { damage: 0.20, xp: 0.20, speed: 0.05 } });
+def({ id: 'healing_salve', name: 'Healing Salve', icon: '🩹', type: 'food', rarity: 'uncommon',
+      sell: 60, heal: 55 });
+
+// ---------- Runes (rift rewards — fuel for enchanting) ----------
+def({ id: 'rune_shard',   name: 'Rune Shard',   icon: '🔹', type: 'resource', rarity: 'uncommon', sell: 40 });
+def({ id: 'greater_rune', name: 'Greater Rune', icon: '🔷', type: 'resource', rarity: 'rare',     sell: 180 });
+def({ id: 'void_rune',    name: 'Void Rune',    icon: '💠', type: 'resource', rarity: 'epic',     sell: 900 });
+
+// ---------- Rift-exclusive uniques ----------
+def({ id: 'rat_king_crown', name: "Rat King's Crown", icon: '👑', type: 'equipment', slot: 'helmet', rarity: 'rare',
+      sell: 900, stats: { def: 8, hp: 10, str: 4 } });
+def({ id: 'warden_ring', name: "Grave Warden's Band", icon: '💍', type: 'equipment', slot: 'ring', rarity: 'rare',
+      sell: 1200, stats: { def: 8, hp: 12 } });
+def({ id: 'vulkan_hammer', name: "Vulkan's Forgehammer", icon: '🔨', type: 'equipment', slot: 'weapon', rarity: 'epic',
+      sell: 5000, stats: { atk: 40, str: 55 } });
+def({ id: 'molten_greaves', name: 'Molten Greaves', icon: '👢', type: 'equipment', slot: 'boots', rarity: 'epic',
+      sell: 3800, stats: { def: 18, hp: 14, str: 8 } });
+def({ id: 'unwritten_edge', name: 'The Unwritten Edge', icon: '🗡️', type: 'equipment', slot: 'weapon', rarity: 'legendary',
+      sell: 20000, stats: { atk: 110, str: 130 } });
+def({ id: 'seam_cloak', name: 'Cloak of the Seam', icon: '🧥', type: 'equipment', slot: 'chest', rarity: 'legendary',
+      sell: 17000, stats: { def: 95, hp: 110 } });
+
 // ---------- Monster-drop uniques ----------
 def({ id: 'wolf_fang_charm', name: 'Wolf Fang Charm', icon: '🦷', type: 'equipment', slot: 'amulet', rarity: 'uncommon',
       sell: 150, stats: { str: 4, atk: 3 } });

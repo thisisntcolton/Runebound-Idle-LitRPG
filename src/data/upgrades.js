@@ -17,6 +17,10 @@ export const UPGRADES = [
     desc: '+12% Smithing speed per rank', baseCost: 120, costMult: 6, effect: { speed: 0.12 } },
   { id: 'spices', name: 'Rare Spices', icon: '🧂', skill: 'cooking', maxLevel: 10,
     desc: '+12% Cooking speed per rank', baseCost: 100, costMult: 6, effect: { speed: 0.12 } },
+  { id: 'alembic', name: 'Crystal Alembic', icon: '⚗️', skill: 'alchemy', maxLevel: 10,
+    desc: '+12% Alchemy speed per rank', baseCost: 120, costMult: 6, effect: { speed: 0.12 } },
+  { id: 'herbpouch', name: "Gatherer's Pouch", icon: '👝', skill: 'alchemy', maxLevel: 5,
+    desc: '+10% chance per rank to double herbs', baseCost: 900, costMult: 9, effect: { double: 0.10 } },
   // Yield doublers: +10% chance per rank to double output
   { id: 'axe2', name: 'Forester\'s Instinct', icon: '🌿', skill: 'woodcutting', maxLevel: 5,
     desc: '+10% chance per rank to double logs', baseCost: 800, costMult: 9, effect: { double: 0.10 } },
@@ -46,6 +50,8 @@ export const HIRELINGS = [
     flavor: 'Her hammer has a name. You are not allowed to know it.', baseCost: 6000, costMult: 12, maxLevel: 6 },
   { id: 'h_cook', name: 'Chef Bumblewort', icon: '👨‍🍳', skill: 'cooking',
     flavor: 'Was exiled from the palace over "the gravy incident."', baseCost: 5000, costMult: 12, maxLevel: 6 },
+  { id: 'h_alch', name: 'Mirella the Hedge-Witch', icon: '🧙‍♀️', skill: 'alchemy',
+    flavor: 'Talks to her cauldron. Worryingly, it answers.', baseCost: 6000, costMult: 12, maxLevel: 6 },
 ];
 
 export const HIRELING_BASE_RATE = 0.25;   // fraction of your output at rank 1

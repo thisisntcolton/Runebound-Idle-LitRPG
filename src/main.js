@@ -7,6 +7,7 @@ import { processOffline } from './systems/offline.js';
 import { initRenderer, showOfflineModal, renderView } from './ui/render.js';
 import { initNotifications, pushLog, popup } from './ui/notify.js';
 import { initQuests } from './systems/quests.js';
+import { initAchievements, setAchievementUIHooks } from './systems/achievements.js';
 import { initCloud } from './core/cloud.js';
 import { emit } from './core/events.js';
 
@@ -16,6 +17,8 @@ const hadSave = load();
 initNotifications();
 initRenderer();
 initQuests();
+setAchievementUIHooks({ popup });
+initAchievements();
 
 // Offline progress (counts toward quests via events)
 const offline = hadSave ? processOffline() : null;

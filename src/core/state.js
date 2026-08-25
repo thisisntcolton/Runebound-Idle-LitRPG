@@ -54,7 +54,15 @@ export function defaultState() {
     stats: {            // lifetime trackers
       kills: 0, deaths: 0, actions: 0, itemsSold: 0, bossKills: 0,
       highestDamage: 0, offlineEarnings: 0,
+      aurelionKills: 0, flamesFed: 0,
+      dungeonRuns: 0, dungeonClears: {},   // dungeonId -> clears
+      potionsDrunk: 0, enchants: 0,
     },
+
+    buffs: {},          // buffId(itemId) -> { expiresAt, effects, name, icon }
+    enchants: {},       // itemId -> enchant level (0-5)
+    achievements: {},   // achievementId -> unlock timestamp
+    activeTitle: null,  // title string shown on the leaderboard
 
     // Story & quests
     quests: { progress: {}, completed: {}, seenOffers: {} },
@@ -117,10 +125,36 @@ function endingMult() {
   return state.ending === 'broken' ? 1.10 : 1;
 }
 
+// Sum of a given effect key across all non-expired potion buffs.
+export function buffEffect(key) {
+  let total = 0;
+  const now = Date.now();
+  for (const buff of Object.values(state.buffs || {})) {
+    if (buff.expiresAt > now && buff.effects?.[key]) total += buff.effects[key];
+  }
+  return total;
+}
+
+export function activeBuffs() {
+  const now = Date.now();
+  return Object.entries(state.buffs || {})
+    .filter(([, b]) => b.expiresAt > now)
+    .map(([id, b]) => ({ id, ...b, remaining: Math.ceil((b.expiresAt - now) / 1000) }));
+}
+
+export function enchantLevel(itemId) {
+  return (state.enchants || {})[itemId] || 0;
+}
+
+export function enchantMult(itemId) {
+  return 1 + enchantLevel(itemId) * 0.10;
+}
+
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'xp'))
        * (1 + state.charStats.INT * 0.01)
+       * (1 + buffEffect('xp'))
        * endingMult();
 }
 
@@ -128,6 +162,7 @@ export function goldMultiplier() {
   return (1 + state.shards * SHARD_GOLD_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'gold'))
        * (1 + state.charStats.LUK * 0.005)
+       * (1 + buffEffect('gold'))
        * endingMult();
 }
 
@@ -137,7 +172,8 @@ export function combatXpMultiplier() {
 
 export function dropRateMultiplier() {
   return (1 + sumEffect(PERKS, perkLevel, 'dropRate'))
-       * (1 + state.charStats.LUK * 0.005);
+       * (1 + state.charStats.LUK * 0.005)
+       * (1 + buffEffect('dropRate'));
 }
 
 // Action time for a skill action after all speed bonuses
@@ -148,6 +184,7 @@ export function actionTime(skillId, action) {
   }
   speedBonus += sumEffect(PERKS, perkLevel, 'speed');
   speedBonus += state.charStats.AGI * 0.005;
+  speedBonus += buffEffect('speed');
   return action.baseTime / (1 + speedBonus);
 }
 
@@ -175,7 +212,8 @@ export function gearStats() {
     if (!itemId) continue;
     const item = getItem(itemId);
     if (item?.stats) {
-      for (const k of Object.keys(total)) total[k] += item.stats[k] || 0;
+      const mult = enchantMult(itemId);
+      for (const k of Object.keys(total)) total[k] += Math.floor((item.stats[k] || 0) * mult);
     }
   }
   return total;
@@ -195,6 +233,7 @@ export function playerMaxHit() {
   const mult = (1 + upgradeLevel('whetstone') * 0.06)
              * (1 + sumEffect(PERKS, perkLevel, 'damage'))
              * (1 + state.charStats.STR * 0.01)
+             * (1 + buffEffect('damage'))
              * (state.ending === 'broken' ? 1.10 : 1);
   return Math.max(1, Math.floor(base * mult));
 }
@@ -205,12 +244,14 @@ export function playerDefenseRating() {
 
 export function damageReduction() {
   const flat = Math.min(0.6, playerDefenseRating() / (playerDefenseRating() + 220));
-  const mult = Math.min(0.35, upgradeLevel('polish') * 0.06 + sumEffect(PERKS, perkLevel, 'reduction'));
+  const mult = Math.min(0.45, upgradeLevel('polish') * 0.06
+             + sumEffect(PERKS, perkLevel, 'reduction')
+             + buffEffect('reduction'));
   return Math.min(0.85, flat + mult * (1 - flat));
 }
 
 export function attackInterval() {
-  return 2400 / (1 + state.charStats.AGI * 0.005);
+  return 2400 / (1 + state.charStats.AGI * 0.005 + buffEffect('speed'));
 }
 
 export function offlineCapHours() {

@@ -52,6 +52,8 @@ export function ensureSchema() {
         cyclebreaker  BOOLEAN NOT NULL DEFAULT false,
         updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+    // migrations for columns added after launch
+    await sql`ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS title TEXT`;
     await sql`CREATE INDEX IF NOT EXISTS lb_total_level_idx   ON leaderboard (total_level DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS lb_shards_idx        ON leaderboard (shards DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS lb_gold_idx          ON leaderboard (lifetime_gold DESC)`;

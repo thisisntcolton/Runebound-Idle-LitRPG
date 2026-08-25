@@ -5,12 +5,24 @@ import { state, playerAccuracy, playerMaxHit, playerDefenseRating,
          damageReduction, attackInterval, maxHp, combatLevel,
          combatXpMultiplier, dropRateMultiplier } from '../core/state.js';
 import { getZone, getMonster } from '../data/monsters.js';
+import { getDungeon, waveMonster, totalWaves } from '../data/dungeons.js';
 import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { addXp, stopActivity } from './skills.js';
 
 const RESPAWN_MS = 1200;
+const WAVE_MS = 800; // short breather between rift waves
+
+// The thing currently being fought — zone monster or rift wave.
+export function currentMonster() {
+  const c = state.combat;
+  if (c.dungeonId) {
+    const d = getDungeon(c.dungeonId);
+    return d ? waveMonster(d, c.wave || 0) : null;
+  }
+  return getMonster(c.zoneId, c.monsterId);
+}
 
 export function startCombat(zoneId, monsterId) {
   const zone = getZone(zoneId);
@@ -23,6 +35,8 @@ export function startCombat(zoneId, monsterId) {
   stopActivity({ silent: true });
   state.activity = { type: 'combat' };
   const c = state.combat;
+  c.dungeonId = null;
+  c.wave = 0;
   c.zoneId = zoneId;
   c.monsterId = monsterId;
   c.monsterHp = monster.hp;
@@ -37,10 +51,74 @@ export function startCombat(zoneId, monsterId) {
 
 export function stopCombat({ silent = false } = {}) {
   if (state.activity?.type === 'combat') {
+    const wasRift = !!state.combat.dungeonId;
     state.activity = null;
-    if (!silent) emit('notify', { type: 'combat', text: 'You retreat from battle.' });
+    state.combat.dungeonId = null;
+    state.combat.wave = 0;
+    if (!silent) emit('notify', { type: 'combat', text: wasRift
+      ? 'You step back through the rift. The run is abandoned.'
+      : 'You retreat from battle.' });
     emit('state-changed');
   }
+}
+
+// ---------- Rifts ----------
+export function startDungeon(dungeonId) {
+  const d = getDungeon(dungeonId);
+  if (!d) return false;
+  if (combatLevel() < d.level) {
+    emit('notify', { type: 'sys', text: `${d.name} requires Combat Lv. ${d.level}` });
+    return false;
+  }
+  stopActivity({ silent: true });
+  state.activity = { type: 'combat' };
+  const c = state.combat;
+  c.dungeonId = dungeonId;
+  c.wave = 0;
+  c.zoneId = null;
+  c.monsterId = null;
+  c.monsterHp = waveMonster(d, 0).hp;
+  c.playerHp = Math.min(c.playerHp > 0 ? c.playerHp : maxHp(), maxHp());
+  c.playerTimer = 0;
+  c.monsterTimer = 0;
+  c.respawn = 0;
+  emit('notify', { type: 'combat', text: `🌀 You step into ${d.name} — wave 1 of ${totalWaves(d)}` });
+  emit('state-changed');
+  return true;
+}
+
+function completeDungeon(d) {
+  const c = state.combat;
+  state.stats.dungeonRuns = (state.stats.dungeonRuns || 0) + 1;
+  if (!state.stats.dungeonClears) state.stats.dungeonClears = {};
+  state.stats.dungeonClears[d.id] = (state.stats.dungeonClears[d.id] || 0) + 1;
+
+  const r = d.rewards;
+  const gold = addGold(r.gold[0] + Math.random() * (r.gold[1] - r.gold[0]), { silent: true });
+  const parts = [`🪙 ${gold}`];
+  for (const [runeId, [lo, hi]] of Object.entries(r.runes || {})) {
+    const qty = lo + Math.floor(Math.random() * (hi - lo + 1));
+    if (qty > 0) {
+      addItem(runeId, qty);
+      parts.push(`${getItem(runeId)?.icon} ${getItem(runeId)?.name} ×${qty}`);
+    }
+  }
+  const dropMult = dropRateMultiplier();
+  for (const u of r.uniques || []) {
+    if (Math.random() < Math.min(0.5, u.chance * dropMult)) {
+      const item = getItem(u.item);
+      addItem(u.item, 1);
+      parts.push(`✦ ${item?.icon} ${item?.name}`);
+      emit('rare-drop', { itemId: u.item, rarity: item?.rarity });
+      emit('notify', { type: 'loot', text: `✦ RIFT TREASURE — ${item?.name}` });
+    }
+  }
+  emit('notify', { type: 'gold', text: `🌀 ${d.name} cleared! ${parts.join(' · ')}` });
+  emit('dungeon-complete', { dungeonId: d.id });
+
+  // auto-repeat: back to wave 1
+  c.wave = 0;
+  c.respawn = RESPAWN_MS;
 }
 
 export function setCombatStyle(style) {
@@ -75,10 +153,28 @@ function tryEat() {
   }
 }
 
+function onDungeonKill(monster) {
+  const c = state.combat;
+  const d = getDungeon(c.dungeonId);
+  state.stats.kills++;
+  if (monster.boss) state.stats.bossKills++;
+  const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
+  emit('kill', { monsterId: monster.name, zoneId: null, dungeonId: d.id, boss: !!monster.boss });
+
+  c.wave = (c.wave || 0) + 1;
+  if (c.wave >= totalWaves(d)) {
+    completeDungeon(d);
+  } else {
+    emit('notify', { type: 'combat', text: `${monster.name} down (+${gold} gold) — wave ${c.wave + 1} of ${totalWaves(d)}` });
+    c.respawn = WAVE_MS;
+  }
+}
+
 function onKill(monster) {
   const c = state.combat;
   state.stats.kills++;
   if (monster.boss) state.stats.bossKills++;
+  if (monster.id === 'aurelion') state.stats.aurelionKills = (state.stats.aurelionKills || 0) + 1;
 
   const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
   emit('notify', { type: 'gold', text: `${monster.name} slain · +${gold} gold` });
@@ -101,10 +197,13 @@ function onKill(monster) {
 
 function onDeath() {
   const c = state.combat;
+  const inRift = !!c.dungeonId;
   state.stats.deaths++;
   const loss = Math.floor(state.gold * 0.05);
   state.gold -= loss;
-  emit('notify', { type: 'combat', text: `☠ You fall in battle… you wake at camp. (-${loss} gold)` });
+  emit('notify', { type: 'combat', text: inRift
+    ? `☠ The Rift rejects you — run lost. You wake at camp. (-${loss} gold)`
+    : `☠ You fall in battle… you wake at camp. (-${loss} gold)` });
   emit('death', {});
   c.playerHp = maxHp();
   stopCombat({ silent: true });
@@ -113,7 +212,7 @@ function onDeath() {
 export function tickCombat(dt) {
   if (state.activity?.type !== 'combat') return;
   const c = state.combat;
-  const monster = getMonster(c.zoneId, c.monsterId);
+  const monster = currentMonster();
   if (!monster) { stopCombat({ silent: true }); return; }
 
   // waiting on respawn
@@ -144,7 +243,11 @@ export function tickCombat(dt) {
       // XP: style skill + hitpoints
       addXp(state.combat.style, dmg * 4 * combatXpFactor(), { useMult: false });
       addXp('hitpoints', dmg * 1.33 * combatXpFactor(), { useMult: false });
-      if (c.monsterHp <= 0) { onKill(monster); return; }
+      if (c.monsterHp <= 0) {
+        if (c.dungeonId) onDungeonKill(monster);
+        else onKill(monster);
+        return;
+      }
     } else {
       emit('combat-hit', { source: 'player', damage: 0, missed: true });
     }

@@ -8,6 +8,10 @@ import { state, skillLevel, actionTime, doubleChance, hirelingRate,
          ASCEND_MIN_TOTAL_LEVEL, offlineCapHours } from '../core/state.js';
 import { SKILLS, TRAINABLE_SKILLS, COMBAT_SKILLS, getAction } from '../data/skills.js';
 import { ZONES, getZone, getMonster } from '../data/monsters.js';
+import { getDungeon, totalWaves } from '../data/dungeons.js';
+import { currentMonster } from '../systems/combat.js';
+import { enchantCost, canEnchant, MAX_ENCHANT } from '../systems/enchant.js';
+import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
 import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost } from '../data/upgrades.js';
 import { STAT_INFO } from '../systems/character.js';
@@ -135,14 +139,22 @@ export function combatPanel(ui) {
   const c = state.combat;
   const cl = combatLevel();
   const selectedZone = ui.selectedZone ? getZone(ui.selectedZone) : null;
+  const rift = c.dungeonId ? getDungeon(c.dungeonId) : null;
 
   let arena = '';
-  if (inCombat && c.zoneId && c.monsterId) {
-    const monster = getMonster(c.zoneId, c.monsterId);
+  if (inCombat && (rift || (c.zoneId && c.monsterId))) {
+    const monster = currentMonster();
     const mhp = Math.max(0, c.monsterHp);
     const php = Math.max(0, c.playerHp);
     const cap = maxHp();
+    const riftBanner = rift ? `
+      <div class="stat-points-banner" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🌀 ${rift.name} — WAVE ${(c.wave || 0) + 1} / ${totalWaves(rift)}</span>
+        <span style="display:flex;gap:4px">${Array.from({ length: totalWaves(rift) }, (_, i) =>
+          `<span style="width:14px;height:8px;border-radius:3px;background:${i < (c.wave || 0) ? 'var(--xp)' : i === (c.wave || 0) ? 'var(--sys-blue)' : 'var(--bg-card)'}"></span>`).join('')}</span>
+      </div>` : '';
     arena = `
+      ${riftBanner}
       <div class="combat-arena">
         <div class="combatant player-side" id="player-box">
           <div class="combatant-name">🧙 You</div>
@@ -157,7 +169,7 @@ export function combatPanel(ui) {
         <div class="vs-divider">VS</div>
         <div class="combatant enemy-side" id="monster-box">
           <div class="combatant-name">${monster.name}${monster.boss ? ' 👑' : ''}</div>
-          <div class="combatant-level">Lv. ${monster.level}</div>
+          <div class="combatant-level">${monster.level ? `Lv. ${monster.level}` : (rift ? 'Rift-spawn' : '')}</div>
           <div class="combatant-icon">${monster.icon}</div>
           <div class="hp-bar-outer">
             <div class="hp-bar-inner" id="monster-hp-bar" style="width:${mhp / monster.hp * 100}%"></div>
@@ -256,13 +268,39 @@ export function equipmentPanel() {
   const slotEls = EQUIP_SLOTS.map(slot => {
     const itemId = state.equipment[slot];
     const item = itemId ? getItem(itemId) : null;
+    const ench = itemId ? (state.enchants?.[itemId] || 0) : 0;
     return `
       <div class="equip-slot ${item ? borderCls(item) : ''}" ${item ? `data-act="unequip" data-slot="${slot}" title="Click to unequip"` : ''}>
         <div class="slot-label">${slot}</div>
-        ${item ? `<div class="inv-icon">${item.icon}</div><div class="inv-name ${rarityCls(item)}">${item.name}</div>`
+        ${item ? `<div class="inv-icon">${item.icon}</div><div class="inv-name ${rarityCls(item)}">${item.name}${ench ? ` <b style="color:var(--shard)">+${ench}</b>` : ''}</div>`
                : '<div class="muted" style="font-size:18px">—</div>'}
       </div>`;
   }).join('');
+
+  // ---- Enchanting (equipped items only) ----
+  const enchantRows = EQUIP_SLOTS.map(slot => {
+    const itemId = state.equipment[slot];
+    if (!itemId) return '';
+    const item = getItem(itemId);
+    const lvl = state.enchants?.[itemId] || 0;
+    const cost = enchantCost(itemId);
+    const maxed = !cost;
+    const rune = cost ? getItem(cost.rune) : null;
+    const haveRunes = cost ? (state.inventory[cost.rune] || 0) : 0;
+    return `
+      <div class="shop-row">
+        <div style="font-size:20px">${item.icon}</div>
+        <div class="shop-row-info">
+          <div class="shop-row-title ${rarityCls(item)}">${item.name} ${lvl ? `<b style="color:var(--shard)">+${lvl}</b>` : ''}</div>
+          <div class="shop-row-desc">${maxed ? 'Fully enchanted — it hums when nobody is listening.'
+            : `Next: +${cost.next} (+${cost.next * 10}% stats) — ${rune.icon} ${cost.runeQty} ${rune.name} (${fmt(haveRunes)}) · 🪙 ${fmt(cost.gold)}`}</div>
+        </div>
+        <div class="shop-row-level">${lvl}/${MAX_ENCHANT}</div>
+        ${maxed ? '<span class="pill">MAX</span>'
+          : `<button class="btn btn-sm ${canEnchant(itemId) ? 'btn-primary' : ''}" data-act="enchant" data-item="${itemId}" ${canEnchant(itemId) ? '' : 'disabled'}>✨ Enchant</button>`}
+      </div>`;
+  }).join('');
+  const anyEquipped = EQUIP_SLOTS.some(s => state.equipment[s]);
 
   const equipables = Object.entries(state.inventory)
     .map(([id, qty]) => ({ item: getItem(id), qty }))
@@ -292,6 +330,9 @@ export function equipmentPanel() {
         </div>
       </div>
     </div>
+    <div class="section-title">✨ Enchanting</div>
+    <div class="panel-desc">Runes from the Rifts push equipped gear to +5 — each rank adds 10% to the item's stats. Enchants stick to the item even if you unequip it.</div>
+    ${anyEquipped ? enchantRows : '<div class="muted">Equip something first — the runes need a surface to bite into.</div>'}
     <div class="section-title">🎒 Equipable items</div>
     ${equipList}
   `;
@@ -333,6 +374,7 @@ export function characterPanel() {
         <span>ADVENTURER — ${state.ascensions > 0 ? `ASCENDED ×${state.ascensions}` : 'MORTAL'}</span>
         <span>CHARACTER LV. ${charLevel()}</span>
       </div>
+      ${titlePicker()}
       ${pts > 0 ? `<div class="stat-points-banner">◈ ${pts} UNSPENT STAT POINT${pts > 1 ? 'S' : ''} — the System awaits your choice</div>` : ''}
       ${statRows}
       <div class="char-sheet-header" style="margin-top:18px"><span>DERIVED</span></div>
@@ -349,6 +391,23 @@ export function characterPanel() {
       <div class="stat-row"><span class="stat-desc">Actions performed: <b>${fmtInt(st.actions)}</b> · Items sold: <b>${fmtInt(st.itemsSold)}</b> · Lifetime gold: <b>🪙 ${fmt(state.lifetimeGold)}</b></span></div>
     </div>
   `;
+}
+
+function titlePicker() {
+  const titles = unlockedTitles();
+  const current = state.activeTitle;
+  if (!titles.length) {
+    return `<div class="muted" style="margin-bottom:10px">No titles earned yet — achievements grant them. The leaderboard shows your title beside your name.</div>`;
+  }
+  const options = ['<option value="">— no title —</option>']
+    .concat(titles.map(t => `<option value="${t}" ${current === t ? 'selected' : ''}>${t}</option>`))
+    .join('');
+  return `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-family:var(--font-ui)">
+      <span class="muted">Title:</span>
+      ${current ? `<span class="rarity-legendary">"${current}"</span>` : '<span class="muted">none</span>'}
+      <select id="title-select" style="background:var(--bg-deep);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px">${options}</select>
+    </div>`;
 }
 
 // ---------------- Ascension ----------------
@@ -443,7 +502,10 @@ function accountSection() {
       <div class="card-title">☁️ Cloud saves & leaderboards</div>
       <div class="card-sub">Sign in to carry your progress between devices and appear in the global rankings.
       Your local save is never deleted by signing in — if the two differ, you get to choose.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${buttons || '<span class="muted">No sign-in providers are configured on this deployment.</span>'}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${buttons || `
+        <span class="muted">The backend is reachable, but no sign-in provider is configured yet.
+        Set <code>GITHUB_CLIENT_ID</code>/<code>GITHUB_CLIENT_SECRET</code> or the Google pair in your
+        Vercel environment variables, then redeploy.</span>`}</div>
     </div>`;
 }
 

@@ -10,9 +10,10 @@
 // impossible values, and casual leaderboard spoofing.
 // ============================================================
 import { levelForXp, MAX_LEVEL } from '../../src/core/xp.js';
+import { TITLE_SET } from '../../src/data/achievements.js';
 
 const KNOWN_SKILLS = [
-  'woodcutting', 'mining', 'fishing', 'smithing', 'cooking',
+  'woodcutting', 'mining', 'fishing', 'smithing', 'cooking', 'alchemy',
   'attack', 'strength', 'defense', 'hitpoints',
 ];
 
@@ -87,6 +88,10 @@ export function validateSave(raw) {
     ? Object.values(save.quests.completed).filter(Boolean).length
     : 0;
 
+  // Title: cosmetic, but only known titles are stored.
+  const title = typeof raw.activeTitle === 'string' && TITLE_SET.has(raw.activeTitle)
+    ? raw.activeTitle : null;
+
   const derived = {
     totalLevel,
     combatLevel,
@@ -96,6 +101,7 @@ export function validateSave(raw) {
     bossKills: Math.floor(save.stats?.bossKills || 0),
     questsDone: Math.min(questsDone, 100),
     cyclebreaker: save.ending === 'broken',
+    title,
   };
 
   return { ok: true, save, derived };

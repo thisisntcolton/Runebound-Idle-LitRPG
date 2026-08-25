@@ -32,7 +32,8 @@ function makeSave(overrides = {}) {
       attack:      { xp: xpForLevel(60) },   // 60
       strength:    { xp: xpForLevel(60) },   // 60
       defense:     { xp: xpForLevel(45) },   // 45
-      hitpoints:   { xp: xpForLevel(55) },   // 55  → total 370
+      hitpoints:   { xp: xpForLevel(55) },   // 55
+      alchemy:     { xp: xpForLevel(12) },   // 12  → total 382
     },
     stats: { kills: 1200, deaths: 3, actions: 900, bossKills: 4, itemsSold: 50, highestDamage: 88 },
     quests: { completed: { status_awake: true, first_paycheck: true, sharp_edges: true }, progress: {}, seenOffers: {} },
@@ -77,7 +78,7 @@ test('validate: derives total level from XP, not from client claims', async () =
   const cheeky = makeSave({ totalLevel: 891, combatLevel: 999, derived: { totalLevel: 891 } });
   const res = validateSave(cheeky);
   assert.equal(res.ok, true);
-  assert.equal(res.derived.totalLevel, 370, 'total level must be recomputed from raw XP');
+  assert.equal(res.derived.totalLevel, 382, 'total level must be recomputed from raw XP');
   assert.equal(res.derived.combatLevel, Math.floor((60 + 60 + 45 + 55) / 3));
   assert.equal(res.derived.questsDone, 3);
   assert.equal(res.derived.cyclebreaker, false);
@@ -105,6 +106,16 @@ test('validate: flags the Cyclebreaker ending', async () => {
   const { validateSave } = await import('../api/_lib/validate.js');
   const res = validateSave(makeSave({ ending: 'broken' }));
   assert.equal(res.derived.cyclebreaker, true);
+});
+
+test('validate: accepts known titles, strips invented ones', async () => {
+  const { validateSave } = await import('../api/_lib/validate.js');
+  const legit = validateSave(makeSave({ activeTitle: 'Cyclebreaker' }));
+  assert.equal(legit.derived.title, 'Cyclebreaker');
+  const forged = validateSave(makeSave({ activeTitle: 'Supreme Leader of the Database' }));
+  assert.equal(forged.derived.title, null, 'made-up titles are stripped');
+  const none = validateSave(makeSave());
+  assert.equal(none.derived.title, null);
 });
 
 test('session: signed tokens round-trip and reject tampering', async () => {
@@ -212,7 +223,7 @@ test('save + leaderboard: full round-trip with a real user', async () => {
   const postData = await postRes.json();
   assert.equal(postRes.status, 200);
   assert.equal(postData.ok, true);
-  assert.equal(postData.summary.totalLevel, 370, 'server-derived, ignoring the claimed 891');
+  assert.equal(postData.summary.totalLevel, 382, 'server-derived, ignoring the claimed 891');
 
   // Pull it back
   getRes = await savedApi.GET(req('/api/save', { headers: auth }));
@@ -226,7 +237,7 @@ test('save + leaderboard: full round-trip with a real user', async () => {
   const me = lbData.entries.find(e => e.you);
   assert.ok(me, 'signed-in player appears on the board');
   assert.equal(me.name, 'Testfang the Bold');
-  assert.equal(me.totalLevel, 370);
+  assert.equal(me.totalLevel, 382);
   assert.equal(me.shards, 7);
   assert.equal(me.bossKills, 4);
   assert.equal(me.questsDone, 3);

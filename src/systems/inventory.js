@@ -61,11 +61,14 @@ export function sellItem(itemId, qty) {
   return gained;
 }
 
+const KEEP_ON_SELL_ALL = new Set(['rune_shard', 'greater_rune', 'void_rune']); // enchanting fuel
+
 export function sellAllOfType(type) {
   let total = 0;
   for (const [itemId, qty] of Object.entries({ ...state.inventory })) {
     const item = getItem(itemId);
     if (!item) continue;
+    if (KEEP_ON_SELL_ALL.has(itemId)) continue;
     if (type === 'resources' && item.type !== 'resource') continue;
     if (type === 'all' && item.type === 'food') continue; // keep food when selling "all"
     removeItem(itemId, qty);

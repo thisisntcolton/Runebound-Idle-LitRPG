@@ -29,28 +29,28 @@ export async function GET(request) {
     let rows;
     if (boardKey === 'cyclebreakers') {
       rows = await sql`
-        SELECT user_id, display_name, avatar_url, total_level, combat_level, shards,
+        SELECT user_id, display_name, avatar_url, title, total_level, combat_level, shards,
                ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker
         FROM leaderboard WHERE cyclebreaker = true
         ORDER BY ascensions DESC, total_level DESC LIMIT ${LIMIT}`;
     } else if (boardKey === 'shards') {
       rows = await sql`
-        SELECT user_id, display_name, avatar_url, total_level, combat_level, shards,
+        SELECT user_id, display_name, avatar_url, title, total_level, combat_level, shards,
                ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker
         FROM leaderboard ORDER BY shards DESC, total_level DESC LIMIT ${LIMIT}`;
     } else if (boardKey === 'lifetime_gold') {
       rows = await sql`
-        SELECT user_id, display_name, avatar_url, total_level, combat_level, shards,
+        SELECT user_id, display_name, avatar_url, title, total_level, combat_level, shards,
                ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker
         FROM leaderboard ORDER BY lifetime_gold DESC, total_level DESC LIMIT ${LIMIT}`;
     } else if (boardKey === 'boss_kills') {
       rows = await sql`
-        SELECT user_id, display_name, avatar_url, total_level, combat_level, shards,
+        SELECT user_id, display_name, avatar_url, title, total_level, combat_level, shards,
                ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker
         FROM leaderboard ORDER BY boss_kills DESC, total_level DESC LIMIT ${LIMIT}`;
     } else {
       rows = await sql`
-        SELECT user_id, display_name, avatar_url, total_level, combat_level, shards,
+        SELECT user_id, display_name, avatar_url, title, total_level, combat_level, shards,
                ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker
         FROM leaderboard ORDER BY total_level DESC, lifetime_gold DESC LIMIT ${LIMIT}`;
     }
@@ -68,6 +68,7 @@ export async function GET(request) {
       bossKills: Number(r.boss_kills),
       questsDone: Number(r.quests_done),
       cyclebreaker: r.cyclebreaker,
+      title: r.title || null,
     }));
 
     // The signed-in player's own standing, even if outside the top N
@@ -77,7 +78,7 @@ export async function GET(request) {
       if (inList) self = inList;
       else {
         const own = await sql`
-          SELECT total_level, combat_level, shards, ascensions, lifetime_gold,
+          SELECT title, total_level, combat_level, shards, ascensions, lifetime_gold,
                  boss_kills, quests_done, cyclebreaker, display_name, avatar_url
           FROM leaderboard WHERE user_id = ${session.userId} LIMIT 1`;
         if (own.length) {
@@ -102,6 +103,7 @@ export async function GET(request) {
             bossKills: Number(r.boss_kills),
             questsDone: Number(r.quests_done),
             cyclebreaker: r.cyclebreaker,
+            title: r.title || null,
           };
         }
       }

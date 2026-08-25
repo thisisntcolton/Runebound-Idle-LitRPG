@@ -55,7 +55,9 @@ export async function refreshMe() {
       cloud.status = 'signed-in';
     } else {
       cloud.user = null;
-      cloud.status = 'signed-out'
+      // The backend answered, so it exists. Whether any OAuth provider is
+      // configured is a separate question — leaderboards are readable either way.
+      cloud.status = 'signed-out';
     }
     cloud.lastError = data.error || null;
   } catch (err) {
@@ -73,7 +75,7 @@ export function signIn(provider) {
 export async function signOut() {
   try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
   cloud.user = null;
-  cloud.status = cloud.providers.length ? 'signed-out' : 'unavailable';
+  cloud.status = 'signed-out';
   emit('notify', { type: 'sys', text: '[ SYSTEM ] Signed out. Local progress is untouched.' });
   emit('state-changed');
 }

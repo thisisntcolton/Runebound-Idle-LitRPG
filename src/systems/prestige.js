@@ -29,6 +29,9 @@ export function ascend() {
     cycleSeen: state.cycleSeen,
     ending: state.ending,
     endingOfferedCycle: state.endingOfferedCycle,
+    // so do your deeds
+    achievements: state.achievements,
+    activeTitle: state.activeTitle,
   };
   const fresh = defaultState();
   Object.assign(fresh, keep);

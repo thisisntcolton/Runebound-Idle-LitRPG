@@ -75,11 +75,11 @@ export async function POST(request) {
     await sql`
       INSERT INTO leaderboard (
         user_id, display_name, avatar_url, total_level, combat_level, shards,
-        ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker, updated_at)
+        ascensions, lifetime_gold, boss_kills, quests_done, cyclebreaker, title, updated_at)
       SELECT u.id, u.display_name, u.avatar_url,
              ${derived.totalLevel}, ${derived.combatLevel}, ${derived.shards},
              ${derived.ascensions}, ${derived.lifetimeGold}, ${derived.bossKills},
-             ${derived.questsDone}, ${derived.cyclebreaker}, now()
+             ${derived.questsDone}, ${derived.cyclebreaker}, ${derived.title}, now()
       FROM users u WHERE u.id = ${session.userId}
       ON CONFLICT (user_id) DO UPDATE
         SET display_name  = EXCLUDED.display_name,
@@ -92,6 +92,7 @@ export async function POST(request) {
             boss_kills    = EXCLUDED.boss_kills,
             quests_done   = EXCLUDED.quests_done,
             cyclebreaker  = EXCLUDED.cyclebreaker,
+            title         = EXCLUDED.title,
             updated_at    = now()`;
 
     return json({ ok: true, summary: derived, maxBytes: MAX_SAVE_BYTES });

@@ -59,6 +59,7 @@ function row(entry, board) {
       <div class="shop-row-info">
         <div class="shop-row-title">
           ${escapeHtml(entry.name)}
+          ${entry.title ? `<span class="rarity-legendary" style="font-size:12px">"${escapeHtml(entry.title)}"</span>` : ''}
           ${entry.you ? '<span class="pill" style="color:var(--sys-blue);border-color:var(--sys-blue)">YOU</span>' : ''}
           ${entry.cyclebreaker && board !== 'cyclebreakers' ? '<span class="pill" style="color:var(--gold);border-color:var(--gold)">⛓️ CYCLEBREAKER</span>' : ''}
         </div>
@@ -105,9 +106,10 @@ export function leaderboardPanel() {
       : '');
   }
 
-  const signInNudge = cloud.status === 'signed-out'
-    ? `<div class="stat-points-banner">◈ Sign in from Settings to appear on the leaderboards and sync across devices.</div>`
-    : '';
+  const signInNudge = cloud.status !== 'signed-out' ? ''
+    : cloud.providers.length
+      ? `<div class="stat-points-banner">◈ Sign in from Settings to appear on the leaderboards and sync across devices.</div>`
+      : `<div class="stat-points-banner">◈ Rankings are readable, but this deployment has no sign-in provider configured — so no one can post a score yet.</div>`;
 
   return `
     <div class="panel-header">
