@@ -48,8 +48,15 @@ export const CARE = {
   PLAY_COOLDOWN_MS: 20 * 60 * 1000,
   PLAY_HAPPY: 28,
   PLAY_XP: 12,
-  // Feeding converts food into fullness + a little bond XP.
-  FEED_XP: 6,
+  // Feeding converts food into fullness AND bond XP, and BOTH scale with
+  // what you fed it. A raw shrimp used to bond exactly as well as a
+  // leviathan steak, which made the whole cooking chain pointless to a
+  // pet owner. Cooked food (anything with a heal value) is worth an
+  // explicit premium on top of its price, so the effort counts.
+  FEED_XP_BASE: 5,
+  FEED_XP_PER_ROOT_VALUE: 1.3,   // multiplied by sqrt(sell price)
+  FEED_XP_COOKED_MULT: 1.5,      // properly cooked, not raw
+  FEED_XP_CAP: 45,               // before the favourite-food doubling
   // A well-cared-for pet passively earns bond XP over time.
   IDLE_XP_PER_HOUR: 30,
   WELL_KEPT_AT: 70,     // both stats above this = "thriving", double idle XP

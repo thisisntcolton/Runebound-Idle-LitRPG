@@ -4,6 +4,7 @@
 import { state, skillLevel, actionTime, charLevel, combatLevel, maxHp,
          attackInterval } from '../core/state.js';
 import { SKILLS, TRAINABLE_SKILLS, getAction } from '../data/skills.js';
+import { HIRELINGS } from '../data/upgrades.js';
 import { getMonster, ZONES } from '../data/monsters.js';
 import { getItem } from '../data/items.js';
 import { fmt } from '../core/format.js';
@@ -21,7 +22,7 @@ import { appearancePanel } from './appearance.js';
 import { heroBust } from './heroart.js';
 import { normalizeLook, randomLook, defaultLook } from '../data/appearance.js';
 import { chooseClass, currentClass, classPending, classUnlocked,
-         setClassUIHooks } from '../systems/classes.js';
+         setClassUIHooks, buyTalent, talentPoints } from '../systems/classes.js';
 import { setCodexUIHooks, markRead, codex as codexState, progress as codexProgress } from '../systems/codex.js';
 import { startIncubation, hatch, feed, play, renamePet, setActive, release,
          breed, buyEgg } from '../systems/pets.js';
@@ -98,7 +99,7 @@ export function renderSidebar() {
     ${navItem('look', '🪞', 'Appearance')}
     ${navItem('class', currentClass()?.icon || '🎭', 'Path', {
       level: currentClass()?.name || (classUnlocked() ? 'Choose' : `Lv.${10}`),
-      working: classPending() })}
+      working: classPending() || (!!currentClass() && talentPoints().free > 0) })}
     ${navItem('achievements', '🏅', 'Achievements')}
     ${navItem('inventory', '🎒', 'Inventory')}
     ${navItem('equipment', '🛡️', 'Equipment')}
@@ -137,8 +138,10 @@ function eggsReady() {
 }
 
 function hasWorkingHireling(skillId) {
-  const map = { woodcutting: 'h_wood', mining: 'h_mine', fishing: 'h_fish', smithing: 'h_smith', cooking: 'h_cook', alchemy: 'h_alch' };
-  return (state.hirelings[map[skillId]] || 0) > 0;
+  // Derived from the hireling table rather than a second hand-kept map,
+  // which is how a new skill ends up silently missing its working dot.
+  const h = HIRELINGS.find(x => x.skill === skillId);
+  return !!h && (state.hirelings[h.id] || 0) > 0;
 }
 
 // ---------------- Main panel ----------------
@@ -376,6 +379,7 @@ function showItemMenu(itemId) {
       ${item.heal ? `<p>🍖 Heals <b>${item.heal}</b> HP when set as combat food.</p>` : ''}
       ${item.type === 'potion' ? `<p>🧪 ${Object.entries(item.effects || {}).map(([k, v]) => `+${Math.round(v * 100)}% ${k}`).join(' · ')} for 10 minutes</p>` : ''}
       ${item.stats ? `<p>${Object.entries(item.stats).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join(' · ')}</p>` : ''}
+      ${item.type === 'valuable' ? `<p class="muted">Stolen goods. Nothing crafts with these and no business will touch them — they are worth exactly what a fence will pay.</p>` : ''}
     </div>
     <div class="modal-actions">
       <button class="btn btn-sm" data-act="sell-one" data-item="${itemId}">Sell 1</button>
@@ -536,6 +540,7 @@ function handleAction(target) {
       renderView();
       break;
     }
+    case 'buy-talent': buyTalent(target.dataset.node); renderView(); break;
     case 'choose-class':
       if (chooseClass(target.dataset.class)) { closeModal(); setView('class'); }
       break;
@@ -639,6 +644,7 @@ export function initRenderer() {
   on('pets-changed', () => { if (ui.view === 'pets') safeRenderView(); });
   on('codex-discovered', () => { if (ui.view === 'codex') safeRenderView(); else renderSidebar(); });
   on('class-chosen', renderView);
+  on('class-level', () => { if (ui.view === 'class') safeRenderView(); else renderSidebar(); });
   on('encounter-offered', () => { if (ui.view === 'town') renderView(); else renderSidebar(); });
   on('encounter-resolved', () => { if (ui.view === 'town') renderView(); });
   on('combat-crit', ({ damage }) => {

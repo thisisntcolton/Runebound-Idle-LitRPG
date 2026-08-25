@@ -61,6 +61,41 @@ const townTxt = await page.textContent('#main-panel');
 ok('town panel renders with a class active', townTxt.length > 200);
 ok('Artisan discount is quoted on the parcel price', /4,?\d{3}|3,?500/.test(townTxt) || townTxt.length > 200);
 
+
+// ---- Talent tree ----
+console.log('\n[talents]');
+// Seed class XP directly, then reload so the tree has points to spend.
+await page.evaluate(() => {
+  const st = JSON.parse(localStorage.getItem('runebound-save-v1'));
+  st.classProgress = { artisan: { xp: 900000, spent: {}, pointsUsed: 0 } };
+  const real = Storage.prototype.setItem.bind(localStorage);
+  real('runebound-save-v1', JSON.stringify(st));
+  Storage.prototype.setItem = function (k, v) { if (k === 'runebound-save-v1') return; return real(k, v); };
+});
+await page.reload({ waitUntil: 'networkidle' });
+await page.evaluate(()=>document.getElementById('modal-overlay')?.classList.add('hidden'));
+await page.evaluate(()=>document.querySelector('[data-act="nav"][data-view="class"]')?.click());
+await page.waitForTimeout(400);
+const tTxt = await page.textContent('#main-panel');
+ok('talent tree renders', /Talents/.test(tTxt));
+ok('class level is shown', /Class level \d+/.test(tTxt), (tTxt.match(/Class level \d+/)||[''])[0]);
+ok('points are available to spend', /point[s]? to spend/.test(tTxt));
+ok('tiers gate on class level', /Unlocks at class level/.test(tTxt) || /Capstone/.test(tTxt));
+const buyable = await page.locator('#main-panel [data-act="buy-talent"]').count();
+ok('at least one talent is buyable', buyable > 0, `${buyable} buyable`);
+if (buyable > 0) {
+  await page.locator('#main-panel [data-act="buy-talent"]').first().click();
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(()=>{
+    Object.defineProperty(document,'visibilityState',{get:()=>'hidden',configurable:true});
+    document.dispatchEvent(new Event('visibilitychange'));
+    return JSON.parse(localStorage.getItem('runebound-save-v1'));
+  });
+  ok('buying a talent records the rank', Object.keys(after?.classProgress?.artisan?.spent||{}).length > 0,
+     JSON.stringify(after?.classProgress?.artisan?.spent));
+  ok('points are deducted', (after?.classProgress?.artisan?.pointsUsed||0) > 0);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (errs.length){console.log('Errors:');[...new Set(errs)].slice(0,6).forEach(e=>console.log('  !',e));}
 await b.close(); process.exit(fail||errs.length?1:0);

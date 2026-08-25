@@ -273,15 +273,30 @@ export function feed(petId, foodItemId) {
   removeItem(foodItemId, 1);
   pet.hunger = Math.min(100, pet.hunger + amount);
   if (favourite) pet.happy = Math.min(100, pet.happy + 10);
-  gainXp(pet, CARE.FEED_XP * (favourite ? 2 : 1));
+  gainXp(pet, feedXpFor(item, favourite));
   pet.careAt = Date.now();
 
+  const xp = Math.round(feedXpFor(item, favourite));
   emit('notify', { type: 'sys', text: favourite
-    ? `${sp.icon} ${pet.name} adores ${item.name}! (+${Math.round(amount)} fullness)`
-    : `${sp.icon} ${pet.name} eats the ${item.name}. (+${Math.round(amount)} fullness)` });
+    ? `${sp.icon} ${pet.name} adores ${item.name}! (+${Math.round(amount)} fullness, +${xp} bond)`
+    : `${sp.icon} ${pet.name} eats the ${item.name}. (+${Math.round(amount)} fullness, +${xp} bond)` });
   emit('pets-changed', {});
   emit('state-changed');
   return true;
+}
+
+/**
+ * Bond XP for one feeding.
+ *
+ * Scales off the square root of the item's value so the curve stays
+ * generous at the bottom and does not explode at the top, with a flat
+ * premium for cooked food. `item.heal` is the marker: only things that
+ * came off a cooking fire have one.
+ */
+export function feedXpFor(item, favourite = false) {
+  const cooked = item.heal ? CARE.FEED_XP_COOKED_MULT : 1;
+  const base = (CARE.FEED_XP_BASE + Math.sqrt(item.sell || 1) * CARE.FEED_XP_PER_ROOT_VALUE) * cooked;
+  return Math.min(CARE.FEED_XP_CAP, base) * (favourite ? 2 : 1);
 }
 
 export function playCooldownLeft(pet) {

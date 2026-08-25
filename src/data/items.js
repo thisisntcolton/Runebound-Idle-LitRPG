@@ -32,7 +32,7 @@ def({ id: 'raw_leviathan', name: 'Leviathan Cut', icon: '🐋', type: 'resource'
 def({ id: 'bronze_bar',  name: 'Bronze Bar',  icon: '🟫', type: 'resource', rarity: 'common',   sell: 8 });
 def({ id: 'iron_bar',    name: 'Iron Bar',    icon: '⬜', type: 'resource', rarity: 'common',   sell: 20 });
 def({ id: 'steel_bar',   name: 'Steel Bar',   icon: '🔩', type: 'resource', rarity: 'uncommon', sell: 45 });
-def({ id: 'mythril_bar', name: 'Mythril Bar', icon: '🟦', type: 'resource', rarity: 'rare',     sell: 130 });
+def({ id: 'mythril_bar', name: 'Mythril Bar', icon: '🟦', type: 'resource', rarity: 'rare',     sell: 155 });
 def({ id: 'runite_bar',  name: 'Runite Bar',  icon: '🟪', type: 'resource', rarity: 'epic',     sell: 480 });
 
 // ---------- Food (cooking outputs) ----------
@@ -41,6 +41,14 @@ def({ id: 'trout',   name: 'Cooked Trout',    icon: '🐟', type: 'food', rarity
 def({ id: 'salmon',  name: 'Cooked Salmon',   icon: '🍣', type: 'food', rarity: 'uncommon', sell: 30,  heal: 38 });
 def({ id: 'lobster', name: 'Cooked Lobster',  icon: '🦞', type: 'food', rarity: 'rare',     sell: 90,  heal: 70 });
 def({ id: 'leviathan_steak', name: 'Leviathan Steak', icon: '🥩', type: 'food', rarity: 'epic', sell: 320, heal: 150 });
+// Farm-fed cooking. Slightly better heal-per-gold than the fish line,
+// because it takes two skills to make instead of one.
+def({ id: 'bread',        name: 'Fresh Bread',    icon: '🍞', type: 'food', rarity: 'common',   sell: 11,  heal: 16 });
+def({ id: 'root_stew',    name: 'Root Stew',      icon: '🍲', type: 'food', rarity: 'common',   sell: 34,  heal: 44 });
+def({ id: 'ember_stew',   name: 'Ember Stew',     icon: '🥘', type: 'food', rarity: 'uncommon', sell: 88,  heal: 82 });
+def({ id: 'gourd_pie',    name: 'Moon Gourd Pie', icon: '🥧', type: 'food', rarity: 'rare',     sell: 195, heal: 130 });
+def({ id: 'silk_broth',   name: 'Silkleaf Broth', icon: '🍜', type: 'food', rarity: 'rare',     sell: 420, heal: 205 });
+def({ id: 'sunfruit_tart',name: 'Sunfruit Tart',  icon: '🥮', type: 'food', rarity: 'epic',     sell: 880, heal: 320 });
 
 // ---------- Smithed equipment (5 tiers x 5 slots) ----------
 const TIERS = [
@@ -148,6 +156,37 @@ def({ id: 'refined_tonic', name: 'Refined Tonic', icon: '🍶', type: 'potion', 
       sell: 260, duration: 900, effects: { damage: 0.18, reduction: 0.12 } });
 
 // ---------- Pet eggs (generated from the species list) ----------
+
+// ---------- Farming produce ----------
+// Priced between logs and ore: a farm is steadier than a mine and pays
+// less per unit, but every one of these is also a Cooking or Alchemy input.
+def({ id: 'wheat',       name: 'Wheat',        icon: '🌾', type: 'resource', rarity: 'common',   sell: 3 });
+def({ id: 'root_veg',    name: 'Root Vegetables', icon: '🥕', type: 'resource', rarity: 'common', sell: 9 });
+def({ id: 'emberpepper', name: 'Emberpepper',  icon: '🌶️', type: 'resource', rarity: 'uncommon', sell: 26 });
+def({ id: 'moon_gourd',  name: 'Moon Gourd',   icon: '🎃', type: 'resource', rarity: 'uncommon', sell: 72 });
+def({ id: 'silkleaf',    name: 'Silkleaf',     icon: '🍃', type: 'resource', rarity: 'rare',     sell: 165 });
+def({ id: 'sunfruit',    name: 'Sunfruit',     icon: '🍑', type: 'resource', rarity: 'epic',     sell: 340 });
+
+// ---------- Thieving spoils ----------
+// These exist to be SOLD. No crafting chain, no cooking, no town input:
+// Thieving is the gold skill and its output is deliberately terminal.
+// Priced so that Thieving's RAW gold is roughly what a gatherer earns
+// after routing their produce through an upgraded Market Stall. It should
+// be the best direct gold source in the game, not fourteen times the next
+// best, which is where the first pass landed it.
+def({ id: 'cutpurse_coin',  name: 'Cutpurse Purse', icon: '👛', type: 'valuable', rarity: 'common',   sell: 14 });
+def({ id: 'pilfered_goods', name: 'Pilfered Goods', icon: '🍎', type: 'valuable', rarity: 'common',   sell: 36 });
+def({ id: 'strongbox_haul', name: 'Strongbox Haul', icon: '🧰', type: 'valuable', rarity: 'uncommon', sell: 95 });
+def({ id: 'caravan_spoils', name: 'Caravan Spoils', icon: '🐎', type: 'valuable', rarity: 'rare',     sell: 230 });
+def({ id: 'vault_prize',    name: 'Vault Prize',    icon: '🔐', type: 'valuable', rarity: 'epic',     sell: 500 });
+def({ id: 'stolen_fragment',name: 'Stolen Fragment',icon: '⬛', type: 'valuable', rarity: 'legendary', sell: 1100 });
+
+// ---------- Runecrafting ----------
+def({ id: 'rune_essence',  name: 'Rune Essence',  icon: '⚱️', type: 'resource', rarity: 'common',   sell: 12 });
+def({ id: 'minor_rune',    name: 'Minor Rune',    icon: '🔹', type: 'resource', rarity: 'uncommon', sell: 55 });
+def({ id: 'binding_sigil', name: 'Binding Sigil', icon: '🌀', type: 'resource', rarity: 'epic',     sell: 640 });
+def({ id: 'blank_tome',    name: 'Blank Tome',    icon: '📕', type: 'resource', rarity: 'legendary', sell: 2400 });
+
 import { SPECIES_LIST, eggItemId } from './pets.js';
 
 const EGG_SELL = { common: 2000, rare: 12000, epic: 40000, legendary: 150000 };

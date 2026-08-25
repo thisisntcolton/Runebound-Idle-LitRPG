@@ -23,6 +23,10 @@ export function addXp(skillId, baseAmount, { useMult = true } = {}) {
   if (charAfter > charBefore) {
     emit('char-level', { level: charAfter });
   }
+  // Everything you earn also feeds the class you are currently walking.
+  // Emitted rather than called directly so skills.js stays free of a
+  // dependency on the class system.
+  emit('xp-gained', { skillId, amount });
   return amount;
 }
 

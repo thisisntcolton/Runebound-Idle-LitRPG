@@ -55,71 +55,100 @@ for (const def of Object.values(BUILDINGS)) {
 
 console.log('\n\n=== CLASSES ===\n');
 
+import { CLASSES as CLS, SIGNATURE as SIG } from '../src/data/classes.js';
+import { TREES } from '../src/data/talents.js';
+
 const BAL = { ACCURACY_BASE:22, ACCURACY_PER_ATTACK_LEVEL:2, ACCURACY_DEFENSE_CONSTANT:10,
   MAXHIT_BASE:4, MAXHIT_PER_STRENGTH_LEVEL:0.8, MAXHIT_PER_GEAR_STR:0.65,
   MINHIT_FRACTION_BASE:0.30, MINHIT_FRACTION_PER_ATTACK_LEVEL:0.001, MINHIT_FRACTION_CAP:0.42,
   ATTACK_INTERVAL_MS:2400, DR_SOFTCAP_CONSTANT:220, DR_FLAT_CAP:0.60, DR_MULT_CAP:0.45, DR_TOTAL_CAP:0.85 };
 
-// A mid-game character: level 50s, decent gear, some stat points
 const CH = { atk:55, str:55, def:50, hp:55, gearAtk:60, gearStr:45, gearHp:80, gearDef:70,
              STR:15, AGI:15, VIT:15, INT:15, LUK:10 };
-const MON = { hp: 900, defense: 55, attack: 46, attackSpeed: 2600, name: 'mid-game elite' };
 
-const b = (cls,k) => cls ? (cls.passive[k]||0) : 0;
+/**
+ * `overLevel` is how far above the player's combat level the target is.
+ * The Priest is the only class paid for that, so comparing classes at 0
+ * would hide its whole identity and comparing at 20 would flatter it.
+ * Both are reported.
+ */
+function profile(cls, { talentPoints = 0, overLevel = 0 } = {}) {
+  // Spend points greedily down the tree, in listed order, respecting max ranks.
+  const spend = {};
+  if (cls && talentPoints > 0) {
+    let left = talentPoints;
+    for (const node of TREES[cls.id] || []) {
+      for (let r = 0; r < node.max && left >= node.cost; r++) { left -= node.cost; spend[node.id] = (spend[node.id]||0)+1; }
+    }
+  }
+  const tb = key => {
+    let t = 0;
+    for (const node of TREES[cls?.id] || []) {
+      const r = spend[node.id] || 0;
+      if (r && node.bonus?.[key]) t += node.bonus[key] * r;
+    }
+    return t;
+  };
+  const b = k => cls ? ((cls.passive[k]||0) + tb(k)) : 0;
 
-function profile(cls) {
-  const acc = (BAL.ACCURACY_BASE + CH.atk*BAL.ACCURACY_PER_ATTACK_LEVEL + CH.gearAtk) * (1 + b(cls,'accuracy'));
-  const hitChance = acc / (acc + MON.defense + BAL.ACCURACY_DEFENSE_CONSTANT);
+  const over = Math.min(SIG.OVERLEVEL_CAP, overLevel);
+  const overDmg = Math.min(SIG.OVERLEVEL_MAX_DAMAGE, 1 + b('overlevel_damage') * over);
+  const overLoot = Math.min(SIG.OVERLEVEL_MAX_LOOT, 1 + b('overlevel_loot') * over);
+
+  const monDef = 55 + overLevel * 2.2;
+  const monHp  = 900 + overLevel * 90;
+  const monAtk = 46 + overLevel * 3.4;
+
+  const acc = (BAL.ACCURACY_BASE + CH.atk*BAL.ACCURACY_PER_ATTACK_LEVEL + CH.gearAtk) * (1 + b('accuracy'));
+  const hitChance = Math.min(1, acc / (acc + monDef + BAL.ACCURACY_DEFENSE_CONSTANT));
   const maxHit = Math.max(1, Math.floor(
     (BAL.MAXHIT_BASE + CH.str*BAL.MAXHIT_PER_STRENGTH_LEVEL + CH.gearStr*BAL.MAXHIT_PER_GEAR_STR)
-    * (1 + CH.STR*0.01) * (1 + b(cls,'damage')) * (1 + CH.INT*b(cls,'int_damage'))));
+    * (1 + CH.STR*0.01) * (1 + b('damage')) * (1 + CH.INT*b('int_damage'))));
   const minFrac = Math.min(BAL.MINHIT_FRACTION_CAP, BAL.MINHIT_FRACTION_BASE + CH.atk*BAL.MINHIT_FRACTION_PER_ATTACK_LEVEL);
-  const minHit = Math.max(1, Math.floor(maxHit*minFrac));
-  const avgHit = (minHit + maxHit)/2;
-  const crit = b(cls,'crit');
-  const critted = avgHit * (1 + crit*(SIGNATURE.CRIT_MULTIPLIER-1));
-  const burn = critted * (cls?.id==='mage' ? SIGNATURE.BURN_FRACTION : 0);
-  const interval = BAL.ATTACK_INTERVAL_MS / (1 + CH.AGI*0.005 + b(cls,'attack_speed'));
+  const avgHit = (Math.max(1, Math.floor(maxHit*minFrac)) + maxHit)/2 * overDmg;
+  const crit = b('crit');
+  const critMult = SIG.CRIT_MULTIPLIER * (1 + b('crit_damage'));
+  const critted = avgHit * (1 + crit*(critMult-1));
+  const burn = critted * (cls?.id==='mage' ? SIG.BURN_FRACTION*(1+b('burn')) : 0);
+  const interval = BAL.ATTACK_INTERVAL_MS / (1 + CH.AGI*0.005 + b('attack_speed'));
   const dps = (critted + burn) * hitChance / (interval/1000);
 
-  const maxHp = Math.floor((10*CH.hp + CH.gearHp) * (1 + CH.VIT*0.01) * (1 + b(cls,'maxhp')));
+  const maxHp = Math.floor((10*CH.hp + CH.gearHp) * (1 + CH.VIT*0.01) * (1 + b('maxhp')));
   const drRating = CH.def*2 + CH.gearDef;
   const flat = Math.min(BAL.DR_FLAT_CAP, drRating/(drRating+BAL.DR_SOFTCAP_CONSTANT));
-  const dr = Math.max(0, Math.min(BAL.DR_TOTAL_CAP, flat * (1 + b(cls,'dr'))));
-  const incoming = MON.attack * (1-dr) / (MON.attackSpeed/1000);
-  const killSecs = MON.hp / dps;
-  const mend = cls?.id==='priest' ? maxHp*SIGNATURE.MEND_FRACTION : 0;
-  const netIncomingPerKill = incoming*killSecs - mend;
-  const effHp = netIncomingPerKill > 0 ? maxHp / netIncomingPerKill : Infinity;
+  const dr = Math.max(0, Math.min(BAL.DR_TOTAL_CAP, flat * (1 + b('dr'))));
+  const killSecs = monHp / dps;
+  const mend = cls?.id==='priest' ? maxHp*(SIG.MEND_FRACTION + b('mend')) : 0;
+  const net = (monAtk*(1-dr)/2.6)*killSecs - mend;
+  const ehp = net > 0 ? maxHp/net : Infinity;
 
-  return { dps, killSecs, maxHp, dr, ehp: effHp,
-    gold: 1 + b(cls,'gold'), xp: 1 + b(cls,'xp'), drop: 1 + b(cls,'drop_rate'),
-    gather: 1 + b(cls,'gather_speed'), town: 1 + b(cls,'town_revenue'), sell: 1 + b(cls,'sell_price') };
+  return { dps, killSecs, ehp, maxHp,
+    gold:(1+b('gold'))*overLoot, xp:1+b('xp'), drop:(1+b('drop_rate'))*overLoot,
+    gather:1+b('gather_speed'), town:1+b('town_revenue'), sell:1+b('sell_price') };
 }
 
-const base = profile(null);
-const rows = [['(no class)', base], ...Object.values(CLASSES).map(c => [c.name, profile(c)])];
-
-const pct = (v, ref) => { const d = (v/ref-1)*100; return (d>=0?'+':'')+d.toFixed(0)+'%'; };
-console.log('Relative to no class, mid-game character vs a 900hp/55def elite\n');
-console.log('class        DPS      kill    survives   gold    xp    drop  gather  town');
-for (const [name, p] of rows) {
-  console.log(
-    name.padEnd(12) +
-    (p.dps.toFixed(1)+' '+pct(p.dps, base.dps)).padEnd(16) +
-    (p.killSecs.toFixed(0)+'s').padEnd(8) +
-    (p.ehp===Infinity ? 'forever' : p.ehp.toFixed(1)+' kills').padEnd(11) +
-    pct(p.gold,1).padEnd(8) + pct(p.xp,1).padEnd(6) +
-    pct(p.drop,1).padEnd(6) + pct(p.gather,1).padEnd(8) + pct(p.town,1));
+function table(label, opts) {
+  const base = profile(null, opts);
+  const rows = [['(no class)', base], ...Object.values(CLS).map(c => [c.name, profile(c, opts)])];
+  console.log(label);
+  console.log('  class        DPS        kill    survives      combat idx   economy idx');
+  for (const [n,p] of rows) {
+    // Survivability past a few kills-worth is nearly worthless in an idle
+    // game: auto-eat already stops you dying, so "unkillable" and "very
+    // hard to kill" play identically. Capping the factor at 4 stops the
+    // index from crowning whatever stacks the most health.
+    const surv = x => Math.min(4, x === Infinity ? 4 : x);
+    const combat = (p.dps * surv(p.ehp)) / (base.dps * surv(base.ehp));
+    const econ = (p.gold*p.drop*p.gather*p.town*p.sell) / (base.gold*base.drop*base.gather*base.town*base.sell);
+    console.log('  ' + n.padEnd(12) +
+      p.dps.toFixed(1).padStart(6) + '   ' + (p.killSecs.toFixed(0)+'s').padStart(6) + '   ' +
+      (p.ehp===Infinity?'forever':p.ehp.toFixed(1)+' kills').padStart(11) + '   ' +
+      (combat.toFixed(2)+'x').padStart(10) + '   ' + (econ.toFixed(2)+'x').padStart(11));
+  }
+  console.log('');
 }
 
-console.log('\nCombat power index (DPS x survivability, normalised):');
-const idx = rows.map(([n,p]) => [n, p.dps * Math.min(20, p.ehp===Infinity?20:p.ehp)]);
-const refIdx = idx[0][1];
-for (const [n,v] of idx) console.log(`  ${n.padEnd(12)} ${(v/refIdx).toFixed(2)}x`);
-
-console.log('\nEconomy index (gold x drop x gather x town x sell):');
-for (const [n,p] of rows) {
-  const e = p.gold * p.drop * p.gather * p.town * p.sell;
-  console.log(`  ${n.padEnd(12)} ${e.toFixed(2)}x`);
-}
+table('AT YOUR LEVEL, no talents (the fair fight)', { talentPoints: 0, overLevel: 0 });
+table('10 LEVELS ABOVE YOU, no talents (the unfair fight)', { talentPoints: 0, overLevel: 10 });
+table('AT YOUR LEVEL, 20 talent points invested', { talentPoints: 20, overLevel: 0 });
+table('10 LEVELS ABOVE YOU, 50 talent points (a maxed class)', { talentPoints: 50, overLevel: 10 });

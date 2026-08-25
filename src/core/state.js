@@ -92,6 +92,9 @@ export function defaultState() {
     // Class — chosen at character level 10, cleared by Ascension.
     classId: null,
     classChosenAt: 0,
+    // Per-class talent progress. Keyed by class id, NEVER reset by
+    // anything: this is the game's only permanent progression.
+    classProgress: {},
 
     // Appearance — the hero you actually look like. Survives Ascension.
     look: null,
@@ -322,7 +325,10 @@ export function doubleChance(skillId) {
   for (const u of UPGRADES) {
     if (u.skill === skillId && u.effect?.double) chance += u.effect.double * upgradeLevel(u.id);
   }
-  return chance;
+  // Thieving is the one skill where luck is the whole discipline, so LUK
+  // pays out here directly instead of only nudging drop tables.
+  if (skillId === 'thieving') chance += state.charStats.LUK * 0.004;
+  return Math.min(0.95, chance + classBonus('double_chance'));
 }
 
 export function hirelingRate(skillId) {
@@ -330,7 +336,8 @@ export function hirelingRate(skillId) {
   if (!h) return 0;
   const lvl = state.hirelings[h.id] || 0;
   if (lvl === 0) return 0;
-  return HIRELING_BASE_RATE + (lvl - 1) * HIRELING_RATE_PER_RANK;
+  return (HIRELING_BASE_RATE + (lvl - 1) * HIRELING_RATE_PER_RANK)
+       * (1 + classBonus('hireling_rate'));
 }
 
 // Combat-derived stats --------------------------------------

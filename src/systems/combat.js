@@ -12,7 +12,9 @@ import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { rollEggDrop } from './pets.js';
 import { rollCrit, critMultiplier, consumeGuaranteedHit, resetQuarry,
-         applyBurn, tickBurn, clearBurn, mendOnKill } from './classes.js';
+         applyBurn, tickBurn, clearBurn, mendOnKill,
+         overLevelDamageMult, overLevelLootMult, overLevelGap,
+         executesOnCrit, executeThreshold, ignoresZoneGate } from './classes.js';
 import { addXp, stopActivity } from './skills.js';
 import { levelForXp, xpForLevel } from '../core/xp.js';
 import { onUnstableKill, waveMonsterFor, failRun } from './unstable.js';
@@ -41,7 +43,7 @@ export function startCombat(zoneId, monsterId) {
   const zone = getZone(zoneId);
   const monster = getMonster(zoneId, monsterId);
   if (!zone || !monster) return false;
-  if (combatLevel() < zone.level) {
+  if (combatLevel() < zone.level && !ignoresZoneGate()) {
     emit('notify', { type: 'sys', text: `${zone.name} requires Combat Lv. ${zone.level}` });
     return false;
   }
@@ -243,11 +245,16 @@ function onKill(monster) {
   if (monster.boss) state.stats.bossKills++;
   if (monster.id === 'aurelion') state.stats.aurelionKills = (state.stats.aurelionKills || 0) + 1;
 
-  const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
-  emit('notify', { type: 'gold', text: `${monster.name} slain · +${gold} gold` });
+  // Punching above your weight pays better, for classes that can.
+  const lootMult = overLevelLootMult(monster);
+  const gap = overLevelGap(monster);
+  const gold = addGold((monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0])) * lootMult, { silent: true });
+  emit('notify', { type: 'gold', text: gap > 0 && lootMult > 1
+    ? `${monster.name} slain · +${gold} gold (⚖️ ${gap} levels above you)`
+    : `${monster.name} slain · +${gold} gold` });
 
   // Rarity-tier loot: roll a tier, then pull from this monster's pool.
-  for (const drop of rollLoot(monster, dropRateMultiplier() - 1)) {
+  for (const drop of rollLoot(monster, dropRateMultiplier() * lootMult - 1)) {
     const item = getItem(drop.item);
     if (!item) continue;
     addItem(drop.item, drop.qty);
@@ -381,6 +388,10 @@ export function tickCombat(dt) {
       const hi = playerMaxHit();
       let base = lo + Math.floor(Math.random() * (hi - lo + 1));
 
+      // Priest's Trial by Fire: the bonus exists only when the fight is
+      // unfair, and scales with how unfair.
+      base = Math.round(base * overLevelDamageMult(monster));
+
       // Rogue's Backstab: a flat chance to double the swing before any
       // ability multiplies it, so crit and Strike stack the way you'd hope.
       const crit = rollCrit();
@@ -403,6 +414,13 @@ export function tickCombat(dt) {
         emit('ability-used', { slot: 'strike' });
       }
       if (crit) emit('combat-crit', { damage: total });
+      // Rogue capstone: a crit on something already nearly dead finishes it.
+      if (crit && executesOnCrit() && c.monsterHp > 0
+          && c.monsterHp <= (c.monsterMaxHp || monster.hp) * executeThreshold()) {
+        c.monsterHp = 0;
+        emit('notify', { type: 'combat', text: `🗡️ ASSASSINATED — ${monster.name} never finished the thought.` });
+        emit('combat-crit', { damage: 'EXECUTE' });
+      }
       // Mage's Ember: the blow keeps burning after it lands.
       applyBurn(total);
       // XP: style skill + hitpoints

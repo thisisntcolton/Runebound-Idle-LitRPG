@@ -58,7 +58,8 @@ const go = async v => { await dismiss();
 console.log('\n[views]');
 for (const v of ['character','journal','codex','look','class','achievements','inventory','equipment',
                  'combat','rifts','abilities','skill:woodcutting','skill:mining','skill:fishing',
-                 'skill:smithing','skill:cooking','skill:alchemy','town','pets','ascension','leaderboard','settings']) {
+                 'skill:smithing','skill:cooking','skill:alchemy','skill:farming','skill:thieving',
+                 'skill:runecrafting','town','pets','ascension','leaderboard','settings']) {
   await go(v);
   const html = await page.innerHTML('#main-panel');
   ok(`${v}`, html.length > 150, `len=${html.length}`);
@@ -127,6 +128,14 @@ if (offered) {
   await page.evaluate(()=>document.querySelector('[data-act="close-modal"]')?.click());
   await page.waitForTimeout(300);
   ok('encounter clears after resolving', (await page.locator('.encounter-card').count()) === 0);
+}
+
+console.log('\n[new skills]');
+for (const [v, needle] of [['skill:farming','Wheat Field'],['skill:thieving','Pick Pockets'],['skill:runecrafting','Grind Shards']]) {
+  await go(v);
+  const html = await page.textContent('#main-panel');
+  ok(`${v} lists its actions`, html.includes(needle), html.slice(0,80));
+  ok(`${v} offers a hireling`, /hire to train this skill passively|working at/.test(html));
 }
 
 console.log('\n[town economy]');

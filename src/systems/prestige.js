@@ -41,6 +41,8 @@ export function ascend() {
     codex: state.codex,
     // You walk back in as yourself.
     look: state.look,
+    // Talent trees are the one progression nothing ever takes back.
+    classProgress: state.classProgress,
   };
 
   // Hearthwick DOES fall.

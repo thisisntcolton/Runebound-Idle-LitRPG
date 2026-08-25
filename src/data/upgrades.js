@@ -35,6 +35,20 @@ export const UPGRADES = [
     desc: '+6% damage reduction per rank', baseCost: 300, costMult: 7, effect: { reduction: 0.06 } },
   { id: 'dummy', name: 'Training Dummy', icon: '🎯', skill: 'combat', maxLevel: 8,
     desc: '+10% combat XP per rank', baseCost: 500, costMult: 8, effect: { combatXp: 0.10 } },
+  // ---- Farming, Thieving, Runecrafting ----
+  { id: 'hoe', name: 'Iron-Shod Hoe', icon: '🪏', skill: 'farming', maxLevel: 10,
+    desc: '+12% Farming speed per rank', baseCost: 60, costMult: 6, effect: { speed: 0.12 } },
+  { id: 'seedbag', name: 'Selected Seed', icon: '🫘', skill: 'farming', maxLevel: 5,
+    desc: '+6% chance of a double harvest per rank', baseCost: 900, costMult: 8, effect: { double: 0.06 } },
+  { id: 'lockpicks', name: 'Good Lockpicks', icon: '🗝️', skill: 'thieving', maxLevel: 10,
+    desc: '+12% Thieving speed per rank', baseCost: 400, costMult: 6, effect: { speed: 0.12 } },
+  { id: 'darkcloak', name: 'Unremarkable Cloak', icon: '🧥', skill: 'thieving', maxLevel: 5,
+    desc: '+5% chance to come away with twice as much per rank', baseCost: 2600, costMult: 8, effect: { double: 0.05 } },
+  { id: 'chisel', name: 'Rune Chisel', icon: '🔨', skill: 'runecrafting', maxLevel: 10,
+    desc: '+12% Runecrafting speed per rank', baseCost: 700, costMult: 6, effect: { speed: 0.12 } },
+  { id: 'talisman', name: 'Binding Talisman', icon: '🧿', skill: 'runecrafting', maxLevel: 5,
+    desc: '+6% chance to bind a second rune per rank', baseCost: 3200, costMult: 8, effect: { double: 0.06 } },
+
 ];
 
 // Hirelings: run their skill passively at (25% + 5%/extra rank) of your rate,
@@ -52,6 +66,12 @@ export const HIRELINGS = [
     flavor: 'Was exiled from the palace over "the gravy incident."', baseCost: 5000, costMult: 12, maxLevel: 6 },
   { id: 'h_alch', name: 'Mirella the Hedge-Witch', icon: '🧙‍♀️', skill: 'alchemy',
     flavor: 'Talks to her cauldron. Worryingly, it answers.', baseCost: 6000, costMult: 12, maxLevel: 6 },
+  { id: 'h_farm', name: 'Goodwife Tarrow', icon: '👩‍🌾', skill: 'farming',
+    flavor: 'Has never once been surprised by weather. Nobody has asked how.', baseCost: 4000, costMult: 12, maxLevel: 6 },
+  { id: 'h_thief', name: 'Nix', icon: '🥷', skill: 'thieving',
+    flavor: 'No surname, no history, and an alibi for a week you have not had yet.', baseCost: 9000, costMult: 12, maxLevel: 6 },
+  { id: 'h_rune', name: 'Scribe Ollun', icon: '🧝', skill: 'runecrafting',
+    flavor: 'Copies runes he insists he has never seen. They always work.', baseCost: 12000, costMult: 12, maxLevel: 6 },
 ];
 
 export const HIRELING_BASE_RATE = 0.25;   // fraction of your output at rank 1

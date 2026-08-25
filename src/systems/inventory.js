@@ -61,7 +61,13 @@ export function sellItem(itemId, qty) {
   return gained;
 }
 
-const KEEP_ON_SELL_ALL = new Set(['rune_shard', 'greater_rune', 'void_rune']); // enchanting fuel
+// Enchanting fuel, runecrafting work-in-progress, and eggs. Selling any
+// of these by accident during a bulk sweep would be genuinely painful,
+// and all of them look like ordinary resources in the bag.
+const KEEP_ON_SELL_ALL = new Set([
+  'rune_shard', 'greater_rune', 'void_rune',
+  'rune_essence', 'minor_rune', 'binding_sigil', 'blank_tome',
+]);
 
 export function sellAllOfType(type) {
   let total = 0;
@@ -69,7 +75,11 @@ export function sellAllOfType(type) {
     const item = getItem(itemId);
     if (!item) continue;
     if (KEEP_ON_SELL_ALL.has(itemId)) continue;
-    if (type === 'resources' && item.type !== 'resource') continue;
+    if (item.type === 'egg') continue;          // never bulk-sell an egg
+    // 'valuable' items (Thieving spoils) are terminal: no craft, no town
+    // input, sold and done. They belong in the bulk sweep or they would
+    // just pile up with no way to cash them in short of one click each.
+    if (type === 'resources' && item.type !== 'resource' && item.type !== 'valuable') continue;
     if (type === 'all' && item.type === 'food') continue; // keep food when selling "all"
     removeItem(itemId, qty);
     total += item.sell * qty;

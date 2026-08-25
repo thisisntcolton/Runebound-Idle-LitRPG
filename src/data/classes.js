@@ -101,26 +101,35 @@ export const CLASSES = {
 
   priest: {
     id: 'priest', name: 'Priest', icon: '✨', school: 'magical',
-    tagline: 'Outlast it. Everything dies of something eventually.',
+    tagline: 'Walk into what is too big for you. Come back out.',
     blurb: `Wren approves of you, which is the only professional endorsement
-            available in Hearthwick and worth more than it sounds.`,
+            available in Hearthwick and worth more than it sounds.<br><br>
+            You do not out-damage things. You <i>outlast</i> them, and that turns out
+            to mean you can pick fights nobody else can survive long enough to finish.`,
     passive: {
       maxhp: 0.40,
       dr: 0.22,
       xp: 0.20,
-      damage: -0.10,
+      // The old -10% damage made this the only class that made the game
+      // SLOWER than no class at all, and auto-eat already prevents most
+      // deaths, so its survivability was solving a problem you rarely had.
+      // The power now lives where the toughness is actually useful:
+      // punching above your weight.
+      overlevel_damage: 0.10,   // per level the monster is above you
+      overlevel_loot: 0.07,     // per level, to drop rate and gold
     },
     signature: {
-      name: 'Mend', icon: '💚',
-      desc: 'Every kill restores 8% of your maximum health.',
+      name: 'Trial by Fire', icon: '⚖️',
+      desc: 'Against anything stronger than you: +10% damage and +7% loot per level it outranks you, up to +150% damage and +100% loot. Plus 8% of your max health back on every kill.',
     },
     effects: [
       '+40% maximum health',
       '+22% damage reduction',
       '+20% all XP',
       'Heal 8% of max HP on every kill',
+      '+10% damage and +7% loot per level the monster outranks you (max +150% / +100%)',
     ],
-    penalty: '-10% damage. You will win, slowly, and you will not die doing it.',
+    penalty: 'Against anything at or below your level you are exactly average. The bonus only exists when the fight is unfair.',
   },
 
   artisan: {
@@ -170,4 +179,17 @@ export const SIGNATURE = {
   BURN_TICKS: 4,
   BURN_INTERVAL_MS: 1000,
   MEND_FRACTION: 0.08,
+  // How many levels of over-ranking the Priest can be paid for.
+  OVERLEVEL_CAP: 20,
+  // And a hard ceiling on what that scaling can become.
+  //
+  // The per-level rate is additive across the class passive and three
+  // separate talents, so a maxed Priest reached +1.00 damage PER LEVEL —
+  // eleven times damage at a ten-level gap, and 572x the combat index of
+  // no class at all. Capping the resulting multiplier keeps the identity
+  // ("you fight above your weight") while making it a bounded, legible
+  // number: at most +150% damage and +100% loot, however deep you go.
+  OVERLEVEL_MAX_DAMAGE: 2.5,
+  OVERLEVEL_MAX_LOOT: 2.0,
+  EXECUTE_THRESHOLD: 0.20,   // Rogue capstone
 };

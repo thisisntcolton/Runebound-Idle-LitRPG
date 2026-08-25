@@ -358,8 +358,8 @@ export function inventoryPanel() {
       <div class="panel-subtitle">Bank value ≈ <span class="yield-gold">🪙 ${fmt(totalValue)}</span></div>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap">
-      <button class="btn btn-sm btn-gold" data-act="sell-resources">Sell all resources</button>
-      <span class="muted" style="align-self:center">Keeps food & gear. Click an item for options.</span>
+      <button class="btn btn-sm btn-gold" data-act="sell-resources">Sell all resources &amp; spoils</button>
+      <span class="muted" style="align-self:center">Keeps food, gear, runes in progress and eggs. Click an item for options.</span>
     </div>
     ${entries.length ? `<div class="inv-grid">${slots}</div>` : '<div class="muted">Empty. Go hit a tree or something.</div>'}
   `;

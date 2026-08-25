@@ -8,7 +8,7 @@ import { getSpecies, getTrait, CARE, STAGES, stageFor, MAX_PET_LEVEL,
 import { hunger, happiness, mood, petLevel, petLevelProgress,
          xpForPetLevel, incubatorSlots, eggReady, playCooldownLeft,
          canBreed, breedCooldownLeft, petBonusFor,
-         activePetSummary } from '../systems/pets.js';
+         activePetSummary, feedXpFor } from '../systems/pets.js';
 import { petPortrait, eggPortrait, petArt } from './petart.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
@@ -32,6 +32,32 @@ function careColor(v) {
 
 // ---------------- Active companion banner ----------------
 
+/**
+ * What the companion slot actually does.
+ *
+ * This was previously implied by the banner and nowhere else, so a player
+ * could raise five pets without ever learning that only one of them is
+ * doing anything, or that mood gates the whole bonus.
+ */
+function companionExplainer() {
+  return `
+    <div class="pet-explainer">
+      <div class="pet-explainer-title">🐾 What taking a pet along does</div>
+      <ul>
+        <li><b>One pet at a time.</b> Only your active companion gives a bonus. The others
+          stay in the Menagerie, still get hungry, and still grow — just more slowly.</li>
+        <li><b>The bonus scales with its level</b> — a Lv.40 Cat is worth ten times a Lv.4 one —
+          and with its <b>mood</b>. A thriving pet gives <b>115%</b> of its bonus; a hungry or
+          lonely one drops to <b>35%</b>; a miserable one gives <b>nothing at all</b>.</li>
+        <li><b>It bonds far faster while it walks with you.</b> Your kills and completed skill
+          actions feed its bond XP directly. A pet left at home only earns the slow idle trickle,
+          so the companion slot is also the fastest way to raise one.</li>
+        <li><b>Better food, better bond.</b> Feeding scales with what you feed it: cooked beats
+          raw, expensive beats cheap, and a species' favourite food is worth double.</li>
+      </ul>
+    </div>`;
+}
+
 function companionBanner() {
   const summary = activePetSummary();
   if (!summary) {
@@ -40,8 +66,8 @@ function companionBanner() {
         <div class="pet-banner-art muted" style="font-size:44px">🐾</div>
         <div>
           <div class="pet-banner-name">No companion at your side</div>
-          <div class="muted">An active pet grants a passive bonus that scales with its level and its mood.
-          Hatch an egg below, then set one as your companion.</div>
+          <div class="muted">Hatch an egg below, then send one along with you. Only the active pet
+          gives a bonus, and it bonds far faster than one left at home.</div>
         </div>
       </div>`;
   }
@@ -171,7 +197,8 @@ function rosterSection() {
   const sorted = list.slice().sort((a, b) => petLevel(b) - petLevel(a));
   return `
     <div class="section-title">🐾 Your pets <span class="pill">${list.length}</span></div>
-    <div class="pet-grid">${sorted.map(petTile).join('')}</div>`;
+    <div class="pet-grid">${sorted.map(petTile).join('')}</div>
+    ${companionExplainer()}`;
 }
 
 // ---------------- Detail ----------------
@@ -266,15 +293,18 @@ function petDetail(pet) {
           <div class="pet-food-strip">
             ${food.map(({ item, qty, liked }) => `
               <button class="food-chip ${liked ? 'liked' : ''}" data-act="pet-feed" data-pet="${pet.id}" data-item="${item.id}"
-                      title="${liked ? 'A favourite — 60% more nourishing and double bond XP' : 'Nourishment scales with the food\'s value'}">
+                      title="${liked ? 'A favourite: 60% more nourishing and double bond XP' : 'Better food bonds harder. Cooked beats raw.'}">
                 <span style="font-size:19px">${item.icon}</span>
                 <span>${item.name}</span>
                 <b>×${fmt(qty)}</b>
+                <span class="food-bond">+${Math.round(feedXpFor(item, liked))}</span>
                 ${liked ? '<span class="heart">♥</span>' : ''}
               </button>`).join('')}
           </div>`
           : `<div class="muted">Nothing edible in the bag. Cook something, or catch it a fish.</div>`}
-        <div class="muted" style="margin-top:6px">Favourites: ${sp.likes.map(id => getItem(id)?.name).filter(Boolean).join(', ') || '—'}</div>
+        <div class="muted" style="margin-top:6px">
+          The green number is bond XP. Cooked food is worth 50% more than raw, and a favourite
+          doubles it.<br>Favourites: ${sp.likes.map(id => getItem(id)?.name).filter(Boolean).join(', ') || '—'}</div>
 
         <div class="section-title">What it does for you</div>
         ${bonusLines.join('')}
@@ -425,6 +455,7 @@ export function petsPanel() {
     <div class="panel-desc">Creatures you raise. They get hungry whether or not you're watching, and a
     happy one makes the whole grind go faster. Nothing here can die — a neglected pet just sulks until you make it up to them.</div>
     ${companionBanner()}
+    ${activePetSummary() ? '' : companionExplainer()}
     <div class="combat-controls" style="margin-top:14px">
       ${tabBtn('nest', '🥚 Nest')}
       ${tabBtn('breed', '💞 Breeding')}

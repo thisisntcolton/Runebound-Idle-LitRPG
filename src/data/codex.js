@@ -376,6 +376,42 @@ export const CODEX = [
     ],
   },
   {
+    id: 'c_farming', cat: 'craft', title: 'What Grows Here', when: { skill: { id: 'farming', level: 30 } },
+    text: `Nothing has ever failed. Not a blighted row, not a bad season, not one shrivelled
+    stalk in three hundred plantings. Goodwife Tarrow says that is good husbandry.<br><br>
+    You have started sowing badly on purpose. Wrong depth, wrong month, no water.
+    It comes up perfect.`,
+    deeper: [
+      { cycle: 2, text: `You buried a stone in row four and marked the spot. It came up as wheat.<br><br>
+        The world does not grow things. It <i>reissues</i> them, and a seed is just a request.` },
+    ],
+  },
+  {
+    id: 'c_thieving', cat: 'craft', title: 'Nobody Notices', when: { skill: { id: 'thieving', level: 30 } },
+    text: `You have taken the same purse off the same belt on the same corner eleven times,
+    and the man has never once looked at you twice.<br><br>
+    You tried giving it back. You handed it to him, said you had found it, watched him thank
+    you and walk away. It was on his belt again the next morning, full, and yours by lunch.`,
+    deeper: [
+      { cycle: 2, text: `Holt knows. Of course Holt knows. He has never said anything, and one
+        morning you found a note under your door in a soldier's blocky hand:<br><br>
+        <i>"Take from the stalls. Not from the houses. I have to live here."</i>` },
+    ],
+  },
+  {
+    id: 'c_runes', cat: 'craft', title: 'The Same Nine Shapes', when: { skill: { id: 'runecrafting', level: 30 } },
+    text: `There are only nine rune-shapes. Ferrin has looked; every rune anyone has ever bound,
+    in any tradition anyone can name, is one of nine.<br><br>
+    Scribe Ollun binds them from memory and cannot tell you where the memory came from.
+    <i>"I've always known them,"</i> he says, and then, uneasily: <i>"That's not an answer, is it."</i>`,
+    deeper: [
+      { cycle: 3, text: `Nine shapes, and the System's interface uses nine glyphs in its corner
+        borders, and they are the same nine, in the same order.<br><br>
+        You are not crafting magic. You are writing in the language the world is stored in,
+        badly, from memory, and it is <b>working</b>.` },
+    ],
+  },
+  {
     id: 'c_cooking', cat: 'craft', title: 'Hunger, Anyway', when: { skill: { id: 'cooking', level: 30 } },
     text: `You do not need to eat. You have tested this — went nine days on nothing but
     stubbornness, lost no strength, felt no worse.<br><br>
@@ -479,6 +515,24 @@ export const TIDBITS = {
     'Voidbloom wilts when observed directly. Mirella has learned to work from the corner of her eye.',
     'The tonic bottles are all the same shape. There is no glassblower within nine roads.',
     'Kingsleaf only grows where someone has died. Nobody has died here.',
+  ],
+  farming: [
+    'Nothing you plant has ever failed. Not once. The soil is not that good.',
+    'The wheat grows to the same height and stops. Every stalk. Every field.',
+    'You have never had to weed. There are no weeds. There is only what you planted.',
+    'Whatever you sow in the evening is ankle-high by dawn, and no higher by noon.',
+  ],
+  thieving: [
+    'The purse you lifted this morning is on the same belt again this afternoon.',
+    'Nobody has ever recognised you. You have robbed some of these people eleven times.',
+    'The strongbox has a maker\'s mark. So does every strongbox. It is the same mark.',
+    'You put it back once, as an experiment. It was gone again by evening, and not by you.',
+  ],
+  runecrafting: [
+    'The shards want to fit together. You can feel them trying.',
+    'Ground fine enough, rune essence smells faintly of rain on hot stone.',
+    'Every rune you bind has the same weight, regardless of size. Ferrin has asked to borrow a scale.',
+    'A finished rune is warm for exactly nine minutes. Then it is not.',
   ],
   combat: [
     'It bleeds, and the grass drinks it, and by morning the grass is the same height.',

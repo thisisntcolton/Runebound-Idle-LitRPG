@@ -62,6 +62,20 @@ export const SKILLS = {
       { id: 'salmon',  name: 'Cook Salmon',  icon: '🍣', level: 28, baseTime: 4000, xp: 46,  input: { raw_salmon: 1 }, output: { salmon: 1 } },
       { id: 'lobster', name: 'Cook Lobster', icon: '🦞', level: 42, baseTime: 5000, xp: 92,  input: { raw_lobster: 1 }, output: { lobster: 1 } },
       { id: 'leviathan_steak', name: 'Sear Leviathan', icon: '🥩', level: 62, baseTime: 7000, xp: 210, input: { raw_leviathan: 1 }, output: { leviathan_steak: 1 } },
+      // Farm-fed line. Gives Farming somewhere to go, and gives pets and
+      // combat a food ladder that does not depend on Fishing.
+      { id: 'bread',      name: 'Bake Bread',       icon: '🍞', level: 5,  baseTime: 3000, xp: 18,
+        input: { wheat: 3 }, output: { bread: 1 } },
+      { id: 'root_stew',  name: 'Simmer Root Stew', icon: '🍲', level: 18, baseTime: 4000, xp: 40,
+        input: { root_veg: 2, wheat: 1 }, output: { root_stew: 1 } },
+      { id: 'ember_stew', name: 'Ember Stew',       icon: '🥘', level: 32, baseTime: 5000, xp: 76,
+        input: { emberpepper: 2, root_veg: 2 }, output: { ember_stew: 1 } },
+      { id: 'gourd_pie',  name: 'Bake Gourd Pie',   icon: '🥧', level: 46, baseTime: 6000, xp: 130,
+        input: { moon_gourd: 2, wheat: 2 }, output: { gourd_pie: 1 } },
+      { id: 'silk_broth', name: 'Silkleaf Broth',   icon: '🍜', level: 60, baseTime: 7200, xp: 205,
+        input: { silkleaf: 2, moon_gourd: 1 }, output: { silk_broth: 1 } },
+      { id: 'sunfruit_tart', name: 'Sunfruit Tart', icon: '🥮', level: 76, baseTime: 8800, xp: 330,
+        input: { sunfruit: 2, silkleaf: 1 }, output: { sunfruit_tart: 1 } },
     ],
   },
   alchemy: {
@@ -91,6 +105,68 @@ export const SKILLS = {
         input: { herb_emberpetal: 1, herb_voidbloom: 1 }, output: { lucky_brew: 1 } },
       { id: 'void_draught', name: 'Distill Void Draught', icon: '🌌', level: 66, baseTime: 9000, xp: 280,
         input: { herb_voidbloom: 2, herb_kingsleaf: 1 }, output: { void_draught: 1 } },
+    ],
+  },
+
+  // ------------------------------------------------------------
+  // FARMING — the most idle-native skill in the game. You plant, you
+  // leave, it grows on a real clock. Feeds Cooking, Alchemy and the town.
+  // ------------------------------------------------------------
+  farming: {
+    id: 'farming', name: 'Farming', icon: '🌾', kind: 'gathering',
+    desc: 'Turn a patch of dirt into something that grows while you are not looking. Feeds the kitchens, the cauldrons and the town.',
+    actions: [
+      { id: 'wheat',    name: 'Wheat Field',     icon: '🌾', level: 1,  baseTime: 3400, xp: 11,  output: { wheat: 1 } },
+      { id: 'roots',    name: 'Root Vegetables', icon: '🥕', level: 8,  baseTime: 4200, xp: 24,  output: { root_veg: 1 } },
+      { id: 'pepper',   name: 'Emberpeppers',    icon: '🌶️', level: 20, baseTime: 5200, xp: 46,  output: { emberpepper: 1 } },
+      { id: 'gourd',    name: 'Moon Gourds',     icon: '🎃', level: 35, baseTime: 6600, xp: 95,  output: { moon_gourd: 1 } },
+      { id: 'silkleaf', name: 'Silkleaf Vines',  icon: '🍃', level: 52, baseTime: 8200, xp: 175, output: { silkleaf: 1 } },
+      { id: 'sunfruit', name: 'Sunfruit Orchard',icon: '🍑', level: 70, baseTime: 10000, xp: 300, output: { sunfruit: 1 } },
+    ],
+  },
+
+  // ------------------------------------------------------------
+  // THIEVING — the gold skill. Scales with LUK, which previously did
+  // very little outside drop tables.
+  // ------------------------------------------------------------
+  thieving: {
+    id: 'thieving', name: 'Thieving', icon: '🗝️', kind: 'gathering',
+    desc: 'Take what is not nailed down. Every point of LUK is a 0.4% chance to come away with twice as much, so this is the one skill where that stat is the whole discipline. Spoils are pure gold: nothing crafts with them and no business will touch them.',
+    actions: [
+      { id: 'pockets',  name: 'Pick Pockets',     icon: '👛', level: 1,  baseTime: 2600, xp: 12,  output: { cutpurse_coin: 1 } },
+      { id: 'stall',    name: 'Rob a Market Stall', icon: '🍎', level: 12, baseTime: 3600, xp: 30, output: { pilfered_goods: 1 } },
+      { id: 'chest',    name: 'Crack a Strongbox', icon: '🧰', level: 26, baseTime: 5000, xp: 62,  output: { strongbox_haul: 1 } },
+      { id: 'caravan',  name: 'Waylay a Caravan',  icon: '🐎', level: 40, baseTime: 6800, xp: 120, output: { caravan_spoils: 1 } },
+      { id: 'vault',    name: 'The Sealed Vault',  icon: '🔐', level: 58, baseTime: 8600, xp: 215, output: { vault_prize: 1 } },
+      { id: 'system',   name: 'Pickpocket the System', icon: '⬛', level: 75, baseTime: 11000, xp: 380, output: { stolen_fragment: 1 } },
+    ],
+  },
+
+  // ------------------------------------------------------------
+  // RUNECRAFTING — closes the enchanting loop. Rune shards used to be
+  // drop-only, so a player who wanted +5 gear had no way to work toward it.
+  // ------------------------------------------------------------
+  runecrafting: {
+    id: 'runecrafting', name: 'Runecrafting', icon: '🔮', kind: 'crafting',
+    desc: 'Grind shards into essence and bind essence into runes. Enchanting and ability tomes stop being a matter of luck.',
+    actions: [
+      // 4 essence, not 2: at 2 a shard was worth less ground than sold, so
+      // the whole point of the skill (turning drop-only shards into a
+      // craftable supply) would never have been used.
+      { id: 'grind',    name: 'Grind Shards',     icon: '⚱️', level: 1,  baseTime: 3000, xp: 14,
+        input: { rune_shard: 1 }, output: { rune_essence: 4 } },
+      { id: 'chip',     name: 'Chip Raw Runestone', icon: '🪨', level: 1, baseTime: 3800, xp: 12,
+        output: { rune_essence: 1 } },
+      { id: 'minor',    name: 'Bind Minor Rune',  icon: '🔹', level: 10, baseTime: 4200, xp: 34,
+        input: { rune_essence: 3 }, output: { minor_rune: 1 } },
+      { id: 'greater',  name: 'Bind Greater Rune', icon: '🔷', level: 28, baseTime: 5600, xp: 78,
+        input: { rune_essence: 5, minor_rune: 1 }, output: { greater_rune: 1 } },
+      { id: 'binding',  name: 'Weave Binding Sigil', icon: '🌀', level: 44, baseTime: 7200, xp: 145,
+        input: { greater_rune: 2, rune_essence: 6 }, output: { binding_sigil: 1 } },
+      { id: 'void',     name: 'Distil Void Rune',  icon: '🌑', level: 62, baseTime: 9200, xp: 265,
+        input: { greater_rune: 3, herb_voidbloom: 1 }, output: { void_rune: 1 } },
+      { id: 'tome',     name: 'Scribe a Blank Tome', icon: '📕', level: 70, baseTime: 11000, xp: 340,
+        input: { binding_sigil: 2, void_rune: 1 }, output: { blank_tome: 1 } },
     ],
   },
   // Combat skills — no actions; trained through combat

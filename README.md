@@ -19,8 +19,12 @@ Production build: `npm run build` (output in `dist/`, servable from any static h
 
 ## What's in the game
 
-**Skills (Melvor-style)** — Woodcutting, Mining, Fishing, Smithing, Cooking. Each has 5+ actions
-gated by level, on a RuneScape-style XP curve to 99. One active pursuit at a time: pick your grind.
+**Skills (Melvor-style)** — nine trainable skills, each with its own hireling: Woodcutting, Mining,
+Fishing, Smithing, Cooking, Alchemy, plus **Farming** (crops that feed the kitchens, the cauldrons
+and the town), **Thieving** (pure gold, and the one place LUK is the whole discipline) and
+**Runecrafting** (grind shards into essence and bind essence into runes, so enchanting and ability
+tomes stop being drop-only). Each has 5+ actions gated by level, on a RuneScape-style XP curve to 99.
+One active pursuit at a time: pick your grind.
 
 **Combat** — 5 zones, 15 monsters, one boss (Aurelion, the Last Flame). Auto-battle with Attack /
 Strength / Defense training styles, Hitpoints trained passively, auto-eat food slot, hit splats,
@@ -52,10 +56,20 @@ top of the Dragonspire offers the choice the whole game builds toward — **Feed
 Rare "whispers" surface in the system log until the mystery resolves. All story beats persist
 across cycles — the world forgets; you don't.
 
+**Talent trees** — every class has a five-tier tree, and playing as that class levels it: all the
+XP you earn feeds a per-class pool, one talent point per class level. Points and everything you
+spend them on are stored **per class and survive Ascension forever** — the only progression in the
+game nothing ever takes back. A maxed class has 50 points and the full tree costs 78, so you are
+choosing a build rather than filling in a form. Each tree ends in a capstone that changes how the
+class plays: the Rogue executes anything a crit leaves under 20% health, the Ranger stops missing
+entirely, the Mage's burn stacks and never expires, the Priest ignores zone level requirements
+outright, and the Artisan's town keeps working while they are away.
+
 **Classes** — at character level 10 you choose a path, and it holds for the rest of the cycle:
 **Rogue** (attack speed and 20% crits), **Ranger** (accuracy, loot and a guaranteed opening
 swing), **Mage** (damage that scales off INT, hits that burn, and paper-thin defences),
-**Priest** (huge health pool, heavy mitigation, heals on every kill) or **Artisan** — which gets
+**Priest** (the over-level specialist: huge health, heavy mitigation, heals on every kill, and up to
++150% damage and +100% loot scaled by how far the monster outranks you) or **Artisan** — which gets
 *no combat bonus at all* and in exchange runs the strongest economy in the game: +30% gathering,
 +50% town revenue, cheaper construction and an extra staff slot on every building. Ascend and you
 choose again, so a class is a commitment for one run rather than for the save.
@@ -149,6 +163,7 @@ src/
 │   ├── npcs.js        # residents, wanderers, visiting notables
 │   ├── pets.js        # species, growth stages, care rates, traits, breeding
 │   ├── classes.js     # the five paths, their bonuses and signatures
+│   ├── talents.js     # five-tier tree per class, curve, capstones
 │   ├── codex.js       # discoverable lore, cycle-deepening passes, tidbits
 │   ├── encounters.js  # village events and their branching outcomes
 │   ├── appearance.js  # hero option lists and palettes
@@ -197,13 +212,14 @@ test/                  # API integration tests + a Playwright browser suite
 ## Tests
 
 ```bash
-npm run test:content   # every Codex entry and encounter option is reachable and well-formed
+npm run test:content   # every Codex entry, encounter option and tidbit pool is reachable
+npm run test:skills    # every action's items resolve; no crafting step destroys value
 npm run test:api       # 19 tests: validation, sessions, OAuth/CSRF, saves, leaderboard
-npm run test:browser   # 37 tests: every view, appearance, codex, classes, encounters
+npm run test:browser   # 46 tests: every view, appearance, codex, classes, encounters, new skills
 npm run test:pets      # 35 tests: hatch -> feed -> level -> breed, offline, multipliers
-npm run test:classes   # 10 tests: the choice, the lock-in, Artisan's zero combat power
-npm run test:ascension # 16 tests: the town is razed, pets survive, the rebuy hole is shut
-npm run balance        # simulations: town profit by material tier, class power indices
+npm run test:classes   # 17 tests: the choice, the lock-in, Artisan's zero combat power, talents
+npm run test:ascension # 22 tests: the town is razed; pets, talents and your look survive
+npm run balance        # sims: town profit by material tier, class power at 0/20/50 talent points
 npm run preview:heroes # contact sheet of every appearance option, as a PNG
 ```
 

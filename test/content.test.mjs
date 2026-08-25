@@ -9,6 +9,8 @@ import { ZONES } from '../src/data/monsters.js';
 import { SKILLS, SKILL_IDS } from '../src/data/skills.js';
 import { BUILDINGS } from '../src/data/town.js';
 import { ENCOUNTERS } from '../src/data/encounters.js';
+import { TIDBITS } from '../src/data/codex.js';
+import { TRAINABLE_SKILLS } from '../src/data/skills.js';
 
 const monsterIds = new Set();
 for (const z of ZONES) for (const m of z.monsters) monsterIds.add(m.id);
@@ -61,6 +63,18 @@ console.log(`\n${CODEX.length} entries, ${withDepth} of which deepen across cycl
 console.log(`${ok} valid, ${bad} problems`);
 
 
+
+// Every trainable skill needs an ambient tidbit pool, or the system log
+// goes silent the moment a player trains it.
+console.log('\n=== TIDBIT COVERAGE ===');
+for (const id of TRAINABLE_SKILLS) {
+  const pool = TIDBITS[id];
+  if (!pool || pool.length < 3) { console.log(`  \u2717 ${id}: ${pool ? pool.length : 0} tidbits (need 3+)`); bad++; }
+}
+for (const ctx of ['combat', 'town']) {
+  if (!TIDBITS[ctx] || TIDBITS[ctx].length < 3) { console.log(`  \u2717 ${ctx}: too few tidbits`); bad++; }
+}
+console.log(`  ${TRAINABLE_SKILLS.length} skills + combat + town all covered`);
 
 console.log('\n=== ENCOUNTERS ===');
 const encFail = (e,m)=>{ console.log(`  \u2717 ${e.id}: ${m}`); bad++; };

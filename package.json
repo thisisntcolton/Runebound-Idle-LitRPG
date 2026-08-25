@@ -1,7 +1,7 @@
 {
   "name": "runebound-idle",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Runebound — an idle LitRPG. Skills, combat, gear, classes, a town to build, pets to raise, a codex that remembers, and a loop that does not.",
   "type": "module",
   "engines": {
@@ -20,7 +20,8 @@
     "test:classes": "node test/classes.browser.mjs",
     "test:ascension": "node test/ascension.browser.mjs",
     "balance": "node test/balance.mjs",
-    "preview:heroes": "node test/heroart.preview.mjs"
+    "preview:heroes": "node test/heroart.preview.mjs",
+    "test:skills": "node test/skills.test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4"

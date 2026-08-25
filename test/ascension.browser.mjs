@@ -16,6 +16,10 @@ const save = { version:1, gold: 5000000, lifetimeGold: 90000000, shards: 40, asc
   town: { unlocked:true, name:'Hearthwick', plots, staff, applicants:[], applicantsAt:0,
           lifetimeRevenue: 4000000, cycles: 900, unpaid:0, metNotables:{ baldric:1, mirella:1 },
           extraPopulation: 4, visitor:null, nextVisitorAt:0 },
+  classId: 'rogue',
+  classProgress: { rogue: { xp: 2500000, spent: { r_edge: 5, r_quick: 3 }, pointsUsed: 8 },
+                   mage:  { xp: 400000,  spent: { m_ward: 2 },              pointsUsed: 2 } },
+  look: { face:1, skin:3, hair:2, hairCol:5, eyes:0, eyeCol:2, brows:1, mouth:1, beard:0, mark:0, build:1, cloth:4, name:'Vesper' },
   pets: { owned: { p1:{ id:'p1', species:'cat', name:'Biscuit', trait:'greedy', xp:3000,
     stage:'adult', hunger:100, happy:100, careAt:now, bornAt:now, lastPlayAt:0, lastBredAt:0, parents:null } },
     incubator:[], active:'p1', hatched:1, bred:0 },
@@ -66,6 +70,16 @@ ok('pets survived', Object.keys(after.pets.owned).length === 1);
 ok('pet kept its level', after.pets.owned.p1.xp >= 3000);
 ok('people you met are remembered', Object.keys(after.town.metNotables).length === 2);
 ok('raze counted', after.town.timesRazed === 1, String(after.town.timesRazed));
+ok('talent points survive Ascension', after.classProgress?.rogue?.pointsUsed === 8,
+   JSON.stringify(after.classProgress?.rogue));
+ok('spent talent ranks survive', after.classProgress?.rogue?.spent?.r_edge === 5);
+// >= not ==: hirelings keep earning while the fixture runs, and that XP
+// correctly feeds the active class too.
+ok('class XP survives', (after.classProgress?.rogue?.xp || 0) >= 2500000,
+   String(after.classProgress?.rogue?.xp));
+ok('other classes keep their progress too', after.classProgress?.mage?.pointsUsed === 2);
+ok('the class itself is cleared for a fresh choice', !after.classId, String(after.classId));
+ok('your appearance survives', after.look?.name === 'Vesper');
 ok('lifetime revenue rolled up', after.town.lifetimeRevenueAllCycles === 4000000,
    String(after.town.lifetimeRevenueAllCycles));
 
