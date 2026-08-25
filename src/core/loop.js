@@ -8,6 +8,7 @@ import { tickAbilities } from '../systems/abilities.js';
 import { tickTown } from '../systems/town.js';
 import { tickUnstable } from '../systems/unstable.js';
 import { tickNpcs } from '../systems/npcs.js';
+import { tickPets } from '../systems/pets.js';
 import { emit } from './events.js';
 
 let buffSweep = 0;
@@ -33,6 +34,7 @@ export function startLoop() {
     tickAbilities(dt);
     tickTown(dt);
     tickUnstable(dt);
+    tickPets(dt);
     npcSweep += dt;
     if (npcSweep > 4000) { npcSweep = 0; tickNpcs(); }
     buffSweep += dt;

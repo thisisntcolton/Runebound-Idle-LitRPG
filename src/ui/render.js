@@ -14,6 +14,9 @@ import { journalPanel } from './journal.js';
 import { riftsPanel } from './rifts.js';
 import { abilitiesPanel } from './abilities.js';
 import { townPanel, townUI } from './town.js';
+import { petsPanel, petsUI } from './pets.js';
+import { startIncubation, hatch, feed, play, renamePet, setActive, release,
+         breed, buyEgg } from '../systems/pets.js';
 import { buyPlot, build, upgradeBuilding, demolish, hire, fire, assignStaff,
          stockBuilding, withdrawStock, refreshApplicants } from '../systems/town.js';
 import { achievementsPanel } from './achievements.js';
@@ -96,10 +99,20 @@ export function renderSidebar() {
     })).join('')}
     <div class="nav-section-label">Beyond</div>
     ${navItem('town', '🏘️', 'Hearthwick', { level: state.town?.unlocked ? 'Lv.' + townLevel() : null })}
+    ${navItem('pets', '🐾', 'Menagerie', { level: petsBadge(), working: eggsReady() })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}
     ${navItem('settings', '⚙️', 'Settings', { level: cloud.status === 'signed-in' ? '☁️' : null })}
   `;
+}
+
+function petsBadge() {
+  const n = Object.keys(state.pets?.owned || {}).length;
+  return n ? String(n) : null;
+}
+
+function eggsReady() {
+  return (state.pets?.incubator || []).some(e => Date.now() >= e.readyAt);
 }
 
 function hasWorkingHireling(skillId) {
@@ -116,6 +129,7 @@ export function renderView() {
   else if (v === 'rifts') el.innerHTML = riftsPanel();
   else if (v === 'abilities') el.innerHTML = abilitiesPanel();
   else if (v === 'town') el.innerHTML = townPanel();
+  else if (v === 'pets') el.innerHTML = petsPanel();
   else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
@@ -456,6 +470,57 @@ function handleAction(target) {
     case 'reroll-applicants': refreshApplicants(); break;
     case 'visitor-accept': resolveVisitor('accept'); renderView(); break;
     case 'visitor-decline': resolveVisitor('decline'); renderView(); break;
+    // ---- The Menagerie ----
+    case 'pets-tab':
+      petsUI.tab = target.dataset.tab;
+      petsUI.selected = null;
+      renderView();
+      break;
+    case 'select-pet': petsUI.selected = target.dataset.pet; renderView(); break;
+    case 'incubate': startIncubation(target.dataset.item); break;
+    case 'hatch-egg': hatch(target.dataset.egg); break;
+    case 'pet-feed': feed(target.dataset.pet, target.dataset.item); break;
+    case 'pet-play': play(target.dataset.pet); break;
+    case 'pet-active': setActive(target.dataset.pet); break;
+    case 'pet-rename': {
+      const input = document.getElementById('pet-rename-input');
+      if (input) renamePet(target.dataset.pet, input.value);
+      renderView();
+      break;
+    }
+    case 'pet-release': {
+      const pet = state.pets.owned[target.dataset.pet];
+      if (!pet) break;
+      showModal(`
+        <div class="modal-tag">◈ ARE YOU SURE ◈</div>
+        <div class="modal-title">Release ${pet.name}?</div>
+        <div class="modal-body" style="text-align:center">
+          <p>It will wander off into the meadow and not come back. Its levels, its trait and its bond go with it.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger" data-act="pet-release-confirm" data-pet="${pet.id}">Let it go</button>
+          <button class="btn btn-primary" data-act="close-modal">Keep it</button>
+        </div>`);
+      break;
+    }
+    case 'pet-release-confirm':
+      closeModal();
+      release(target.dataset.pet);
+      petsUI.selected = null;
+      renderView();
+      break;
+    case 'breed-select': {
+      const slot = target.dataset.slot;
+      if (slot === 'a') petsUI.breedA = petsUI.breedA === target.dataset.pet ? null : target.dataset.pet;
+      else petsUI.breedB = petsUI.breedB === target.dataset.pet ? null : target.dataset.pet;
+      renderView();
+      break;
+    }
+    case 'breed-go':
+      if (breed(petsUI.breedA, petsUI.breedB)) { petsUI.breedA = null; petsUI.breedB = null; }
+      renderView();
+      break;
+    case 'buy-egg': buyEgg(target.dataset.species); break;
     // ---- Unstable rifts ----
     case 'enter-unstable': if (enterRift()) setView('combat'); break;
     case 'flee-unstable': failRun('You fled the tear.'); renderView(); break;
@@ -502,6 +567,7 @@ export function initRenderer() {
   });
   on('kill', () => { if (ui.view === 'combat') renderView(); });
   on('town-changed', () => { if (ui.view === 'town') safeRenderView(); });
+  on('pets-changed', () => { if (ui.view === 'pets') safeRenderView(); });
   on('unstable-offer', o => {
     popup('UNSTABLE RIFT', `⚠️ ${o.name}<br><span style="font-size:12px;color:var(--text-dim)">Answer it from the Rifts tab — you have 10 minutes.</span>`, { ttl: 8 });
     renderView();
@@ -513,11 +579,15 @@ export function initRenderer() {
     renderView();
   });
   // Town revenue ticks constantly; refresh the view at a calm pace
-  let townRefresh = 0, riftRefresh = 0;
+  let townRefresh = 0, riftRefresh = 0, petRefresh = 0;
   on('tick', ({ dt }) => {
     if (ui.view === 'town') {
       townRefresh += dt;
       if (townRefresh > 3000) { townRefresh = 0; safeRenderView(); }
+    } else if (ui.view === 'pets') {
+      // egg timers and care bars both drift in real time
+      petRefresh += dt;
+      if (petRefresh > 2000) { petRefresh = 0; safeRenderView(); }
     } else if (ui.view === 'rifts' && (pendingRift() || activeRun())) {
       riftRefresh += dt;
       if (riftRefresh > 1000) { riftRefresh = 0; safeRenderView(); }

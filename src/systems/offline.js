@@ -9,6 +9,8 @@ import { getItem } from '../data/items.js';
 import { hasInputs } from './inventory.js';
 import { completeAction, hirelingTask } from './skills.js';
 import { processTownOffline } from './town.js';
+import { settleAll } from './pets.js';
+import { getSpecies } from '../data/pets.js';
 
 // Returns a summary { seconds, cappedSeconds, gains: [{icon,text}] } or null.
 export function processOffline() {
@@ -77,6 +79,21 @@ export function processOffline() {
       const item = getItem(itemId);
       gains.push({ icon: item?.icon || '📦', text: `${item?.name || itemId} ×${qty} (town)` });
     }
+  }
+
+  // Pets: care decays against the wall clock, so this is just a report.
+  // Eggs, notably, are NOT capped by offline hours — they warm on real time.
+  settleAll();
+  const ready = (state.pets?.incubator || []).filter(e => now >= e.readyAt);
+  if (ready.length) {
+    gains.push({ icon: '🥚', text: `${ready.length} egg${ready.length > 1 ? 's are' : ' is'} ready to hatch — ${
+      ready.map(e => getSpecies(e.species)?.eggName).join(', ')}` });
+  }
+  const neglected = Object.values(state.pets?.owned || {})
+    .filter(p => Math.min(p.hunger ?? 100, p.happy ?? 100) < 30);
+  if (neglected.length) {
+    gains.push({ icon: '😖', text: `${neglected.map(p => p.name).join(', ')} ${
+      neglected.length > 1 ? 'are' : 'is'} sulking and needs feeding.` });
   }
 
   for (const [skillId, xp] of Object.entries(xpTotals)) {

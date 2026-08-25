@@ -35,6 +35,8 @@ export function ascend() {
     // Hearthwick stands. Whatever else the System takes, it does not
     // get the town — buildings, staff and all.
     town: state.town,
+    // And your pets. They were never the System's to take.
+    pets: state.pets,
   };
   const fresh = defaultState();
   Object.assign(fresh, keep);

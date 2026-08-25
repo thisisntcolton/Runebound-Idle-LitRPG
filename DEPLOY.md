@@ -151,11 +151,10 @@ multiple apps — a separate "Runebound (dev)" app is tidier than editing the pr
 ## Running the API tests
 
 The test suite runs the real handlers against a real Postgres, with the Neon driver aliased to a
-`pg`-backed shim (`test/loader.mjs`). It covers save validation, session signing, OAuth state/CSRF
+`pg`-backed shim (`test/loader.mjs`; `pg` is a devDependency, so `npm install` covers it). It covers save validation, session signing, OAuth state/CSRF
 handling, save round-trips, throttling, and leaderboard ranking.
 
 ```bash
-npm install pg --no-save
 # point at any Postgres you like:
 DATABASE_URL="postgresql://postgres@localhost:5432/runebound" \
 SESSION_SECRET="anything-at-least-16-chars-long" \

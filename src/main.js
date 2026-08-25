@@ -11,7 +11,8 @@ import { initAchievements, setAchievementUIHooks } from './systems/achievements.
 import { initCloud } from './core/cloud.js';
 import { initTown, townBuff } from './systems/town.js';
 import { setNpcUIHooks } from './systems/npcs.js';
-import { registerTownBuff } from './core/state.js';
+import { initPets, petBonus, setPetUIHooks } from './systems/pets.js';
+import { registerTownBuff, registerPetBonus } from './core/state.js';
 import { emit } from './core/events.js';
 
 const hadSave = load();
@@ -22,11 +23,16 @@ const hadSave = load();
 initTown();
 registerTownBuff(townBuff);
 
+// The Menagerie feeds the same multiplier chain, so it wires up alongside.
+initPets();
+registerPetBonus(petBonus);
+
 initNotifications();
 initRenderer();
 initQuests();
 setAchievementUIHooks({ popup });
 setNpcUIHooks({ queueModal: showOfflineModalQueue, popup });
+setPetUIHooks({ queueModal: showOfflineModalQueue, popup });
 initAchievements();
 
 // Offline progress (counts toward quests via events)

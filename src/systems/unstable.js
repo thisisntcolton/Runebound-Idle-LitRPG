@@ -12,6 +12,7 @@
 import { state, maxHp, combatLevel, dropRateMultiplier } from '../core/state.js';
 import { getItem } from '../data/items.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
+import { rollEggDrop } from './pets.js';
 import { emit } from '../core/events.js';
 import { stopActivity } from './skills.js';
 import { getBuilding } from '../data/town.js';
@@ -215,6 +216,9 @@ function sealRun() {
       emit('rare-drop', { itemId: pick, rarity: getItem(pick)?.rarity });
     }
   }
+
+  const egg = rollEggDrop('rift-seal');
+  if (egg) parts.push(`${getItem(egg)?.icon} ${getItem(egg)?.name}`);
 
   state.stats.riftsSealed = (state.stats.riftsSealed || 0) + 1;
   emit('notify', { type: 'gold', text: `✅ RIFT SEALED after ${run.waves} waves — ${parts.join(' · ')}` });

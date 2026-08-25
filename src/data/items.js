@@ -147,6 +147,22 @@ def({ id: 'town_coffee', name: 'Town Coffee', icon: '☕', type: 'potion', rarit
 def({ id: 'refined_tonic', name: 'Refined Tonic', icon: '🍶', type: 'potion', rarity: 'rare',
       sell: 260, duration: 900, effects: { damage: 0.18, reduction: 0.12 } });
 
+// ---------- Pet eggs (generated from the species list) ----------
+import { SPECIES_LIST, eggItemId } from './pets.js';
+
+const EGG_SELL = { common: 2000, rare: 12000, epic: 40000, legendary: 150000 };
+for (const sp of SPECIES_LIST) {
+  def({
+    id: eggItemId(sp.id),
+    name: sp.eggName,
+    icon: sp.eggIcon,
+    type: 'egg',
+    rarity: sp.rarity,
+    sell: EGG_SELL[sp.rarity] || 2000,
+    species: sp.id,
+  });
+}
+
 // ---------- Ability Tomes (generated from the ability list) ----------
 // Kept in sync with data/abilities.js so a new ability automatically
 // gets a matching tome item.

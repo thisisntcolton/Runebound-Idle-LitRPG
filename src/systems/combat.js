@@ -10,6 +10,7 @@ import { rollLoot } from '../data/loot.js';
 import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
+import { rollEggDrop } from './pets.js';
 import { addXp, stopActivity } from './skills.js';
 import { levelForXp, xpForLevel } from '../core/xp.js';
 import { onUnstableKill, waveMonsterFor, failRun } from './unstable.js';
@@ -214,6 +215,7 @@ function onDungeonKill(monster) {
   state.stats.kills++;
   if (monster.boss) state.stats.bossKills++;
   const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
+  if (monster.boss) rollEggDrop('boss');
   emit('kill', { monsterId: monster.name, zoneId: null, dungeonId: d.id, boss: !!monster.boss });
 
   c.wave = (c.wave || 0) + 1;
@@ -245,6 +247,7 @@ function onKill(monster) {
     emit('notify', { type: 'loot', text: `${banner ? banner + ' DROP — ' : ''}${item.icon} ${item.name}${drop.qty > 1 ? ' ×' + drop.qty : ''}` });
     if (banner) emit('rare-drop', { itemId: drop.item, rarity: item.rarity, tier: drop.tier });
   }
+  if (monster.boss) rollEggDrop('boss');
   emit('kill', { monsterId: monster.id, zoneId: c.zoneId, boss: !!monster.boss });
   c.respawn = RESPAWN_MS;
 }

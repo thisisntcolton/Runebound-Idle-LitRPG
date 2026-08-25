@@ -128,6 +128,15 @@ export function defaultState() {
       nextVisitorAt: 0,
     },
 
+    // The Menagerie — pets persist through Ascension alongside the town.
+    pets: {
+      owned: {},        // petId -> pet record
+      incubator: [],    // eggs currently warming
+      active: null,     // petId walking with you
+      hatched: 0,
+      bred: 0,
+    },
+
     // Unstable rifts — timed emergency events
     unstable: { nextAt: 0, offer: null, run: null },
 
@@ -222,12 +231,18 @@ let _townBuff = () => 0;
 export function registerTownBuff(fn) { _townBuff = fn; }
 export function townBonus(key) { try { return _townBuff(key) || 0; } catch { return 0; } }
 
+// Same trick for the active pet's bonus (systems/pets.js imports state.js).
+let _petBonus = () => 0;
+export function registerPetBonus(fn) { _petBonus = fn; }
+export function petBonus(key) { try { return _petBonus(key) || 0; } catch { return 0; } }
+
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'xp'))
        * (1 + state.charStats.INT * 0.01)
        * (1 + buffEffect('xp'))
        * (1 + townBonus('xp'))
+       * (1 + petBonus('xp'))
        * endingMult();
 }
 
@@ -236,6 +251,7 @@ export function goldMultiplier() {
        * (1 + sumEffect(PERKS, perkLevel, 'gold'))
        * (1 + state.charStats.LUK * 0.005)
        * (1 + buffEffect('gold'))
+       * (1 + petBonus('gold'))
        * endingMult();
 }
 
@@ -247,7 +263,8 @@ export function dropRateMultiplier() {
   return (1 + sumEffect(PERKS, perkLevel, 'dropRate'))
        * (1 + state.charStats.LUK * 0.005)
        * (1 + buffEffect('dropRate'))
-       * (1 + townBonus('drop_rate'));
+       * (1 + townBonus('drop_rate'))
+       * (1 + petBonus('drop_rate'));
 }
 
 // Town Market Stalls raise what vendors pay you.
@@ -319,6 +336,7 @@ export function playerMaxHit() {
              * (1 + state.charStats.STR * 0.01)
              * (1 + buffEffect('damage'))
              * (1 + townBonus('damage'))
+             * (1 + petBonus('damage'))
              * (state.ending === 'broken' ? 1.10 : 1);
   return Math.max(1, Math.floor(base * mult));
 }
