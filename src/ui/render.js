@@ -30,7 +30,8 @@ import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
 import { townLevel } from '../systems/town.js';
-import { startSkillAction, stopActivity } from '../systems/skills.js';
+import { enterRift, failRun, pendingRift, activeRun, UNSTABLE } from '../systems/unstable.js';
+import { startSkillAction, stopActivity, setHirelingTask, hirelingProgress } from '../systems/skills.js';
 import { startCombat, stopCombat, setCombatStyle, setFood } from '../systems/combat.js';
 import { sellItem, sellAllOfType, equipItem, unequipItem } from '../systems/inventory.js';
 import { allocateStat } from '../systems/character.js';
@@ -43,6 +44,24 @@ export const ui = {
   view: 'character',
   selectedZone: ZONES[0].id,
 };
+
+// Rolling record of what has dropped recently, newest first.
+export const recentDrops = [];
+
+export function renderDropFeed() {
+  const el = document.getElementById('drop-feed');
+  if (!el) return;
+  if (!recentDrops.length) {
+    el.innerHTML = '<span class="muted">Drops will appear here as they land.</span>';
+    return;
+  }
+  el.innerHTML = recentDrops.map(d => `
+    <span class="drop-chip border-${d.tier}" style="border-color:var(--r-${d.item.rarity})">
+      <span>${d.item.icon}</span>
+      <span class="rarity-${d.item.rarity}">${d.item.name}</span>
+      ${d.qty > 1 ? `<b>×${d.qty}</b>` : ''}
+    </span>`).join('');
+}
 
 // ---------------- Sidebar ----------------
 function navItem(view, icon, label, { level = null, working = false } = {}) {
@@ -106,11 +125,43 @@ export function renderView() {
   else el.innerHTML = characterPanel();
   renderSidebar();
 
+  renderDropFeed();
   const foodSel = document.getElementById('food-select');
   if (foodSel) foodSel.addEventListener('change', e => setFood(e.target.value || null));
   const titleSel = document.getElementById('title-select');
   if (titleSel) titleSel.addEventListener('change', e => setTitle(e.target.value || null));
+  for (const sel of document.querySelectorAll('.hireling-task')) {
+    sel.addEventListener('change', e => setHirelingTask(e.target.dataset.skill, e.target.value));
+  }
 }
+
+/**
+ * Background events (a hireling finishing an action, town revenue) trigger
+ * re-renders constantly. If the player is mid-interaction with a control —
+ * a dropdown, a text field — blowing away the DOM under them is hostile.
+ * Defer the refresh until they're done.
+ */
+function isInteracting() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag !== 'SELECT' && tag !== 'INPUT' && tag !== 'TEXTAREA') return false;
+  return document.getElementById('main-panel')?.contains(el) ?? false;
+}
+
+let deferredRender = false;
+export function safeRenderView() {
+  if (isInteracting()) { deferredRender = true; return; }
+  renderView();
+}
+
+// Flush any render we skipped once focus leaves the control
+document.addEventListener('focusout', () => {
+  if (deferredRender) {
+    deferredRender = false;
+    setTimeout(() => { if (!isInteracting()) renderView(); }, 60);
+  }
+});
 
 export function setView(view) {
   ui.view = view;
@@ -181,6 +232,19 @@ function updateDynamic() {
   updateBuffBar();
   updateAbilityBar();
   const act = state.activity;
+
+  // unstable rift countdown
+  const utimer = document.getElementById('unstable-timer');
+  if (utimer) {
+    const run = activeRun();
+    if (run) utimer.style.width = Math.max(0, (run.remaining / UNSTABLE.DURATION_MS) * 100) + '%';
+  }
+
+  // hireling progress bars tick even while you do something else
+  for (const bar of document.querySelectorAll('.hireling-bar')) {
+    const p = hirelingProgress(bar.dataset.skill);
+    if (p) bar.style.width = (p.pct * 100) + '%';
+  }
 
   // active skill progress bar
   if (act?.type === 'skill') {
@@ -389,6 +453,9 @@ function handleAction(target) {
     }
     case 'withdraw-stock': withdrawStock(Number(target.dataset.plot), target.dataset.item); break;
     case 'reroll-applicants': refreshApplicants(); break;
+    // ---- Unstable rifts ----
+    case 'enter-unstable': if (enterRift()) setView('combat'); break;
+    case 'flee-unstable': failRun('You fled the tear.'); renderView(); break;
     case 'enchant': enchantItem(target.dataset.item); break;
     case 'drink-potion': drinkPotion(target.dataset.item); closeModal(); break;
     case 'read-lore': {
@@ -414,23 +481,69 @@ export function initRenderer() {
   });
 
   on('tick', updateDynamic);
-  on('state-changed', renderView);
+  on('state-changed', safeRenderView);
   on('level-up', renderView);
   on('char-level', renderView);
 
   // Light-touch refresh of material counts / inventory while crafting
+  // Throttled: hirelings can complete an action every couple of seconds,
+  // and a full repaint that often is both wasteful and jumpy.
+  let actionRefresh = 0;
   on('action-done', () => {
     const v = ui.view;
-    if (v === 'inventory' || v.startsWith('skill:')) renderView();
+    if (v !== 'inventory' && !v.startsWith('skill:')) return;
+    const now = performance.now();
+    if (now - actionRefresh < 1500) return;
+    actionRefresh = now;
+    safeRenderView();
   });
   on('kill', () => { if (ui.view === 'combat') renderView(); });
-  on('town-changed', () => { if (ui.view === 'town') renderView(); });
+  on('town-changed', () => { if (ui.view === 'town') safeRenderView(); });
+  on('unstable-offer', o => {
+    popup('UNSTABLE RIFT', `⚠️ ${o.name}<br><span style="font-size:12px;color:var(--text-dim)">Answer it from the Rifts tab — you have 10 minutes.</span>`, { ttl: 8 });
+    renderView();
+  });
+  on('unstable-sealed', d => popup('RIFT SEALED', `✅ ${d.waves} waves held<br><span style="font-size:12px">${d.reward}</span>`, { gold: true, ttl: 7 }));
+  on('unstable-failed', d => {
+    const raid = d.raid ? `<br><span style="font-size:12px;color:var(--danger)">Hearthwick raided: ${d.raid.damaged.join(', ')} halted ${d.raid.haltMinutes}m</span>` : '';
+    popup('THE RIFT FLOODED', `💥 ${d.reason}${raid}`, { ttl: 8 });
+    renderView();
+  });
   // Town revenue ticks constantly; refresh the view at a calm pace
-  let townRefresh = 0;
+  let townRefresh = 0, riftRefresh = 0;
   on('tick', ({ dt }) => {
-    if (ui.view !== 'town') return;
-    townRefresh += dt;
-    if (townRefresh > 3000) { townRefresh = 0; renderView(); }
+    if (ui.view === 'town') {
+      townRefresh += dt;
+      if (townRefresh > 3000) { townRefresh = 0; safeRenderView(); }
+    } else if (ui.view === 'rifts' && (pendingRift() || activeRun())) {
+      riftRefresh += dt;
+      if (riftRefresh > 1000) { riftRefresh = 0; safeRenderView(); }
+    }
+  });
+
+  // ---- Loot feedback ----
+  // A floating chip over the monster, plus a running strip of recent drops
+  // so you can see at a glance what the grind is actually producing.
+  on('loot', ({ itemId, qty, source, tier }) => {
+    const item = getItem(itemId);
+    if (!item) return;
+    recentDrops.unshift({ item, qty, tier: tier || item.rarity, t: Date.now() });
+    if (recentDrops.length > 12) recentDrops.length = 12;
+
+    if (source === 'combat' && ui.view === 'combat') {
+      const box = document.getElementById('monster-box');
+      if (box) {
+        const el = document.createElement('div');
+        el.className = 'loot-splat';
+        el.style.color = `var(--r-${item.rarity})`;
+        el.style.top = (40 + Math.random() * 30) + '%';
+        el.textContent = `${item.icon} ${item.name}${qty > 1 ? ' ×' + qty : ''}`;
+        box.style.position = 'relative';
+        box.appendChild(el);
+        setTimeout(() => el.remove(), 2300);
+      }
+    }
+    renderDropFeed();
   });
 
   on('combat-hit', ({ source, damage, missed }) => {

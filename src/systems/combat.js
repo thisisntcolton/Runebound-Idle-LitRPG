@@ -11,15 +11,22 @@ import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { addXp, stopActivity } from './skills.js';
+import { levelForXp, xpForLevel } from '../core/xp.js';
+import { onUnstableKill, waveMonsterFor, failRun } from './unstable.js';
 import { applyStrike, applyGuard, applySurvival, tickUtility, autoElixirWants } from './abilities.js';
 import { drinkPotion } from './potions.js';
 
 const RESPAWN_MS = 1200;
 const WAVE_MS = 800; // short breather between rift waves
 
-// The thing currently being fought — zone monster or rift wave.
+// The thing currently being fought — zone monster, rift wave, or an
+// unstable-rift spawn.
 export function currentMonster() {
   const c = state.combat;
+  if (c.unstable) {
+    const run = state.unstable?.run;
+    return run ? waveMonsterFor(run.waves) : null;
+  }
   if (c.dungeonId) {
     const d = getDungeon(c.dungeonId);
     return d ? waveMonster(d, c.wave || 0) : null;
@@ -48,6 +55,7 @@ export function startCombat(zoneId, monsterId) {
   c.playerTimer = 0;
   c.monsterTimer = 0;
   c.respawn = 0;
+  ensureFood();
   emit('notify', { type: 'combat', text: `Engaged: ${monster.name} (${zone.name})` });
   emit('state-changed');
   return true;
@@ -58,6 +66,7 @@ export function stopCombat({ silent = false } = {}) {
     const wasRift = !!state.combat.dungeonId;
     state.activity = null;
     state.combat.dungeonId = null;
+    state.combat.unstable = false;
     state.combat.wave = 0;
     if (!silent) emit('notify', { type: 'combat', text: wasRift
       ? 'You step back through the rift. The run is abandoned.'
@@ -87,6 +96,7 @@ export function startDungeon(dungeonId) {
   c.playerTimer = 0;
   c.monsterTimer = 0;
   c.respawn = 0;
+  ensureFood();
   emit('notify', { type: 'combat', text: `🌀 You step into ${d.name} — wave 1 of ${totalWaves(d)}` });
   emit('state-changed');
   return true;
@@ -138,10 +148,49 @@ export function setFood(itemId) {
   emit('state-changed');
 }
 
+/** Best food you're carrying, by heal amount. */
+export function bestFood() {
+  let best = null;
+  for (const [id, qty] of Object.entries(state.inventory)) {
+    if (qty <= 0) continue;
+    const item = getItem(id);
+    if (item?.type === 'food' && item.heal) {
+      if (!best || item.heal > best.heal) best = item;
+    }
+  }
+  return best;
+}
+
+/**
+ * Never let the player walk into a fight with an empty food slot when
+ * they're carrying something edible.
+ */
+export function ensureFood({ announce = true } = {}) {
+  const c = state.combat;
+  const current = c.foodItem ? getItem(c.foodItem) : null;
+  if (current && itemCount(c.foodItem) > 0) return current;
+  const best = bestFood();
+  if (!best) {
+    if (announce && !c.warnedNoFood) {
+      c.warnedNoFood = true;
+      emit('notify', { type: 'combat', text: '⚠ No food in your bags — you are fighting without a safety net.' });
+    }
+    c.foodItem = null;
+    return null;
+  }
+  c.warnedNoFood = false;
+  if (c.foodItem !== best.id) {
+    c.foodItem = best.id;
+    if (announce) emit('notify', { type: 'sys', text: `🍖 Auto-eat set to ${best.name} (heals ${best.heal}).` });
+  }
+  return best;
+}
+
 function tryEat() {
   const c = state.combat;
   const cap = maxHp();
   if (c.playerHp > cap * 0.5) return;
+  ensureFood();                       // top the slot back up if it ran dry
   const foodId = c.foodItem;
   if (!foodId) return;
   const item = getItem(foodId);
@@ -153,8 +202,9 @@ function tryEat() {
     emit('combat-hit', { source: 'heal', damage: item.heal });
   }
   if (itemCount(foodId) === 0) {
-    c.foodItem = null;
     emit('notify', { type: 'combat', text: `You're out of ${item.name}!` });
+    c.foodItem = null;
+    ensureFood();                     // fall back to the next best thing
   }
 }
 
@@ -199,18 +249,60 @@ function onKill(monster) {
   c.respawn = RESPAWN_MS;
 }
 
+// How long the Wounded debuff lasts, and how hard it bites.
+const WOUNDED_MS = 180000;
+const WOUNDED = { damage: -0.25, speed: -0.15 };
+
 function onDeath() {
   const c = state.combat;
   const inRift = !!c.dungeonId;
+  const zone = c.zoneId ? getZone(c.zoneId) : null;
   state.stats.deaths++;
-  const loss = Math.floor(state.gold * 0.05);
-  state.gold -= loss;
+
+  // 1. Gold — scales with how dangerous the ground was. Rifts hurt most.
+  const rate = inRift ? 0.12 : Math.min(0.10, 0.03 + (zone?.level || 1) * 0.0008);
+  const goldLost = Math.floor(state.gold * rate);
+  state.gold -= goldLost;
+
+  // 2. XP — you lose ground in the style you were training, but never a level.
+  const styleId = c.style || 'attack';
+  const skill = state.skills[styleId];
+  const lvl = levelForXp(skill.xp);
+  const floorXp = xpForLevel(lvl);
+  const intoLevel = skill.xp - floorXp;
+  const xpLost = Math.floor(intoLevel * 0.15);
+  skill.xp = Math.max(floorXp, skill.xp - xpLost);
+
+  // 3. Dropped supplies — panic costs you a third of your current food.
+  let foodLost = 0;
+  if (c.foodItem && itemCount(c.foodItem) > 0) {
+    foodLost = Math.max(1, Math.floor(itemCount(c.foodItem) / 3));
+    removeItem(c.foodItem, foodLost);
+  }
+
+  // 4. Wounded — a real reason not to charge straight back in.
+  state.buffs.wounded = {
+    expiresAt: Date.now() + WOUNDED_MS,
+    effects: WOUNDED,
+    name: 'Wounded',
+    icon: '🩸',
+  };
+
+  const foodItem = c.foodItem ? getItem(c.foodItem) : null;
   emit('notify', { type: 'combat', text: inRift
-    ? `☠ The Rift rejects you — run lost. You wake at camp. (-${loss} gold)`
-    : `☠ You fall in battle… you wake at camp. (-${loss} gold)` });
-  emit('death', {});
+    ? `☠ The Rift rejects you — run lost. (-${goldLost} gold, -${xpLost} ${styleId} XP)`
+    : `☠ You fall in battle. (-${goldLost} gold, -${xpLost} ${styleId} XP)` });
+  emit('death', {
+    goldLost, xpLost, styleId, foodLost,
+    foodName: foodItem?.name,
+    inRift,
+    where: inRift ? getDungeon(c.dungeonId)?.name : zone?.name,
+  });
+
   c.playerHp = maxHp();
+  if (c.unstable) failRun('You were cut down inside the tear.');
   stopCombat({ silent: true });
+  emit('state-changed');
 }
 
 export function tickCombat(dt) {
@@ -280,7 +372,8 @@ export function tickCombat(dt) {
       addXp(state.combat.style, total * 4 * combatXpFactor(), { useMult: false });
       addXp('hitpoints', total * 1.33 * combatXpFactor(), { useMult: false });
       if (c.monsterHp <= 0) {
-        if (c.dungeonId) onDungeonKill(monster);
+        if (c.unstable) onUnstableKill();
+        else if (c.dungeonId) onDungeonKill(monster);
         else onKill(monster);
         return;
       }

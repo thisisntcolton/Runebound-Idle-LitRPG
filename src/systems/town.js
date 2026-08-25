@@ -9,6 +9,7 @@ import { BUILDINGS, BUILDING_LIST, getBuilding, BUILDING_UNLOCK_LEVEL,
 import { getItem } from '../data/items.js';
 import { addGold, spendGold, addItem, removeItem, itemCount } from './inventory.js';
 import { emit } from '../core/events.js';
+import { plotHalted } from './unstable.js';
 
 // ---------------- Helpers ----------------
 
@@ -360,6 +361,7 @@ export function tickTown(dt) {
     if (!def) continue;
     const mods = plotModifiers(i);
     if (mods.count === 0) continue;          // unstaffed buildings sit idle
+    if (plotHalted(plot)) continue;          // shut down after a raid
 
     const cycleMs = Math.max(4000, def.cycleMs * mods.speed);
     plot.progress = (plot.progress || 0) + dt;

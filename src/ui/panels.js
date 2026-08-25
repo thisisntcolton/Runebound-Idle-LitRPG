@@ -19,6 +19,7 @@ import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
 import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost } from '../data/upgrades.js';
 import { STAT_INFO } from '../systems/character.js';
+import { hirelingProgress, hirelingTask } from '../systems/skills.js';
 import { cloud } from '../core/cloud.js';
 import { levelForXp, xpForLevel, levelProgress, MAX_LEVEL } from '../core/xp.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
@@ -123,12 +124,39 @@ function shopRowHireling(h) {
   const maxed = lvl >= h.maxLevel;
   const cost = upgradeCost(h, lvl);
   const rate = hirelingRate(h.skill);
+  const skill = SKILLS[h.skill];
+  const prog = lvl > 0 ? hirelingProgress(h.skill) : null;
+  const currentTask = hirelingTask(h.skill);
+
+  // Task picker — only actions the skill level allows
+  const taskOptions = skill.actions.map(a => {
+    const locked = skillLevel(h.skill) < a.level;
+    return `<option value="${a.id}" ${a.id === currentTask ? 'selected' : ''} ${locked ? 'disabled' : ''}>
+      ${a.icon} ${a.name}${locked ? ` (Lv.${a.level})` : ''}</option>`;
+  }).join('');
+
   return `
-    <div class="shop-row" style="border-color: rgba(245,197,66,0.35)">
+    <div class="shop-row" style="border-color: rgba(245,197,66,0.35); flex-wrap:wrap">
       <div style="font-size:22px">${h.icon}</div>
       <div class="shop-row-info">
         <div class="shop-row-title">${h.name} ${lvl > 0 ? `<span class="pill">working at ${Math.round(rate * 100)}%</span>` : ''}</div>
         <div class="shop-row-desc">${h.flavor} ${lvl === 0 ? '— hire to train this skill passively, even while you do other things.' : ''}</div>
+        ${lvl > 0 ? `
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <span class="muted">Farming:</span>
+            <select class="hireling-task" data-skill="${h.skill}"
+                    style="background:var(--bg-deep);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 8px">
+              ${taskOptions}
+            </select>
+            ${prog ? `<span class="muted">one every ${(prog.effectiveMs / 1000).toFixed(0)}s</span>` : ''}
+          </div>
+          ${prog ? `
+            <div class="action-bar-outer" style="margin-top:8px">
+              <div class="action-bar-inner hireling-bar" data-skill="${h.skill}" style="width:${prog.pct * 100}%;background:linear-gradient(90deg,#b8912c,var(--gold))"></div>
+            </div>
+            <div class="muted" style="font-size:11px;margin-top:3px">${prog.action.icon} ${prog.action.name} — working…</div>`
+           : '<div class="lock-req" style="margin-top:6px">Your level is too low for the selected task.</div>'}
+        ` : ''}
       </div>
       <div class="shop-row-level">${lvl}/${h.maxLevel}</div>
       ${maxed
@@ -270,6 +298,8 @@ export function combatPanel(ui) {
     <div class="panel-desc">Choose a hunting ground. Your hero fights automatically — keep food equipped or the System will be writing your obituary.</div>
     ${statBar}
     ${abilBar ? `<div class="ability-bar">${abilBar}</div>` : ''}
+    <div class="section-title" style="margin:14px 0 6px">🎁 Recent drops</div>
+    <div class="drop-feed" id="drop-feed"></div>
     ${arena}
     <div class="combat-controls">
       ${styles}

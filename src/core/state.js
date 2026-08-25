@@ -71,6 +71,7 @@ export function defaultState() {
       style: 'attack',  // which skill gets the style XP
       foodItem: null,   // itemId used for auto-eat
       autoPotion: null, // itemId Auto-Elixir keeps topped up
+      unstable: false,  // fighting inside an unstable rift
       monsterMaxHp: 0,  // for % based abilities like Execute
       drBurstUntil: 0,
       drBurstValue: 0,
@@ -82,6 +83,7 @@ export function defaultState() {
     upgrades: {},       // upgradeId -> level
     hirelings: {},      // hirelingId -> level
     hirelingCarry: {},  // skillId -> fractional action progress
+    hirelingTask: {},   // skillId -> actionId the hireling is told to farm
     perks: {},          // perkId -> level
 
     charStats: { STR: 0, AGI: 0, VIT: 0, INT: 0, LUK: 0 },
@@ -120,6 +122,9 @@ export function defaultState() {
       cycles: 0,
       unpaid: 0,
     },
+
+    // Unstable rifts — timed emergency events
+    unstable: { nextAt: 0, offer: null, run: null },
 
     // Story & quests
     quests: { progress: {}, completed: {}, seenOffers: {} },

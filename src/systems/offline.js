@@ -7,7 +7,7 @@ import { state, actionTime, hirelingRate, skillLevel, offlineCapHours } from '..
 import { SKILLS, getAction, TRAINABLE_SKILLS } from '../data/skills.js';
 import { getItem } from '../data/items.js';
 import { hasInputs } from './inventory.js';
-import { completeAction } from './skills.js';
+import { completeAction, hirelingTask } from './skills.js';
 import { processTownOffline } from './town.js';
 
 // Returns a summary { seconds, cappedSeconds, gains: [{icon,text}] } or null.
@@ -55,7 +55,7 @@ export function processOffline() {
   for (const skillId of TRAINABLE_SKILLS) {
     const rate = hirelingRate(skillId);
     if (rate <= 0) continue;
-    const actionId = state.lastAction?.[skillId] || SKILLS[skillId].actions[0].id;
+    const actionId = hirelingTask(skillId);
     const action = getAction(skillId, actionId);
     if (!action || skillLevel(skillId) < action.level) continue;
     const time = actionTime(skillId, action) / 1000;

@@ -63,9 +63,17 @@ export function initNotifications() {
     popup('ASCENSION', `💠 The System acknowledges you.<br>+<b>${shards}</b> Fate Shards`, { gold: true, ttl: 6 });
   });
 
-  on('death', () => {
-    popup('YOU DIED', `☠ The System drags your soul back to camp.`, { ttl: 5 });
+  on('death', d => {
+    const lines = [
+      `🪙 −${(d.goldLost || 0).toLocaleString()} gold`,
+      d.xpLost ? `📉 −${d.xpLost.toLocaleString()} ${d.styleId} XP` : null,
+      d.foodLost ? `🍖 −${d.foodLost} ${d.foodName || 'rations'} scattered` : null,
+      `🩸 Wounded — −25% damage, −15% speed for 3 minutes`,
+    ].filter(Boolean).join('<br>');
+    popup('YOU DIED', `☠ Cut down in ${d.where || 'the field'}<br>
+      <span style="font-size:12px;color:var(--text-dim);line-height:1.7">${lines}</span>`, { ttl: 7 });
   });
+
 
   const toggle = document.getElementById('log-toggle');
   const logBox = document.getElementById('system-log');

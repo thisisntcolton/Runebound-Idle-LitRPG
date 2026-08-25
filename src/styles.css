@@ -344,6 +344,35 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .attack-timer-outer { height: 6px; background: #10182c; border-radius: 3px; overflow: hidden; margin-top: 6px; }
 .attack-timer-inner { height: 100%; background: var(--gold); width: 0%; border-radius: 3px; }
 .vs-divider { display: flex; align-items: center; font-size: 26px; font-weight: 900; color: var(--text-faint); }
+.loot-splat {
+  position: absolute;
+  right: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  pointer-events: none;
+  animation: lootFloat 2.2s ease-out forwards;
+  text-shadow: 0 2px 4px #000;
+  z-index: 6;
+  white-space: nowrap;
+}
+@keyframes lootFloat {
+  0%   { transform: translateY(6px);  opacity: 0; }
+  15%  { transform: translateY(0);    opacity: 1; }
+  75%  { transform: translateY(-26px); opacity: 1; }
+  100% { transform: translateY(-40px); opacity: 0; }
+}
+.drop-feed {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 14px; min-height: 26px; align-items: center;
+}
+.drop-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 3px 10px; font-size: 11.5px;
+  animation: chipIn 0.3s ease-out;
+}
+@keyframes chipIn { from { transform: scale(0.8); opacity: 0; } }
+
 .hit-splat {
   position: absolute;
   font-weight: 900;
@@ -656,4 +685,12 @@ textarea.save-io {
   #system-log { width: 280px; }
   .combat-arena { grid-template-columns: 1fr; }
   .vs-divider { justify-content: center; }
+}
+
+.unstable-card {
+  background: linear-gradient(160deg, rgba(229,72,77,0.10), var(--bg-card));
+  animation: unstablePulse 2.4s ease-in-out infinite;
+}
+@keyframes unstablePulse {
+  50% { box-shadow: 0 0 22px rgba(229, 72, 77, 0.25); }
 }

@@ -6,6 +6,7 @@ import { tickCombat } from '../systems/combat.js';
 import { cleanupBuffs } from '../systems/potions.js';
 import { tickAbilities } from '../systems/abilities.js';
 import { tickTown } from '../systems/town.js';
+import { tickUnstable } from '../systems/unstable.js';
 import { emit } from './events.js';
 
 let buffSweep = 0;
@@ -29,6 +30,7 @@ export function startLoop() {
     tickCombat(dt);
     tickAbilities(dt);
     tickTown(dt);
+    tickUnstable(dt);
     buffSweep += dt;
     if (buffSweep > 5000) { buffSweep = 0; cleanupBuffs(); }
     emit('tick', { dt });
