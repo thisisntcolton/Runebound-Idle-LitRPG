@@ -3,9 +3,10 @@
 // ============================================================
 import { state, skillLevel, actionTime, doubleChance, hirelingRate,
          charLevel, totalSkillLevel, combatLevel, statPointsAvailable,
-         gearStats, maxHp, playerAccuracy, playerMaxHit, playerDefenseRating,
+         gearStats, maxHp, playerAccuracy, playerMaxHit, playerMinHit, playerDefenseRating,
          damageReduction, xpMultiplier, goldMultiplier, pendingShards,
-         ASCEND_MIN_TOTAL_LEVEL, offlineCapHours } from '../core/state.js';
+         ASCEND_MIN_TOTAL_LEVEL, offlineCapHours,
+         hitChanceVs, expectedDps, timeToKill, attackInterval, BALANCE } from '../core/state.js';
 import { SKILLS, TRAINABLE_SKILLS, COMBAT_SKILLS, getAction } from '../data/skills.js';
 import { ZONES, getZone, getMonster } from '../data/monsters.js';
 import { getDungeon, totalWaves } from '../data/dungeons.js';
@@ -44,6 +45,7 @@ export function skillPanel(skillId) {
     const unlocked = lvl >= a.level;
     const isActive = act?.type === 'skill' && act.skillId === skillId && act.actionId === a.id;
     const time = actionTime(skillId, a);
+    // (skill actions below)
     const outputs = Object.entries(a.output).map(([id, q]) => {
       const item = getItem(id);
       return `${item.icon} ${q > 1 ? q + '× ' : ''}${item.name}`;
@@ -201,24 +203,49 @@ export function combatPanel(ui) {
 
   const monsterCards = selectedZone ? selectedZone.monsters.map(m => {
     const fighting = inCombat && c.zoneId === selectedZone.id && c.monsterId === m.id;
+    const hc = hitChanceVs(m.defense) * 100;
+    const ttk = timeToKill(m.hp, m.defense);
+    // colour the hit chance so bad matchups are obvious at a glance
+    const hcColor = hc >= 75 ? 'var(--xp)' : hc >= 55 ? 'var(--gold)' : 'var(--danger)';
+    const dropChance = m.loot.length
+      ? Math.round((1 - m.loot.reduce((p, d) => p * (1 - d.chance), 1)) * 100)
+      : 0;
     return `
       <div class="card clickable ${fighting ? 'active-card' : ''}" data-act="${fighting ? 'stop-combat' : 'fight'}" data-zone="${selectedZone.id}" data-monster="${m.id}">
         <div class="card-title"><span class="card-icon">${m.icon}</span> ${m.name}${m.boss ? ' 👑' : ''}</div>
-        <div class="card-sub">Lv. ${m.level} · ${m.hp} HP · hits up to ${m.maxHit}</div>
+        <div class="card-sub">Lv. ${m.level} · ${fmt(m.hp)} HP · 🛡 ${m.defense} def · hits up to ${m.maxHit}</div>
+        <div class="card-sub">
+          <span style="color:${hcColor}">🎯 you hit ${hc.toFixed(0)}%</span> ·
+          ⏱ ~${ttk < 1 ? '<1' : ttk.toFixed(0)}s to kill
+        </div>
         <div class="card-yield">
           <span class="yield-gold">🪙 ${m.gold[0]}–${m.gold[1]}</span>
-          <span>${m.loot.length ? '🎁 ' + m.loot.length + ' drop' + (m.loot.length > 1 ? 's' : '') : ''}</span>
+          <span>${dropChance ? `🎁 ${dropChance}% drop` : ''}</span>
         </div>
         ${fighting ? '<div class="working-dot"></div>' : ''}
       </div>`;
   }).join('') : '';
 
+  // Your own combat readout — the numbers that were previously invisible
+  const refDef = selectedZone ? selectedZone.monsters[0].defense : 0;
+  const statBar = `
+    <div class="shop-row" style="border-color:var(--border-bright);gap:22px;flex-wrap:wrap">
+      <div><div class="muted">DAMAGE</div><div class="shop-row-title">${playerMinHit()}–${playerMaxHit()}</div></div>
+      <div><div class="muted">ACCURACY</div><div class="shop-row-title">${playerAccuracy()}</div></div>
+      <div><div class="muted">SPEED</div><div class="shop-row-title">${(attackInterval() / 1000).toFixed(1)}s</div></div>
+      <div><div class="muted">DPS vs ${selectedZone ? selectedZone.monsters[0].name : 'target'}</div>
+           <div class="shop-row-title" style="color:var(--gold)">${expectedDps(refDef).toFixed(1)}</div></div>
+      <div><div class="muted">MAX HP</div><div class="shop-row-title">${maxHp()}</div></div>
+      <div><div class="muted">DMG REDUCTION</div><div class="shop-row-title">${Math.round(damageReduction() * 100)}%</div></div>
+    </div>`;
+
   return `
     <div class="panel-header">
       <div class="panel-title">⚔️ Combat</div>
-      <div class="panel-subtitle">Combat Lv. ${cl} · Max hit ${playerMaxHit()} · ${Math.round(damageReduction() * 100)}% DR</div>
+      <div class="panel-subtitle">Combat Lv. ${cl}</div>
     </div>
     <div class="panel-desc">Choose a hunting ground. Your hero fights automatically — keep food equipped or the System will be writing your obituary.</div>
+    ${statBar}
     ${arena}
     <div class="combat-controls">
       ${styles}
@@ -311,7 +338,8 @@ export function equipmentPanel() {
       <div style="font-size:20px">${e.item.icon}</div>
       <div class="shop-row-info">
         <div class="shop-row-title ${rarityCls(e.item)}">${e.item.name} ${e.qty > 1 ? '×' + e.qty : ''}</div>
-        <div class="shop-row-desc">${statLine(e.item.stats)} · ${e.item.slot}</div>
+        <div class="shop-row-desc">${statLine(e.item.stats)} · ${e.item.slot}${e.item.stats?.str
+          ? ` · <span style="color:var(--gold)">+${Math.floor(e.item.stats.str * BALANCE.MAXHIT_PER_GEAR_STR)} max hit</span>` : ''}</div>
       </div>
       <button class="btn btn-sm btn-primary" data-act="equip-item" data-item="${e.item.id}">Equip</button>
     </div>`).join('') : '<div class="muted">No equipment in your bags. Forge some at the smithy, or take it from something\'s corpse.</div>';
@@ -322,11 +350,17 @@ export function equipmentPanel() {
       <div class="equip-slots">${slotEls}</div>
       <div class="gear-stats-box">
         <div class="char-sheet">
-          <div class="char-sheet-header"><span>GEAR TOTALS</span></div>
-          <div class="stat-row"><span class="stat-name">ATK</span><span class="stat-value">+${gear.atk}</span><span class="stat-desc">accuracy bonus</span></div>
-          <div class="stat-row"><span class="stat-name">STR</span><span class="stat-value">+${gear.str}</span><span class="stat-desc">damage bonus</span></div>
-          <div class="stat-row"><span class="stat-name">DEF</span><span class="stat-value">+${gear.def}</span><span class="stat-desc">defense bonus</span></div>
-          <div class="stat-row"><span class="stat-name">HP</span><span class="stat-value">+${gear.hp}</span><span class="stat-desc">bonus hitpoints</span></div>
+          <div class="char-sheet-header"><span>GEAR TOTALS</span><span>WHAT IT ACTUALLY DOES</span></div>
+          <div class="stat-row"><span class="stat-name">ATK</span><span class="stat-value">+${gear.atk}</span>
+            <span class="stat-desc">accuracy ${playerAccuracy() - gear.atk} → <b>${playerAccuracy()}</b></span></div>
+          <div class="stat-row"><span class="stat-name">STR</span><span class="stat-value">+${gear.str}</span>
+            <span class="stat-desc">+${Math.floor(gear.str * BALANCE.MAXHIT_PER_GEAR_STR)} max hit (${BALANCE.MAXHIT_PER_GEAR_STR} per point)</span></div>
+          <div class="stat-row"><span class="stat-name">DEF</span><span class="stat-value">+${gear.def}</span>
+            <span class="stat-desc">defense rating ${playerDefenseRating()} → ${Math.round(damageReduction() * 100)}% reduction</span></div>
+          <div class="stat-row"><span class="stat-name">HP</span><span class="stat-value">+${gear.hp}</span>
+            <span class="stat-desc">max HP <b>${maxHp()}</b></span></div>
+          <div class="stat-row"><span class="stat-name">DMG</span><span class="stat-value">${playerMinHit()}–${playerMaxHit()}</span>
+            <span class="stat-desc">your current damage range</span></div>
         </div>
       </div>
     </div>
@@ -379,9 +413,10 @@ export function characterPanel() {
       ${statRows}
       <div class="char-sheet-header" style="margin-top:18px"><span>DERIVED</span></div>
       <div class="stat-row"><span class="stat-name">HP</span><span class="stat-value">${maxHp()}</span><span class="stat-desc">maximum hitpoints</span></div>
-      <div class="stat-row"><span class="stat-name">HIT</span><span class="stat-value">${playerMaxHit()}</span><span class="stat-desc">max hit</span></div>
-      <div class="stat-row"><span class="stat-name">ACC</span><span class="stat-value">${playerAccuracy()}</span><span class="stat-desc">accuracy rating</span></div>
-      <div class="stat-row"><span class="stat-name">DEF</span><span class="stat-value">${playerDefenseRating()}</span><span class="stat-desc">defense rating (${Math.round(damageReduction() * 100)}% reduction)</span></div>
+      <div class="stat-row"><span class="stat-name">DMG</span><span class="stat-value">${playerMinHit()}–${playerMaxHit()}</span><span class="stat-desc">damage range per landed hit (every swing rolls in here)</span></div>
+      <div class="stat-row"><span class="stat-name">ACC</span><span class="stat-value">${playerAccuracy()}</span><span class="stat-desc">accuracy — vs 10 defense you land ${Math.round(hitChanceVs(10) * 100)}% of swings</span></div>
+      <div class="stat-row"><span class="stat-name">SPD</span><span class="stat-value">${(attackInterval() / 1000).toFixed(1)}s</span><span class="stat-desc">seconds between swings</span></div>
+      <div class="stat-row"><span class="stat-name">DEF</span><span class="stat-value">${playerDefenseRating()}</span><span class="stat-desc">defense rating (${Math.round(damageReduction() * 100)}% damage reduction)</span></div>
       <div class="stat-row"><span class="stat-name">XP×</span><span class="stat-value">${xpMultiplier().toFixed(2)}</span><span class="stat-desc">global XP multiplier</span></div>
       <div class="stat-row"><span class="stat-name">🪙×</span><span class="stat-value">${goldMultiplier().toFixed(2)}</span><span class="stat-desc">global gold multiplier</span></div>
       <div class="char-sheet-header" style="margin-top:18px"><span>SKILLS — TOTAL ${totalSkillLevel()}</span></div>

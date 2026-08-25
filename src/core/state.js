@@ -9,6 +9,38 @@ import { levelForXp, xpForLevel } from './xp.js';
 
 export const SAVE_VERSION = 1;
 
+// ============================================================
+// BALANCE — every combat lever in one place. Tweak and reload.
+// ============================================================
+export const BALANCE = {
+  // --- Accuracy: chance a swing lands ---
+  // hitChance = accuracy / (accuracy + monsterDefense + DEFENSE_CONSTANT)
+  ACCURACY_BASE: 22,               // was 14 — cuts brutal early-game whiffing
+  ACCURACY_PER_ATTACK_LEVEL: 2,
+  ACCURACY_DEFENSE_CONSTANT: 10,
+
+  // --- Max hit: your damage ceiling ---
+  // maxHit = floor((BASE + strLvl*PER_LEVEL + gearStr*PER_GEAR) * multipliers)
+  MAXHIT_BASE: 4,
+  MAXHIT_PER_STRENGTH_LEVEL: 0.8,
+  MAXHIT_PER_GEAR_STR: 0.65,       // was 0.5 — makes equipment upgrades matter
+
+  // --- Min hit: your damage FLOOR (trained fighters don't flail) ---
+  // Damage rolls uniformly between minHit and maxHit instead of 1 and maxHit.
+  // Tuned so the total power gain is a flat ~40-55% at every tier rather
+  // than compounding into a late-game blowout.
+  MINHIT_FRACTION_BASE: 0.30,
+  MINHIT_FRACTION_PER_ATTACK_LEVEL: 0.001,    // ~0.40 at Attack 99
+  MINHIT_FRACTION_CAP: 0.42,
+
+  // --- Speed & mitigation ---
+  ATTACK_INTERVAL_MS: 2400,
+  DR_SOFTCAP_CONSTANT: 220,        // defense rating needed for ~50% flat DR
+  DR_FLAT_CAP: 0.60,
+  DR_MULT_CAP: 0.45,
+  DR_TOTAL_CAP: 0.85,
+};
+
 export function defaultState() {
   const skills = {};
   for (const id of SKILL_IDS) skills[id] = { xp: 0 };
@@ -225,11 +257,15 @@ export function maxHp() {
 }
 
 export function playerAccuracy() {
-  return 14 + skillLevel('attack') * 2 + gearStats().atk;
+  return BALANCE.ACCURACY_BASE
+       + skillLevel('attack') * BALANCE.ACCURACY_PER_ATTACK_LEVEL
+       + gearStats().atk;
 }
 
 export function playerMaxHit() {
-  const base = 4 + skillLevel('strength') * 0.8 + gearStats().str * 0.5;
+  const base = BALANCE.MAXHIT_BASE
+             + skillLevel('strength') * BALANCE.MAXHIT_PER_STRENGTH_LEVEL
+             + gearStats().str * BALANCE.MAXHIT_PER_GEAR_STR;
   const mult = (1 + upgradeLevel('whetstone') * 0.06)
              * (1 + sumEffect(PERKS, perkLevel, 'damage'))
              * (1 + state.charStats.STR * 0.01)
@@ -238,20 +274,50 @@ export function playerMaxHit() {
   return Math.max(1, Math.floor(base * mult));
 }
 
+// Damage floor — rises with Attack, so training Attack now does two jobs:
+// land more swings, and make the swings you land less feeble.
+export function playerMinHit() {
+  const frac = Math.min(
+    BALANCE.MINHIT_FRACTION_CAP,
+    BALANCE.MINHIT_FRACTION_BASE + skillLevel('attack') * BALANCE.MINHIT_FRACTION_PER_ATTACK_LEVEL
+  );
+  return Math.max(1, Math.floor(playerMaxHit() * frac));
+}
+
+// Chance a swing lands against a given defense value.
+export function hitChanceVs(monsterDefense) {
+  const acc = playerAccuracy();
+  return acc / (acc + monsterDefense + BALANCE.ACCURACY_DEFENSE_CONSTANT);
+}
+
+// Expected damage per second against a given defense — used by the UI so
+// players can actually see whether an upgrade helped.
+export function expectedDps(monsterDefense) {
+  const avgHit = (playerMinHit() + playerMaxHit()) / 2;
+  return hitChanceVs(monsterDefense) * avgHit / (attackInterval() / 1000);
+}
+
+// Rough seconds to kill something with `hp` and `defense`.
+export function timeToKill(hp, monsterDefense) {
+  const dps = expectedDps(monsterDefense);
+  return dps > 0 ? hp / dps : Infinity;
+}
+
 export function playerDefenseRating() {
   return skillLevel('defense') * 2 + gearStats().def;
 }
 
 export function damageReduction() {
-  const flat = Math.min(0.6, playerDefenseRating() / (playerDefenseRating() + 220));
-  const mult = Math.min(0.45, upgradeLevel('polish') * 0.06
+  const dr = playerDefenseRating();
+  const flat = Math.min(BALANCE.DR_FLAT_CAP, dr / (dr + BALANCE.DR_SOFTCAP_CONSTANT));
+  const mult = Math.min(BALANCE.DR_MULT_CAP, upgradeLevel('polish') * 0.06
              + sumEffect(PERKS, perkLevel, 'reduction')
              + buffEffect('reduction'));
-  return Math.min(0.85, flat + mult * (1 - flat));
+  return Math.min(BALANCE.DR_TOTAL_CAP, flat + mult * (1 - flat));
 }
 
 export function attackInterval() {
-  return 2400 / (1 + state.charStats.AGI * 0.005 + buffEffect('speed'));
+  return BALANCE.ATTACK_INTERVAL_MS / (1 + state.charStats.AGI * 0.005 + buffEffect('speed'));
 }
 
 export function offlineCapHours() {

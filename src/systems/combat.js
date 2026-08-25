@@ -1,9 +1,9 @@
 // ============================================================
 // COMBAT — auto-battle, loot, food, death
 // ============================================================
-import { state, playerAccuracy, playerMaxHit, playerDefenseRating,
+import { state, playerAccuracy, playerMaxHit, playerMinHit, playerDefenseRating,
          damageReduction, attackInterval, maxHp, combatLevel,
-         combatXpMultiplier, dropRateMultiplier } from '../core/state.js';
+         combatXpMultiplier, dropRateMultiplier, BALANCE } from '../core/state.js';
 import { getZone, getMonster } from '../data/monsters.js';
 import { getDungeon, waveMonster, totalWaves } from '../data/dungeons.js';
 import { getItem } from '../data/items.js';
@@ -234,9 +234,12 @@ export function tickCombat(dt) {
   if (c.playerTimer >= pInterval) {
     c.playerTimer -= pInterval;
     const acc = playerAccuracy();
-    const hitChance = acc / (acc + monster.defense + 10);
+    const hitChance = acc / (acc + monster.defense + BALANCE.ACCURACY_DEFENSE_CONSTANT);
     if (Math.random() < hitChance) {
-      const dmg = 1 + Math.floor(Math.random() * playerMaxHit());
+      // Roll between your floor and ceiling, not between 1 and your ceiling.
+      const lo = playerMinHit();
+      const hi = playerMaxHit();
+      const dmg = lo + Math.floor(Math.random() * (hi - lo + 1));
       c.monsterHp -= dmg;
       if (dmg > state.stats.highestDamage) state.stats.highestDamage = dmg;
       emit('combat-hit', { source: 'player', damage: dmg });
@@ -256,7 +259,7 @@ export function tickCombat(dt) {
   // Monster attack
   if (c.monsterTimer >= monster.attackSpeed) {
     c.monsterTimer -= monster.attackSpeed;
-    const hitChance = monster.attack / (monster.attack + playerDefenseRating() + 10);
+    const hitChance = monster.attack / (monster.attack + playerDefenseRating() + BALANCE.ACCURACY_DEFENSE_CONSTANT);
     if (Math.random() < hitChance) {
       const raw = 1 + Math.floor(Math.random() * monster.maxHit);
       const dmg = Math.max(1, Math.floor(raw * (1 - damageReduction())));
