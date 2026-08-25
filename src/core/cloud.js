@@ -55,7 +55,7 @@ export async function refreshMe() {
       cloud.status = 'signed-in';
     } else {
       cloud.user = null;
-      cloud.status = cloud.providers.length ? 'signed-out' : 'unavailable';
+      cloud.status = 'signed-out'
     }
     cloud.lastError = data.error || null;
   } catch (err) {
