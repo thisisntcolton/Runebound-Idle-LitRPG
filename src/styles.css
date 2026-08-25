@@ -358,6 +358,26 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   20% { transform: translateY(-8px) scale(1.15); opacity: 1; }
   100% { transform: translateY(-38px) scale(1); opacity: 0; }
 }
+/* ==================== Town ==================== */
+.town-map-wrap {
+  border: 1px solid var(--border-bright);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #1b3324;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
+  margin-bottom: 6px;
+}
+.town-svg { display: block; width: 100%; height: auto; }
+.town-plot rect:first-child { transition: fill 0.15s, stroke 0.15s; }
+.town-plot:hover rect:first-child { fill: rgba(255, 255, 255, 0.06); stroke: rgba(255,255,255,0.25); }
+.town-plot.sel { filter: drop-shadow(0 0 6px rgba(77,163,255,0.55)); }
+
+.btn-town {
+  background: linear-gradient(180deg, #3e6b45, #2d5133);
+  border-color: #6aa871;
+  color: #dff3e2;
+}
+
 .ability-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 .ability-chip {
   display: flex; align-items: center; gap: 8px;

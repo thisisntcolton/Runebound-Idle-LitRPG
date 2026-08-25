@@ -13,6 +13,9 @@ import { skillPanel, combatPanel, inventoryPanel, equipmentPanel,
 import { journalPanel } from './journal.js';
 import { riftsPanel } from './rifts.js';
 import { abilitiesPanel } from './abilities.js';
+import { townPanel, townUI } from './town.js';
+import { buyPlot, build, upgradeBuilding, demolish, hire, fire, assignStaff,
+         stockBuilding, withdrawStock, refreshApplicants } from '../systems/town.js';
 import { achievementsPanel } from './achievements.js';
 import { learnTome, equipAbility, manualTrigger, abilityStatus } from '../systems/abilities.js';
 import { leaderboardPanel, loadLeaderboard, lbState } from './leaderboard.js';
@@ -26,6 +29,7 @@ import { setQuestUIHooks, chooseEnding, activeMainQuest } from '../systems/quest
 import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
+import { townLevel } from '../systems/town.js';
 import { startSkillAction, stopActivity } from '../systems/skills.js';
 import { startCombat, stopCombat, setCombatStyle, setFood } from '../systems/combat.js';
 import { sellItem, sellAllOfType, equipItem, unequipItem } from '../systems/inventory.js';
@@ -71,6 +75,7 @@ export function renderSidebar() {
       working: (act?.type === 'skill' && act.skillId === id) || hasWorkingHireling(id),
     })).join('')}
     <div class="nav-section-label">Beyond</div>
+    ${navItem('town', '🏘️', 'Hearthwick', { level: state.town?.unlocked ? 'Lv.' + townLevel() : null })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}
     ${navItem('settings', '⚙️', 'Settings', { level: cloud.status === 'signed-in' ? '☁️' : null })}
@@ -90,6 +95,7 @@ export function renderView() {
   else if (v === 'journal') el.innerHTML = journalPanel();
   else if (v === 'rifts') el.innerHTML = riftsPanel();
   else if (v === 'abilities') el.innerHTML = abilitiesPanel();
+  else if (v === 'town') el.innerHTML = townPanel();
   else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
@@ -359,6 +365,30 @@ function handleAction(target) {
     case 'learn-tome': learnTome(target.dataset.item); break;
     case 'equip-ability': equipAbility(target.dataset.slot, target.dataset.ability || null); break;
     case 'fire-ability': manualTrigger(); break;
+    // ---- Town ----
+    case 'select-plot':
+      townUI.selectedPlot = Number(target.dataset.plot);
+      townUI.tab = 'build';
+      renderView();
+      break;
+    case 'town-tab': townUI.tab = target.dataset.tab; renderView(); break;
+    case 'buy-plot':
+      if (buyPlot(Number(target.dataset.plot))) townUI.selectedPlot = Number(target.dataset.plot);
+      break;
+    case 'build': build(Number(target.dataset.plot), target.dataset.building); break;
+    case 'upgrade-building': upgradeBuilding(Number(target.dataset.plot)); break;
+    case 'demolish': demolish(Number(target.dataset.plot)); break;
+    case 'hire': hire(target.dataset.applicant); break;
+    case 'fire': fire(target.dataset.staff); break;
+    case 'assign-staff': assignStaff(target.dataset.staff, Number(target.dataset.plot)); break;
+    case 'unassign-staff': assignStaff(target.dataset.staff, null); break;
+    case 'stock': {
+      const qty = target.dataset.qty === 'all' ? 'all' : Number(target.dataset.qty);
+      stockBuilding(Number(target.dataset.plot), target.dataset.item, qty);
+      break;
+    }
+    case 'withdraw-stock': withdrawStock(Number(target.dataset.plot), target.dataset.item); break;
+    case 'reroll-applicants': refreshApplicants(); break;
     case 'enchant': enchantItem(target.dataset.item); break;
     case 'drink-potion': drinkPotion(target.dataset.item); closeModal(); break;
     case 'read-lore': {
@@ -394,6 +424,14 @@ export function initRenderer() {
     if (v === 'inventory' || v.startsWith('skill:')) renderView();
   });
   on('kill', () => { if (ui.view === 'combat') renderView(); });
+  on('town-changed', () => { if (ui.view === 'town') renderView(); });
+  // Town revenue ticks constantly; refresh the view at a calm pace
+  let townRefresh = 0;
+  on('tick', ({ dt }) => {
+    if (ui.view !== 'town') return;
+    townRefresh += dt;
+    if (townRefresh > 3000) { townRefresh = 0; renderView(); }
+  });
 
   on('combat-hit', ({ source, damage, missed }) => {
     if (ui.view !== 'combat') return;

@@ -9,11 +9,18 @@ import { initNotifications, pushLog, popup } from './ui/notify.js';
 import { initQuests } from './systems/quests.js';
 import { initAchievements, setAchievementUIHooks } from './systems/achievements.js';
 import { initCloud } from './core/cloud.js';
+import { initTown, townBuff } from './systems/town.js';
+import { registerTownBuff } from './core/state.js';
 import { emit } from './core/events.js';
 
 const hadSave = load();
 
 // UI + subscriptions first, so offline gains flow through quests & log
+// Town must exist and be wired into the multiplier chain before anything
+// reads a bonus off it.
+initTown();
+registerTownBuff(townBuff);
+
 initNotifications();
 initRenderer();
 initQuests();

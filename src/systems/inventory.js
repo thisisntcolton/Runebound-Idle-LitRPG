@@ -1,7 +1,7 @@
 // ============================================================
 // INVENTORY, SELLING, EQUIPMENT
 // ============================================================
-import { state, goldMultiplier } from '../core/state.js';
+import { state, goldMultiplier, sellPriceMultiplier } from '../core/state.js';
 import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 
@@ -54,7 +54,7 @@ export function sellItem(itemId, qty) {
   const n = Math.min(have, qty === 'all' ? have : qty);
   if (n <= 0) return 0;
   removeItem(itemId, n);
-  const gained = addGold(item.sell * n);
+  const gained = addGold(item.sell * n * sellPriceMultiplier());
   state.stats.itemsSold += n;
   emit('notify', { type: 'gold', text: `Sold ${n}× ${item.name} for ${gained} gold` });
   emit('state-changed');
@@ -76,7 +76,7 @@ export function sellAllOfType(type) {
     state.stats.itemsSold += qty;
   }
   if (total > 0) {
-    const gained = addGold(total);
+    const gained = addGold(total * sellPriceMultiplier());
     emit('notify', { type: 'gold', text: `Sold your haul for ${gained} gold` });
     emit('state-changed');
   }

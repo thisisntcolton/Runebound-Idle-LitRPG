@@ -8,6 +8,7 @@ import { SKILLS, getAction, TRAINABLE_SKILLS } from '../data/skills.js';
 import { getItem } from '../data/items.js';
 import { hasInputs } from './inventory.js';
 import { completeAction } from './skills.js';
+import { processTownOffline } from './town.js';
 
 // Returns a summary { seconds, cappedSeconds, gains: [{icon,text}] } or null.
 export function processOffline() {
@@ -66,6 +67,16 @@ export function processOffline() {
       done++;
     }
     track(skillId, action, done);
+  }
+
+  // Hearthwick keeps trading while you're away
+  const townGains = processTownOffline(seconds);
+  if (townGains) {
+    gains.push({ icon: '🏘️', text: `Hearthwick worked ${townGains.cycles} shift${townGains.cycles > 1 ? 's' : ''} — net 🪙 ${Math.floor(townGains.gold).toLocaleString()}` });
+    for (const [itemId, qty] of Object.entries(townGains.items)) {
+      const item = getItem(itemId);
+      gains.push({ icon: item?.icon || '📦', text: `${item?.name || itemId} ×${qty} (town)` });
+    }
   }
 
   for (const [skillId, xp] of Object.entries(xpTotals)) {

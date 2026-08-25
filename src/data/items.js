@@ -140,6 +140,13 @@ def({ id: 'wyrmslayer_blade', name: 'Wyrmslayer Blade', icon: '🗡️', type: '
 def({ id: 'dragonhide_cloak', name: 'Dragonhide Cloak', icon: '🧥', type: 'equipment', slot: 'chest', rarity: 'legendary',
       sell: 10000, stats: { def: 80, hp: 90 } });
 
+// ---------- Town-exclusive goods ----------
+// Made only by your own businesses — no skill produces these.
+def({ id: 'town_coffee', name: 'Town Coffee', icon: '☕', type: 'potion', rarity: 'uncommon',
+      sell: 90, duration: 900, effects: { speed: 0.08, xp: 0.08 } });
+def({ id: 'refined_tonic', name: 'Refined Tonic', icon: '🍶', type: 'potion', rarity: 'rare',
+      sell: 260, duration: 900, effects: { damage: 0.18, reduction: 0.12 } });
+
 // ---------- Ability Tomes (generated from the ability list) ----------
 // Kept in sync with data/abilities.js so a new ability automatically
 // gets a matching tome item.

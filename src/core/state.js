@@ -107,6 +107,20 @@ export function defaultState() {
     achievements: {},   // achievementId -> unlock timestamp
     activeTitle: null,  // title string shown on the leaderboard
 
+    // Hearthwick — the town layer. Persists through Ascension:
+    // the one thing the loop cannot take from you.
+    town: {
+      unlocked: false,
+      name: 'Hearthwick',
+      plots: [],          // filled by initTown()
+      staff: {},          // staffId -> staff record
+      applicants: [],
+      applicantsAt: 0,
+      lifetimeRevenue: 0,
+      cycles: 0,
+      unpaid: 0,
+    },
+
     // Story & quests
     quests: { progress: {}, completed: {}, seenOffers: {} },
     bounties: {},        // zoneId -> { kills, claimed }
@@ -193,11 +207,17 @@ export function enchantMult(itemId) {
   return 1 + enchantLevel(itemId) * 0.10;
 }
 
+// Town buffs are read lazily to avoid an import cycle with systems/town.js
+let _townBuff = () => 0;
+export function registerTownBuff(fn) { _townBuff = fn; }
+export function townBonus(key) { try { return _townBuff(key) || 0; } catch { return 0; } }
+
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'xp'))
        * (1 + state.charStats.INT * 0.01)
        * (1 + buffEffect('xp'))
+       * (1 + townBonus('xp'))
        * endingMult();
 }
 
@@ -216,7 +236,13 @@ export function combatXpMultiplier() {
 export function dropRateMultiplier() {
   return (1 + sumEffect(PERKS, perkLevel, 'dropRate'))
        * (1 + state.charStats.LUK * 0.005)
-       * (1 + buffEffect('dropRate'));
+       * (1 + buffEffect('dropRate'))
+       * (1 + townBonus('drop_rate'));
+}
+
+// Town Market Stalls raise what vendors pay you.
+export function sellPriceMultiplier() {
+  return 1 + townBonus('sell_price');
 }
 
 // Action time for a skill action after all speed bonuses
@@ -228,6 +254,7 @@ export function actionTime(skillId, action) {
   speedBonus += sumEffect(PERKS, perkLevel, 'speed');
   speedBonus += state.charStats.AGI * 0.005;
   speedBonus += buffEffect('speed');
+  if (skillId === 'woodcutting') speedBonus += townBonus('woodcutting_speed');
   return action.baseTime / (1 + speedBonus);
 }
 
@@ -281,6 +308,7 @@ export function playerMaxHit() {
              * (1 + sumEffect(PERKS, perkLevel, 'damage'))
              * (1 + state.charStats.STR * 0.01)
              * (1 + buffEffect('damage'))
+             * (1 + townBonus('damage'))
              * (state.ending === 'broken' ? 1.10 : 1);
   return Math.max(1, Math.floor(base * mult));
 }
@@ -332,7 +360,7 @@ export function attackInterval() {
 }
 
 export function offlineCapHours() {
-  return 8 + perkLevel('timekeeper') * 6;
+  return 8 + perkLevel('timekeeper') * 6 + townBonus('offline_hours');
 }
 
 // Shards you would earn by ascending right now

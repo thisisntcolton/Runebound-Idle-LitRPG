@@ -32,6 +32,9 @@ export function ascend() {
     // so do your deeds
     achievements: state.achievements,
     activeTitle: state.activeTitle,
+    // Hearthwick stands. Whatever else the System takes, it does not
+    // get the town — buildings, staff and all.
+    town: state.town,
   };
   const fresh = defaultState();
   Object.assign(fresh, keep);
