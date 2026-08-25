@@ -140,6 +140,25 @@ def({ id: 'wyrmslayer_blade', name: 'Wyrmslayer Blade', icon: '🗡️', type: '
 def({ id: 'dragonhide_cloak', name: 'Dragonhide Cloak', icon: '🧥', type: 'equipment', slot: 'chest', rarity: 'legendary',
       sell: 10000, stats: { def: 80, hp: 90 } });
 
+// ---------- Ability Tomes (generated from the ability list) ----------
+// Kept in sync with data/abilities.js so a new ability automatically
+// gets a matching tome item.
+import { ABILITY_LIST, tomeIdFor } from './abilities.js';
+
+const TOME_SELL = { rare: 800, epic: 3000, legendary: 12000 };
+for (const ab of ABILITY_LIST) {
+  def({
+    id: tomeIdFor(ab.id),
+    name: `Tome: ${ab.name}`,
+    icon: '📕',
+    type: 'tome',
+    rarity: ab.rarity,
+    sell: TOME_SELL[ab.rarity] || 500,
+    teaches: ab.id,
+    slot: ab.slot,
+  });
+}
+
 export const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 export const EQUIP_SLOTS = ['weapon', 'helmet', 'chest', 'legs', 'boots', 'ring', 'amulet'];
 

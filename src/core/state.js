@@ -70,6 +70,10 @@ export function defaultState() {
       monsterTimer: 0,
       style: 'attack',  // which skill gets the style XP
       foodItem: null,   // itemId used for auto-eat
+      autoPotion: null, // itemId Auto-Elixir keeps topped up
+      monsterMaxHp: 0,  // for % based abilities like Execute
+      drBurstUntil: 0,
+      drBurstValue: 0,
     },
 
     inventory: {},      // itemId -> qty
@@ -89,6 +93,13 @@ export function defaultState() {
       aurelionKills: 0, flamesFed: 0,
       dungeonRuns: 0, dungeonClears: {},   // dungeonId -> clears
       potionsDrunk: 0, enchants: 0,
+    },
+
+    abilities: {
+      known: {},        // abilityId -> learned timestamp
+      equipped: { strike: null, guard: null, utility: null },
+      cooldowns: {},    // abilityId -> ms remaining
+      primed: false,    // manual trigger armed
     },
 
     buffs: {},          // buffId(itemId) -> { expiresAt, effects, name, icon }

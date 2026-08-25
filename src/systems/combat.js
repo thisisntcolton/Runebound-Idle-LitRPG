@@ -6,10 +6,13 @@ import { state, playerAccuracy, playerMaxHit, playerMinHit, playerDefenseRating,
          combatXpMultiplier, dropRateMultiplier, BALANCE } from '../core/state.js';
 import { getZone, getMonster } from '../data/monsters.js';
 import { getDungeon, waveMonster, totalWaves } from '../data/dungeons.js';
+import { rollLoot } from '../data/loot.js';
 import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { addXp, stopActivity } from './skills.js';
+import { applyStrike, applyGuard, applySurvival, tickUtility, autoElixirWants } from './abilities.js';
+import { drinkPotion } from './potions.js';
 
 const RESPAWN_MS = 1200;
 const WAVE_MS = 800; // short breather between rift waves
@@ -40,6 +43,7 @@ export function startCombat(zoneId, monsterId) {
   c.zoneId = zoneId;
   c.monsterId = monsterId;
   c.monsterHp = monster.hp;
+  c.monsterMaxHp = monster.hp;
   c.playerHp = Math.min(c.playerHp > 0 ? c.playerHp : maxHp(), maxHp());
   c.playerTimer = 0;
   c.monsterTimer = 0;
@@ -78,6 +82,7 @@ export function startDungeon(dungeonId) {
   c.zoneId = null;
   c.monsterId = null;
   c.monsterHp = waveMonster(d, 0).hp;
+  c.monsterMaxHp = waveMonster(d, 0).hp;
   c.playerHp = Math.min(c.playerHp > 0 ? c.playerHp : maxHp(), maxHp());
   c.playerTimer = 0;
   c.monsterTimer = 0;
@@ -179,17 +184,16 @@ function onKill(monster) {
   const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
   emit('notify', { type: 'gold', text: `${monster.name} slain · +${gold} gold` });
 
-  const dropMult = dropRateMultiplier();
-  for (const drop of monster.loot) {
-    const chance = Math.min(0.95, drop.chance * dropMult);
-    if (Math.random() < chance) {
-      const item = getItem(drop.item);
-      addItem(drop.item, drop.qty);
-      emit('loot', { itemId: drop.item, qty: drop.qty, source: 'combat', rarity: item?.rarity });
-      const rare = item && ['rare', 'epic', 'legendary'].includes(item.rarity);
-      emit('notify', { type: 'loot', text: `${rare ? '✦ RARE DROP — ' : ''}${item?.name} ×${drop.qty}` });
-      if (rare) emit('rare-drop', { itemId: drop.item, rarity: item.rarity });
-    }
+  // Rarity-tier loot: roll a tier, then pull from this monster's pool.
+  for (const drop of rollLoot(monster, dropRateMultiplier() - 1)) {
+    const item = getItem(drop.item);
+    if (!item) continue;
+    addItem(drop.item, drop.qty);
+    emit('loot', { itemId: drop.item, qty: drop.qty, source: 'combat', rarity: item.rarity, tier: drop.tier });
+
+    const banner = { rare: '✦ RARE', epic: '✦✦ EPIC', legendary: '✦✦✦ LEGENDARY' }[drop.tier];
+    emit('notify', { type: 'loot', text: `${banner ? banner + ' DROP — ' : ''}${item.icon} ${item.name}${drop.qty > 1 ? ' ×' + drop.qty : ''}` });
+    if (banner) emit('rare-drop', { itemId: drop.item, rarity: item.rarity, tier: drop.tier });
   }
   emit('kill', { monsterId: monster.id, zoneId: c.zoneId, boss: !!monster.boss });
   c.respawn = RESPAWN_MS;
@@ -220,6 +224,7 @@ export function tickCombat(dt) {
     c.respawn -= dt;
     if (c.respawn <= 0) {
       c.monsterHp = monster.hp;
+      c.monsterMaxHp = monster.hp;
       c.playerTimer = 0;
       c.monsterTimer = 0;
     }
@@ -228,6 +233,20 @@ export function tickCombat(dt) {
 
   c.playerTimer += dt;
   c.monsterTimer += dt;
+
+  // Utility slot: bombs on their own timer, auto-elixir top-ups
+  tickUtility((dmg, ability) => {
+    c.monsterHp -= dmg;
+    emit('combat-hit', { source: 'player', damage: dmg, ability: ability.name });
+    emit('notify', { type: 'combat', text: `${ability.icon} ${ability.name} — ${dmg} damage` });
+    emit('ability-used', { slot: 'utility' });
+  });
+  const wantPotion = autoElixirWants();
+  if (wantPotion) drinkPotion(wantPotion);
+  if (c.monsterHp <= 0) {
+    if (c.dungeonId) onDungeonKill(monster); else onKill(monster);
+    return;
+  }
 
   // Player attack
   const pInterval = attackInterval();
@@ -239,13 +258,27 @@ export function tickCombat(dt) {
       // Roll between your floor and ceiling, not between 1 and your ceiling.
       const lo = playerMinHit();
       const hi = playerMaxHit();
-      const dmg = lo + Math.floor(Math.random() * (hi - lo + 1));
-      c.monsterHp -= dmg;
-      if (dmg > state.stats.highestDamage) state.stats.highestDamage = dmg;
-      emit('combat-hit', { source: 'player', damage: dmg });
+      const base = lo + Math.floor(Math.random() * (hi - lo + 1));
+
+      // Strike ability may amplify or multi-hit this swing
+      const strike = applyStrike(base);
+      state.abilities.primed = false;
+      let total = 0;
+      for (let h = 0; h < strike.hits; h++) {
+        const dmg = strike.damage;
+        c.monsterHp -= dmg;
+        total += dmg;
+        if (dmg > state.stats.highestDamage) state.stats.highestDamage = dmg;
+        emit('combat-hit', { source: 'player', damage: dmg, ability: strike.label });
+        if (c.monsterHp <= 0) break;
+      }
+      if (strike.label) {
+        emit('notify', { type: 'combat', text: `${strike.label}! ${total} damage` });
+        emit('ability-used', { slot: 'strike' });
+      }
       // XP: style skill + hitpoints
-      addXp(state.combat.style, dmg * 4 * combatXpFactor(), { useMult: false });
-      addXp('hitpoints', dmg * 1.33 * combatXpFactor(), { useMult: false });
+      addXp(state.combat.style, total * 4 * combatXpFactor(), { useMult: false });
+      addXp('hitpoints', total * 1.33 * combatXpFactor(), { useMult: false });
       if (c.monsterHp <= 0) {
         if (c.dungeonId) onDungeonKill(monster);
         else onKill(monster);
@@ -262,11 +295,15 @@ export function tickCombat(dt) {
     const hitChance = monster.attack / (monster.attack + playerDefenseRating() + BALANCE.ACCURACY_DEFENSE_CONSTANT);
     if (Math.random() < hitChance) {
       const raw = 1 + Math.floor(Math.random() * monster.maxHit);
-      const dmg = Math.max(1, Math.floor(raw * (1 - damageReduction())));
-      c.playerHp -= dmg;
-      emit('combat-hit', { source: 'enemy', damage: dmg });
-      addXp('defense', dmg * 1.2 * combatXpFactor(), { useMult: false });
-      if (c.playerHp <= 0) { onDeath(); return; }
+      let dmg = Math.max(1, Math.floor(raw * (1 - damageReduction())));
+      dmg = applyGuard(dmg);   // parry / iron stance
+      if (dmg > 0) {
+        c.playerHp -= dmg;
+        emit('combat-hit', { source: 'enemy', damage: dmg });
+        addXp('defense', dmg * 1.2 * combatXpFactor(), { useMult: false });
+      }
+      const saved = applySurvival();  // second wind / rune of return
+      if (c.playerHp <= 0 && !saved) { onDeath(); return; }
       tryEat();
     } else {
       emit('combat-hit', { source: 'enemy', damage: 0, missed: true });

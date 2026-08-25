@@ -12,7 +12,9 @@ import { skillPanel, combatPanel, inventoryPanel, equipmentPanel,
          characterPanel, ascensionPanel, settingsPanel } from './panels.js';
 import { journalPanel } from './journal.js';
 import { riftsPanel } from './rifts.js';
+import { abilitiesPanel } from './abilities.js';
 import { achievementsPanel } from './achievements.js';
+import { learnTome, equipAbility, manualTrigger, abilityStatus } from '../systems/abilities.js';
 import { leaderboardPanel, loadLeaderboard, lbState } from './leaderboard.js';
 import { startDungeon, currentMonster } from '../systems/combat.js';
 import { enchantItem } from '../systems/enchant.js';
@@ -62,6 +64,7 @@ export function renderSidebar() {
     <div class="nav-section-label">Combat</div>
     ${navItem('combat', '⚔️', 'Fight', { level: 'Lv.' + combatLevel(), working: act?.type === 'combat' && !state.combat.dungeonId })}
     ${navItem('rifts', '🌀', 'Rifts', { working: act?.type === 'combat' && !!state.combat.dungeonId })}
+    ${navItem('abilities', '✨', 'Abilities')}
     <div class="nav-section-label">Skills</div>
     ${TRAINABLE_SKILLS.map(id => navItem('skill:' + id, SKILLS[id].icon, SKILLS[id].name, {
       level: skillLevel(id) + '/99',
@@ -86,6 +89,7 @@ export function renderView() {
   if (v.startsWith('skill:')) el.innerHTML = skillPanel(v.slice(6));
   else if (v === 'journal') el.innerHTML = journalPanel();
   else if (v === 'rifts') el.innerHTML = riftsPanel();
+  else if (v === 'abilities') el.innerHTML = abilitiesPanel();
   else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
@@ -148,9 +152,28 @@ function updateBuffBar() {
     `<span class="buff-chip">${b.icon} ${fmtDur(b.remaining)}</span>`).join('');
 }
 
+let lastAbilKey = '';
+function updateAbilityBar() {
+  if (ui.view !== 'combat') return;
+  const chips = document.querySelectorAll('.ability-chip');
+  if (!chips.length) return;
+  const st = abilityStatus().filter(s => s.unlocked && s.ability);
+  const key = st.map(s => s.ready ? 'r' : Math.ceil(s.cooldown / 500)).join(',');
+  if (key === lastAbilKey) return;
+  lastAbilKey = key;
+  st.forEach((s, i) => {
+    const chip = chips[i];
+    if (!chip) return;
+    const fill = chip.querySelector('.ability-cd-fill');
+    if (fill) fill.style.width = (s.ability.cooldown ? (1 - s.cooldown / s.ability.cooldown) * 100 : 100) + '%';
+    chip.classList.toggle('ready', s.ready);
+  });
+}
+
 function updateDynamic() {
   updateTopbar();
   updateBuffBar();
+  updateAbilityBar();
   const act = state.activity;
 
   // active skill progress bar
@@ -250,6 +273,7 @@ function showItemMenu(itemId) {
       ${item.type === 'equipment' ? `<button class="btn btn-sm btn-primary" data-act="equip-item" data-item="${itemId}">Equip</button>` : ''}
       ${item.type === 'food' ? `<button class="btn btn-sm btn-primary" data-act="set-food" data-item="${itemId}">Set as combat food</button>` : ''}
       ${item.type === 'potion' ? `<button class="btn btn-sm btn-primary" data-act="drink-potion" data-item="${itemId}">🧪 Drink (10 min buff)</button>` : ''}
+      ${item.type === 'tome' ? `<button class="btn btn-sm btn-primary" data-act="learn-tome" data-item="${itemId}">📖 Study tome</button>` : ''}
       <button class="btn btn-sm" data-act="close-modal">Close</button>
     </div>
   `);
@@ -332,6 +356,9 @@ function handleAction(target) {
       renderView();
       break;
     case 'enter-rift': startDungeon(target.dataset.dungeon); setView('combat'); break;
+    case 'learn-tome': learnTome(target.dataset.item); break;
+    case 'equip-ability': equipAbility(target.dataset.slot, target.dataset.ability || null); break;
+    case 'fire-ability': manualTrigger(); break;
     case 'enchant': enchantItem(target.dataset.item); break;
     case 'drink-potion': drinkPotion(target.dataset.item); closeModal(); break;
     case 'read-lore': {

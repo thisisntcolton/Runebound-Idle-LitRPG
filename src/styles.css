@@ -358,6 +358,22 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   20% { transform: translateY(-8px) scale(1.15); opacity: 1; }
   100% { transform: translateY(-38px) scale(1); opacity: 0; }
 }
+.ability-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.ability-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ability-chip.ready { border-color: var(--sys-blue); box-shadow: 0 0 10px rgba(77,163,255,0.2); cursor: pointer; }
+.ability-chip.ready:hover { background: var(--bg-card-hover); }
+.ability-cd { display: block; width: 54px; height: 5px; background: #10182c; border-radius: 3px; overflow: hidden; }
+.ability-cd-fill { display: block; height: 100%; background: var(--sys-blue); border-radius: 3px; transition: width 0.2s; }
+.ability-chip.ready .ability-cd-fill { background: var(--xp); }
+
 .combat-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
 .style-btn.selected { border-color: var(--sys-blue); background: rgba(77, 163, 255, 0.15); color: #fff; }
 .zone-monster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }

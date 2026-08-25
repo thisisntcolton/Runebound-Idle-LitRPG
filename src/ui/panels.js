@@ -10,6 +10,9 @@ import { state, skillLevel, actionTime, doubleChance, hirelingRate,
 import { SKILLS, TRAINABLE_SKILLS, COMBAT_SKILLS, getAction } from '../data/skills.js';
 import { ZONES, getZone, getMonster } from '../data/monsters.js';
 import { getDungeon, totalWaves } from '../data/dungeons.js';
+import { displayOdds, ROLLS_PER_PROFILE } from '../data/loot.js';
+import { dropRateMultiplier } from '../core/state.js';
+import { abilityStatus } from '../systems/abilities.js';
 import { currentMonster } from '../systems/combat.js';
 import { enchantCost, canEnchant, MAX_ENCHANT } from '../systems/enchant.js';
 import { unlockedTitles } from '../systems/achievements.js';
@@ -189,6 +192,19 @@ export function combatPanel(ui) {
     .concat(foods.map(f => `<option value="${f.item.id}" ${c.foodItem === f.item.id ? 'selected' : ''}>${f.item.name} ×${f.qty} (heals ${f.item.heal})</option>`))
     .join('');
 
+  // Ability loadout bar — cooldowns tick live, Strike can be fired manually
+  const abilBar = abilityStatus().filter(s => s.unlocked && s.ability).map(s => {
+    const pct = s.ability.cooldown ? (1 - s.cooldown / s.ability.cooldown) * 100 : 100;
+    return `
+      <div class="ability-chip ${s.ready ? 'ready' : ''}" ${s.slot.id === 'strike' && s.ready ? 'data-act="fire-ability"' : ''}
+           title="${s.ability.name} — ${s.ability.desc}">
+        <span>${s.ability.icon}</span>
+        <span>${s.ability.name}</span>
+        <span class="ability-cd"><span class="ability-cd-fill" style="width:${pct}%"></span></span>
+        ${s.slot.id === 'strike' && s.ready ? '<span class="muted" style="font-size:10px">click</span>' : ''}
+      </div>`;
+  }).join('');
+
   const styles = ['attack', 'strength', 'defense'].map(s => `
     <button class="btn btn-sm style-btn ${c.style === s ? 'selected' : ''}" data-act="set-style" data-style="${s}">
       ${SKILLS[s].icon} ${SKILLS[s].name} <span class="muted">Lv.${skillLevel(s)}</span>
@@ -207,9 +223,13 @@ export function combatPanel(ui) {
     const ttk = timeToKill(m.hp, m.defense);
     // colour the hit chance so bad matchups are obvious at a glance
     const hcColor = hc >= 75 ? 'var(--xp)' : hc >= 55 ? 'var(--gold)' : 'var(--danger)';
-    const dropChance = m.loot.length
-      ? Math.round((1 - m.loot.reduce((p, d) => p * (1 - d.chance), 1)) * 100)
-      : 0;
+    // Rarity odds AFTER luck is applied — this is what LUK actually moves.
+    const odds = displayOdds(m.lootProfile || 'trash', dropRateMultiplier() - 1);
+    const oddsStr = odds
+      .filter(o => o.pct >= 0.005 && (m.loot?.[o.tier]?.length || o.tier === 'common'))
+      .map(o => `<span class="rarity-${o.tier}">${o.pct >= 1 ? o.pct.toFixed(0) : o.pct.toFixed(2)}%</span>`)
+      .join(' / ');
+    const rolls = ROLLS_PER_PROFILE[m.lootProfile || 'trash'] || 1;
     return `
       <div class="card clickable ${fighting ? 'active-card' : ''}" data-act="${fighting ? 'stop-combat' : 'fight'}" data-zone="${selectedZone.id}" data-monster="${m.id}">
         <div class="card-title"><span class="card-icon">${m.icon}</span> ${m.name}${m.boss ? ' 👑' : ''}</div>
@@ -218,9 +238,12 @@ export function combatPanel(ui) {
           <span style="color:${hcColor}">🎯 you hit ${hc.toFixed(0)}%</span> ·
           ⏱ ~${ttk < 1 ? '<1' : ttk.toFixed(0)}s to kill
         </div>
+        <div class="card-sub" title="Common / Uncommon / Rare / Epic / Legendary — shifts with your Luck">
+          🎁 ${oddsStr}${rolls > 1 ? ` <span class="muted">×${rolls} rolls</span>` : ''}
+        </div>
         <div class="card-yield">
           <span class="yield-gold">🪙 ${m.gold[0]}–${m.gold[1]}</span>
-          <span>${dropChance ? `🎁 ${dropChance}% drop` : ''}</span>
+          <span class="muted">${m.lootProfile || 'trash'}</span>
         </div>
         ${fighting ? '<div class="working-dot"></div>' : ''}
       </div>`;
@@ -246,6 +269,7 @@ export function combatPanel(ui) {
     </div>
     <div class="panel-desc">Choose a hunting ground. Your hero fights automatically — keep food equipped or the System will be writing your obituary.</div>
     ${statBar}
+    ${abilBar ? `<div class="ability-bar">${abilBar}</div>` : ''}
     ${arena}
     <div class="combat-controls">
       ${styles}
