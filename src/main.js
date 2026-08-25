@@ -4,12 +4,13 @@
 import { load, save, startAutosave } from './core/save.js';
 import { startLoop } from './core/loop.js';
 import { processOffline } from './systems/offline.js';
-import { initRenderer, showOfflineModal, renderView } from './ui/render.js';
+import { initRenderer, showOfflineModal, renderView, queueModal as showOfflineModalQueue } from './ui/render.js';
 import { initNotifications, pushLog, popup } from './ui/notify.js';
 import { initQuests } from './systems/quests.js';
 import { initAchievements, setAchievementUIHooks } from './systems/achievements.js';
 import { initCloud } from './core/cloud.js';
 import { initTown, townBuff } from './systems/town.js';
+import { setNpcUIHooks } from './systems/npcs.js';
 import { registerTownBuff } from './core/state.js';
 import { emit } from './core/events.js';
 
@@ -25,6 +26,7 @@ initNotifications();
 initRenderer();
 initQuests();
 setAchievementUIHooks({ popup });
+setNpcUIHooks({ queueModal: showOfflineModalQueue, popup });
 initAchievements();
 
 // Offline progress (counts toward quests via events)

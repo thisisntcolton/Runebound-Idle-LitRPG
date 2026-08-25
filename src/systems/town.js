@@ -10,6 +10,7 @@ import { getItem } from '../data/items.js';
 import { addGold, spendGold, addItem, removeItem, itemCount } from './inventory.js';
 import { emit } from '../core/events.js';
 import { plotHalted } from './unstable.js';
+import { residentBonus } from './npcs.js';
 
 // ---------------- Helpers ----------------
 
@@ -381,7 +382,8 @@ export function tickTown(dt) {
 export function townBuff(key) {
   const t = state.town;
   if (!t?.unlocked) return 0;
-  let total = 0;
+  // Notable residents contribute their own permanent bonuses
+  let total = residentBonus(key);
   for (let i = 0; i < t.plots.length; i++) {
     const plot = t.plots[i];
     if (!plot.building) continue;

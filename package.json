@@ -1,7 +1,7 @@
 {
   "name": "runebound-idle",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Runebound — an idle LitRPG. AdVenture Capitalist pacing meets Melvor-style skills, combat, gear, story, and ascension.",
   "type": "module",
   "engines": {

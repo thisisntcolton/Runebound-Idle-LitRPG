@@ -31,6 +31,7 @@ import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
 import { townLevel } from '../systems/town.js';
 import { enterRift, failRun, pendingRift, activeRun, UNSTABLE } from '../systems/unstable.js';
+import { resolveVisitor } from '../systems/npcs.js';
 import { startSkillAction, stopActivity, setHirelingTask, hirelingProgress } from '../systems/skills.js';
 import { startCombat, stopCombat, setCombatStyle, setFood } from '../systems/combat.js';
 import { sellItem, sellAllOfType, equipItem, unequipItem } from '../systems/inventory.js';
@@ -453,6 +454,8 @@ function handleAction(target) {
     }
     case 'withdraw-stock': withdrawStock(Number(target.dataset.plot), target.dataset.item); break;
     case 'reroll-applicants': refreshApplicants(); break;
+    case 'visitor-accept': resolveVisitor('accept'); renderView(); break;
+    case 'visitor-decline': resolveVisitor('decline'); renderView(); break;
     // ---- Unstable rifts ----
     case 'enter-unstable': if (enterRift()) setView('combat'); break;
     case 'flee-unstable': failRun('You fled the tear.'); renderView(); break;

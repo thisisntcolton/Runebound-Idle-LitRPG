@@ -9,7 +9,9 @@ import { getItem } from '../data/items.js';
 import { townLevel, plotsAvailable, buildingUnlocked, plotReport, plotStaff,
          unassignedStaff, eligibleStock, canAfford, activeTownBuffs } from '../systems/town.js';
 import { grassBackdrop, paths, tree, lamp, signpost, emptyPlot, lockedPlot,
-         forSalePlot, buildingArt, staffFigures } from './townart.js';
+         forSalePlot, buildingArt, staffFigures, townsfolk, notableFigure } from './townart.js';
+import { WANDERER_LOOKS, NOTABLES } from '../data/npcs.js';
+import { population, residents, pendingVisitor, getVisitorDef, buildingCount } from '../systems/npcs.js';
 import { fmt, fmtInt } from '../core/format.js';
 
 export const townUI = { selectedPlot: null, tab: 'build' };
@@ -43,7 +45,7 @@ function plotSvg(index) {
     const report = plotReport(index);
     const staff = plotStaff(index).length;
     inner = `
-      ${buildingArt(plot.building, PLOT_W, PLOT_H)}
+      ${buildingArt(plot.building, PLOT_W, PLOT_H, index)}
       ${staffFigures(staff, PLOT_W, PLOT_H)}
       ${report?.starved ? `
         <g transform="translate(${PLOT_W - 26},18)">
@@ -83,6 +85,13 @@ function townMap() {
       ${lamp(322, 236)} ${lamp(622, 236)} ${lamp(322, 420)} ${lamp(622, 420)}
       ${signpost(480, 34, esc(state.town.name || 'Hearthwick'))}
       ${state.town.plots.map((_, i) => plotSvg(i)).join('')}
+      ${townsfolk(population(), WANDERER_LOOKS)}
+      ${residents().map((n, i) => {
+        // stand them along the two vertical roads, clear of the parcels
+        const spots = [[322,140],[622,200],[322,330],[622,380],[322,545],[622,545]];
+        const [nx, ny] = spots[i % spots.length];
+        return notableFigure(n, nx, ny);
+      }).join('')}
     </svg>`;
 }
 
@@ -208,7 +217,7 @@ function plotDetail(index) {
              <button class="btn btn-primary btn-block" data-act="buy-plot" data-plot="${index}" ${canAfford(cost) ? '' : 'disabled'}>Purchase parcel</button>
            </div>`
         : `<div class="card locked"><div class="card-title">Not for sale yet</div>
-             <div class="card-sub">Hearthwick must grow first — reach town level ${(index) * 2} to open this parcel.</div></div>`}`;
+             <div class="card-sub">Hearthwick must grow first — reach town level ${index} to open this parcel.</div></div>`}`;
   }
 
   if (!plot.building) return buildMenu(index);
@@ -298,6 +307,43 @@ function townHall() {
     ${payrollRows}`;
 }
 
+function visitorBlock() {
+  const active = pendingVisitor();
+  if (!active) return '';
+  const v = getVisitorDef(active.id);
+  if (!v) return '';
+  return `
+    <div class="card unstable-card" style="border-color:var(--sys-blue);margin-bottom:18px">
+      <div class="card-title"><span class="card-icon">${v.icon}</span> ${v.name}
+        <span class="pill" style="color:var(--sys-blue);border-color:var(--sys-blue)">waiting in the square</span></div>
+      <div class="card-sub" style="line-height:1.6">${v.text}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-sm btn-primary" data-act="visitor-accept">${v.accept.label}</button>
+        <button class="btn btn-sm" data-act="visitor-decline">${v.decline.label}</button>
+      </div>
+    </div>`;
+}
+
+function residentsBlock() {
+  const here = residents();
+  const next = NOTABLES.find(n => !here.includes(n));
+  const rows = here.length ? here.map(n => `
+    <div class="shop-row">
+      <div style="font-size:24px">${n.icon}</div>
+      <div class="shop-row-info">
+        <div class="shop-row-title">${n.name} <span class="pill">${n.role}</span></div>
+        <div class="shop-row-desc">${n.idle[Math.floor(Date.now() / 30000 + n.atLevel) % n.idle.length]}</div>
+      </div>
+      <div class="shop-row-level" style="color:var(--xp)">${n.perkLabel}</div>
+    </div>`).join('') : '<div class="muted">Nobody notable has settled here yet. Build something and they will come.</div>';
+  return `
+    <div class="section-title">👥 Residents</div>
+    <div class="panel-desc">Hearthwick is home to <b>${population()}</b> people. Notable residents move in as the town grows,
+    and each one brings something with them permanently.</div>
+    ${rows}
+    ${next ? `<div class="muted" style="margin-top:8px">Next arrival at town level <b>${next.atLevel}</b>.</div>` : ''}`;
+}
+
 // ---------------- Main panel ----------------
 
 export function townPanel() {
@@ -333,8 +379,18 @@ export function townPanel() {
       <div class="panel-title">🏘️ ${esc(t.name)}</div>
       <div class="panel-subtitle">Town level ${lvl} · ${built} businesses · ${staffed} on payroll</div>
     </div>
+    ${(() => {
+      const avail = plotsAvailable();
+      const nextParcel = avail < 9 ? avail : null;   // parcel index == town level needed
+      return nextParcel !== null
+        ? `<div class="stat-points-banner">◈ Town level ${lvl} — parcel ${avail + 1} unlocks at town level ${nextParcel}.
+             Build or upgrade anything to raise it.</div>`
+        : `<div class="stat-points-banner">◈ Town level ${lvl} — every parcel in Hearthwick is yours.</div>`;
+    })()}
+    ${visitorBlock()}
     <div class="shop-row" style="border-color:var(--border-bright);gap:22px;flex-wrap:wrap">
       <div><div class="muted">PARCELS</div><div class="shop-row-title">${owned}/${plotsAvailable()}</div></div>
+      <div><div class="muted">POPULATION</div><div class="shop-row-title">${population()}</div></div>
       <div><div class="muted">LIFETIME REVENUE</div><div class="shop-row-title yield-gold">🪙 ${fmt(t.lifetimeRevenue || 0)}</div></div>
       <div><div class="muted">SHIFTS WORKED</div><div class="shop-row-title">${fmtInt(t.cycles || 0)}</div></div>
       ${buffs.map(b => `<div><div class="muted">${b.label.replace(/ per level$/, '')}</div>
@@ -343,6 +399,7 @@ export function townPanel() {
     <div class="town-map-wrap">${townMap()}</div>
     <div class="muted" style="margin:10px 0">Click a parcel on the map to manage it.</div>
     ${townUI.selectedPlot !== null ? plotDetail(townUI.selectedPlot) : ''}
+    ${residentsBlock()}
     ${townHall()}
   `;
 }

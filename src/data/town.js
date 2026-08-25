@@ -117,7 +117,7 @@ export function getBuilding(id) { return BUILDINGS[id]; }
 
 // Buildings unlock as the town grows
 export const BUILDING_UNLOCK_LEVEL = {
-  lumber_yard: 0, market_stall: 0, cafe: 2, apothecary: 3, smithy: 5, inn: 7,
+  lumber_yard: 0, market_stall: 0, cafe: 2, apothecary: 4, smithy: 7, inn: 10,
 };
 
 export const MAX_BUILDING_LEVEL = 5;
@@ -186,6 +186,16 @@ export function rollApplicant(rng = Math.random, seedIdx = 0) {
 export function townLevelFor(totalBuildingLevels) {
   return Math.floor(totalBuildingLevels);
 }
+
+// Every point of town level opens another parcel. That means the very
+// first building you put up immediately earns you somewhere to put the
+// next one — the town sprawls instead of forcing you to upgrade one
+// building over and over before anything visible happens.
 export function plotsUnlockedAt(townLevel) {
-  return Math.min(PLOT_COUNT, 1 + Math.floor(townLevel / 2));
+  return Math.min(PLOT_COUNT, 1 + townLevel);
+}
+
+/** Town level needed before parcel `index` can be bought. */
+export function townLevelForPlot(index) {
+  return Math.max(0, index);
 }

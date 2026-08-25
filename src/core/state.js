@@ -121,6 +121,11 @@ export function defaultState() {
       lifetimeRevenue: 0,
       cycles: 0,
       unpaid: 0,
+      // residents & visitors
+      metNotables: {},
+      extraPopulation: 0,
+      visitor: null,
+      nextVisitorAt: 0,
     },
 
     // Unstable rifts — timed emergency events

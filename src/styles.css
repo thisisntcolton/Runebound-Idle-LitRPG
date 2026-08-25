@@ -694,3 +694,6 @@ textarea.save-io {
 @keyframes unstablePulse {
   50% { box-shadow: 0 0 22px rgba(229, 72, 77, 0.25); }
 }
+
+.town-notable { cursor: help; }
+.town-notable:hover circle { fill: rgba(77,163,255,0.35); }
