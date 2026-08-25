@@ -15,6 +15,14 @@ import { riftsPanel } from './rifts.js';
 import { abilitiesPanel } from './abilities.js';
 import { townPanel, townUI } from './town.js';
 import { petsPanel, petsUI } from './pets.js';
+import { codexPanel, codexUI } from './codex.js';
+import { classPanel } from './classes.js';
+import { appearancePanel } from './appearance.js';
+import { heroBust } from './heroart.js';
+import { normalizeLook, randomLook, defaultLook } from '../data/appearance.js';
+import { chooseClass, currentClass, classPending, classUnlocked,
+         setClassUIHooks } from '../systems/classes.js';
+import { setCodexUIHooks, markRead, codex as codexState, progress as codexProgress } from '../systems/codex.js';
 import { startIncubation, hatch, feed, play, renamePet, setActive, release,
          breed, buyEgg } from '../systems/pets.js';
 import { buyPlot, build, upgradeBuilding, demolish, hire, fire, assignStaff,
@@ -35,6 +43,7 @@ import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } fro
 import { townLevel } from '../systems/town.js';
 import { enterRift, failRun, pendingRift, activeRun, UNSTABLE } from '../systems/unstable.js';
 import { resolveVisitor } from '../systems/npcs.js';
+import { resolveEncounter, pendingEncounter, setEncounterUIHooks } from '../systems/encounters.js';
 import { startSkillAction, stopActivity, setHirelingTask, hirelingProgress } from '../systems/skills.js';
 import { startCombat, stopCombat, setCombatStyle, setFood } from '../systems/combat.js';
 import { sellItem, sellAllOfType, equipItem, unequipItem } from '../systems/inventory.js';
@@ -85,6 +94,11 @@ export function renderSidebar() {
     <div class="nav-section-label">Hero</div>
     ${navItem('character', '📜', 'Character', { level: 'Lv.' + charLevel() })}
     ${navItem('journal', '🗺️', 'Journal', { working: !!activeMainQuest() })}
+    ${navItem('codex', '📖', 'Codex', { level: codexBadge(), working: (codexState().unread || 0) > 0 })}
+    ${navItem('look', '🪞', 'Appearance')}
+    ${navItem('class', currentClass()?.icon || '🎭', 'Path', {
+      level: currentClass()?.name || (classUnlocked() ? 'Choose' : `Lv.${10}`),
+      working: classPending() })}
     ${navItem('achievements', '🏅', 'Achievements')}
     ${navItem('inventory', '🎒', 'Inventory')}
     ${navItem('equipment', '🛡️', 'Equipment')}
@@ -98,12 +112,19 @@ export function renderSidebar() {
       working: (act?.type === 'skill' && act.skillId === id) || hasWorkingHireling(id),
     })).join('')}
     <div class="nav-section-label">Beyond</div>
-    ${navItem('town', '🏘️', 'Hearthwick', { level: state.town?.unlocked ? 'Lv.' + townLevel() : null })}
+    ${navItem('town', '🏘️', 'Hearthwick', {
+      level: state.town?.unlocked ? 'Lv.' + townLevel() : null,
+      working: !!pendingEncounter() })}
     ${navItem('pets', '🐾', 'Menagerie', { level: petsBadge(), working: eggsReady() })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}
     ${navItem('settings', '⚙️', 'Settings', { level: cloud.status === 'signed-in' ? '☁️' : null })}
   `;
+}
+
+function codexBadge() {
+  const p = codexProgress();
+  return `${p.found}/${p.total}`;
 }
 
 function petsBadge() {
@@ -130,6 +151,9 @@ export function renderView() {
   else if (v === 'abilities') el.innerHTML = abilitiesPanel();
   else if (v === 'town') el.innerHTML = townPanel();
   else if (v === 'pets') el.innerHTML = petsPanel();
+  else if (v === 'codex') el.innerHTML = codexPanel();
+  else if (v === 'class') el.innerHTML = classPanel();
+  else if (v === 'look') el.innerHTML = appearancePanel();
   else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
@@ -180,6 +204,7 @@ document.addEventListener('focusout', () => {
 
 export function setView(view) {
   ui.view = view;
+  if (view === 'codex') markRead();
   renderView();
   // Leaderboard data is fetched lazily whenever the panel is opened
   if (view === 'leaderboard' && cloud.status !== 'unavailable') {
@@ -370,8 +395,10 @@ function showAscendConfirm() {
     <div class="modal-title">Ascend?</div>
     <div class="modal-body">
       <p>You will gain <b style="color:var(--shard)">💠 ${pendingShards()} Fate Shards</b>.</p>
-      <p>All skills, gold, items, gear, upgrades and hirelings will be <b style="color:var(--danger)">reset</b>.
-      Shards, perks and your chronicle persist.</p>
+      <p>All skills, gold, items, gear, upgrades and hirelings will be <b style="color:var(--danger)">reset</b>.</p>
+      <p><b style="color:var(--danger)">Hearthwick falls with them</b> — every building, worker and crate of stock.
+      The people you have met will still know you.</p>
+      <p>Shards, perks, your pets and your chronicle persist.</p>
     </div>
     <div class="modal-actions">
       <button class="btn btn-danger" data-act="confirm-ascend">☄️ Do it</button>
@@ -468,6 +495,7 @@ function handleAction(target) {
     }
     case 'withdraw-stock': withdrawStock(Number(target.dataset.plot), target.dataset.item); break;
     case 'reroll-applicants': refreshApplicants(); break;
+    case 'encounter-choose': resolveEncounter(target.dataset.option); renderView(); break;
     case 'visitor-accept': resolveVisitor('accept'); renderView(); break;
     case 'visitor-decline': resolveVisitor('decline'); renderView(); break;
     // ---- The Menagerie ----
@@ -477,6 +505,45 @@ function handleAction(target) {
       renderView();
       break;
     case 'select-pet': petsUI.selected = target.dataset.pet; renderView(); break;
+    // ---- Codex ----
+    // ---- Appearance ----
+    case 'look-set': {
+      const look = normalizeLook(state.look);
+      look[target.dataset.key] = Number(target.dataset.index);
+      state.look = look;
+      renderView();
+      break;
+    }
+    case 'look-random': {
+      const name = state.look?.name || null;
+      state.look = { ...randomLook(), name };
+      renderView();
+      break;
+    }
+    case 'look-reset': {
+      const name = state.look?.name || null;
+      state.look = { ...defaultLook(), name };
+      renderView();
+      break;
+    }
+    case 'look-name': {
+      const input = document.getElementById('hero-name-input');
+      if (input) {
+        const look = normalizeLook(state.look);
+        look.name = input.value.trim().slice(0, 20) || null;
+        state.look = look;
+      }
+      renderView();
+      break;
+    }
+    case 'choose-class':
+      if (chooseClass(target.dataset.class)) { closeModal(); setView('class'); }
+      break;
+    case 'codex-cat': codexUI.cat = target.dataset.cat; codexUI.open = null; renderView(); break;
+    case 'codex-open':
+      codexUI.open = codexUI.open === target.dataset.entry ? null : target.dataset.entry;
+      renderView();
+      break;
     case 'incubate': startIncubation(target.dataset.item); break;
     case 'hatch-egg': hatch(target.dataset.egg); break;
     case 'pet-feed': feed(target.dataset.pet, target.dataset.item); break;
@@ -542,6 +609,8 @@ function handleAction(target) {
 export function initRenderer() {
   setQuestUIHooks({ queueModal, popup });
   setCloudUIHooks({ queueModal, popup, renderView });
+  setCodexUIHooks({ queueModal, popup });
+  setEncounterUIHooks({ queueModal, popup });
 
   document.addEventListener('click', e => {
     const target = e.target.closest('[data-act]');
@@ -568,6 +637,13 @@ export function initRenderer() {
   on('kill', () => { if (ui.view === 'combat') renderView(); });
   on('town-changed', () => { if (ui.view === 'town') safeRenderView(); });
   on('pets-changed', () => { if (ui.view === 'pets') safeRenderView(); });
+  on('codex-discovered', () => { if (ui.view === 'codex') safeRenderView(); else renderSidebar(); });
+  on('class-chosen', renderView);
+  on('encounter-offered', () => { if (ui.view === 'town') renderView(); else renderSidebar(); });
+  on('encounter-resolved', () => { if (ui.view === 'town') renderView(); });
+  on('combat-crit', ({ damage }) => {
+    if (ui.view === 'combat') spawnSplat('monster-box', `CRIT ${damage}`, '#ff8a8e');
+  });
   on('unstable-offer', o => {
     popup('UNSTABLE RIFT', `⚠️ ${o.name}<br><span style="font-size:12px;color:var(--text-dim)">Answer it from the Rifts tab — you have 10 minutes.</span>`, { ttl: 8 });
     renderView();
@@ -623,6 +699,7 @@ export function initRenderer() {
     if (ui.view !== 'combat') return;
     if (source === 'player') spawnSplat('monster-box', missed ? 'MISS' : '-' + damage, missed ? '#8fa0c4' : '#ffd166');
     else if (source === 'enemy') spawnSplat('player-box', missed ? 'MISS' : '-' + damage, missed ? '#8fa0c4' : '#ff6369');
+    else if (source === 'burn') spawnSplat('monster-box', '🔥' + damage, '#ff9d4d');
     else if (source === 'heal') spawnSplat('player-box', '+' + damage, '#4ade80');
   });
 

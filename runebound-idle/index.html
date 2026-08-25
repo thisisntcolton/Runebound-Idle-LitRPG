@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runebound — an idle LitRPG</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚔️</text></svg>" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Top bar: currencies + character summary -->
+    <header id="topbar">
+      <div class="topbar-left">
+        <div class="game-title">⚔️ RUNEBOUND</div>
+        <div class="topbar-sub">an idle LitRPG</div>
+      </div>
+      <div class="topbar-currencies">
+        <div class="currency" title="Gold — earned from selling loot and slaying monsters">
+          <span class="currency-icon">🪙</span>
+          <span id="gold-display" class="currency-value">0</span>
+        </div>
+        <div class="currency" title="Fate Shards — earned by Ascending. Each grants permanent bonuses.">
+          <span class="currency-icon">💠</span>
+          <span id="shards-display" class="currency-value">0</span>
+        </div>
+        <div class="currency" title="Character Level — rises with your total skill levels">
+          <span class="currency-icon">🎖️</span>
+          <span id="charlevel-display" class="currency-value">Lv. 1</span>
+        </div>
+      </div>
+      <div id="buff-bar" class="buff-bar" title="Active potion effects"></div>
+      <button class="btn btn-town btn-sm" data-act="nav" data-view="town" title="Manage Hearthwick">🏘️ Go To Town</button>
+      <button class="btn btn-menagerie btn-sm" data-act="nav" data-view="pets" title="Raise, feed and breed your pets">🐾 Menagerie</button>
+      <div class="topbar-active">
+        <div id="active-action-display" class="active-action">Idle</div>
+      </div>
+    </header>
+
+    <div id="layout">
+      <!-- Sidebar navigation -->
+      <nav id="sidebar"></nav>
+
+      <!-- Main content panel -->
+      <main id="main-panel"></main>
+    </div>
+
+    <!-- LitRPG system message log -->
+    <div id="system-log">
+      <div class="system-log-header">
+        <span>◈ SYSTEM LOG</span>
+        <button id="log-toggle" title="Collapse/expand">—</button>
+      </div>
+      <div id="system-log-messages"></div>
+    </div>
+
+    <!-- Level-up / system popups -->
+    <div id="popup-container"></div>
+
+    <!-- Modal overlay (offline progress, ascension confirm, etc.) -->
+    <div id="modal-overlay" class="hidden">
+      <div id="modal-window"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

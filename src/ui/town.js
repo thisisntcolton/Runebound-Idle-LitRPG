@@ -7,19 +7,56 @@ import { BUILDING_LIST, getBuilding, BUILDING_UNLOCK_LEVEL, MAX_BUILDING_LEVEL,
          INPUT_CATEGORIES, STAFF_TRAITS, REROLL_COST } from '../data/town.js';
 import { getItem } from '../data/items.js';
 import { townLevel, plotsAvailable, buildingUnlocked, plotReport, plotStaff,
-         unassignedStaff, eligibleStock, canAfford, activeTownBuffs } from '../systems/town.js';
+         unassignedStaff, eligibleStock, canAfford, activeTownBuffs,
+         staffSlotsFor, discounted } from '../systems/town.js';
 import { grassBackdrop, paths, tree, lamp, signpost, emptyPlot, lockedPlot,
          forSalePlot, buildingArt, staffFigures, townsfolk, notableFigure } from './townart.js';
 import { WANDERER_LOOKS, NOTABLES } from '../data/npcs.js';
 import { population, residents, pendingVisitor, getVisitorDef, buildingCount } from '../systems/npcs.js';
-import { fmt, fmtInt } from '../core/format.js';
+import { fmt, fmtInt, fmtDuration } from '../core/format.js';
+import { encounterView } from '../systems/encounters.js';
 
 export const townUI = { selectedPlot: null, tab: 'build' };
+
+/**
+ * The encounter banner. Sits above the map because it is time-limited and
+ * a player who has to go looking for it will miss it.
+ */
+function encounterBanner() {
+  const view = encounterView();
+  if (!view) return '';
+  const { def, remaining, options } = view;
+  return `
+    <div class="encounter-card ${def.tone}">
+      <div class="encounter-head">
+        <span class="encounter-icon">${def.icon}</span>
+        <div style="flex:1;min-width:200px">
+          <div class="encounter-title">${def.name}</div>
+          <div class="muted" style="font-family:var(--font-mono)">${fmtDuration(remaining / 1000)} to decide</div>
+        </div>
+      </div>
+      <div class="encounter-intro">${def.intro}</div>
+      <div class="encounter-options">
+        ${options.map(o => `
+          <button class="encounter-option ${o.affordable ? '' : 'unaffordable'}"
+                  data-act="encounter-choose" data-option="${o.id}"
+                  ${o.affordable ? '' : 'disabled'}>
+            <span class="encounter-option-label">${o.label}</span>
+            <span class="encounter-option-desc">${o.desc}</span>
+            ${o.price > 0
+              ? `<span class="cost ${o.affordable ? '' : 'unaffordable'}">🪙 ${fmt(o.price)}</span>`
+              : `<span class="muted">no cost</span>`}
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
 
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function costLine(cost) {
+function costLine(raw) {
+  // Quote what will actually be charged, discount included.
+  const cost = discounted(raw);
   const parts = [`<span class="cost ${state.gold >= cost.gold ? '' : 'unaffordable'}">🪙 ${fmt(cost.gold)}</span>`];
   for (const [id, qty] of Object.entries(cost.items || {})) {
     const item = getItem(id);
@@ -107,7 +144,7 @@ function buildMenu(index) {
         <div class="card-title"><span class="card-icon">${def.icon}</span> ${def.name}</div>
         <div class="card-sub">${def.desc}</div>
         <div class="card-sub" style="font-style:italic;opacity:0.7">${def.blurb}</div>
-        <div class="card-sub">Consumes: <b>${inputs}</b> · ${def.staffSlots} staff slot${def.staffSlots > 1 ? 's' : ''} · ${(def.cycleMs / 1000).toFixed(0)}s/shift</div>
+        <div class="card-sub">Consumes: <b>${inputs}</b> · ${staffSlotsFor(def)} staff slot${staffSlotsFor(def) > 1 ? 's' : ''} · ${(def.cycleMs / 1000).toFixed(0)}s/shift</div>
         <div class="card-sub">${def.buff ? `🏘️ ${def.buff.label}` : ''}</div>
         <div class="card-yield"><span>${costLine(def.cost)}</span></div>
         ${unlocked
@@ -193,7 +230,7 @@ function staffPanel(index, report) {
   }).join('') : '<div class="muted">Nobody on the bench. Hire from the Town Hall tab.</div>';
 
   return `
-    <div class="muted" style="margin-bottom:10px">${onSite.length} / ${report.def.staffSlots} positions filled.
+    <div class="muted" style="margin-bottom:10px">${onSite.length} / ${staffSlotsFor(report.def)} positions filled.
     An unstaffed building produces nothing at all.</div>
     ${rows || ''}
     <div class="section-title">🪑 Available staff</div>
@@ -235,7 +272,7 @@ function plotDetail(index) {
       <div><div class="muted">PROFIT / SHIFT</div><div class="shop-row-title" style="color:${report.profitPerCycle >= 0 ? 'var(--xp)' : 'var(--danger)'}">🪙 ${fmt(Math.round(report.profitPerCycle))}</div></div>
       <div><div class="muted">PER MINUTE</div><div class="shop-row-title">🪙 ${fmt(Math.round(report.profitPerMin))}</div></div>
       <div><div class="muted">SHIFT LENGTH</div><div class="shop-row-title">${(report.cycleMs / 1000).toFixed(0)}s</div></div>
-      <div><div class="muted">STAFF</div><div class="shop-row-title">${report.mods.count}/${def.staffSlots}</div></div>
+      <div><div class="muted">STAFF</div><div class="shop-row-title">${report.mods.count}/${staffSlotsFor(def)}</div></div>
     </div>
     ${!report.staffed ? '<div class="stat-points-banner" style="border-color:var(--gold);color:var(--gold)">💤 No staff assigned — this building is idle.</div>' : ''}
     ${report.starved ? '<div class="stat-points-banner" style="border-color:var(--danger);color:var(--danger)">⚠ Out of materials — stock it or it stops earning.</div>' : ''}
@@ -387,6 +424,7 @@ export function townPanel() {
              Build or upgrade anything to raise it.</div>`
         : `<div class="stat-points-banner">◈ Town level ${lvl} — every parcel in Hearthwick is yours.</div>`;
     })()}
+    ${encounterBanner()}
     ${visitorBlock()}
     <div class="shop-row" style="border-color:var(--border-bright);gap:22px;flex-wrap:wrap">
       <div><div class="muted">PARCELS</div><div class="shop-row-title">${owned}/${plotsAvailable()}</div></div>

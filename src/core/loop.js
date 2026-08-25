@@ -9,6 +9,8 @@ import { tickTown } from '../systems/town.js';
 import { tickUnstable } from '../systems/unstable.js';
 import { tickNpcs } from '../systems/npcs.js';
 import { tickPets } from '../systems/pets.js';
+import { tickCodex } from '../systems/codex.js';
+import { tickEncounters } from '../systems/encounters.js';
 import { emit } from './events.js';
 
 let buffSweep = 0;
@@ -35,8 +37,9 @@ export function startLoop() {
     tickTown(dt);
     tickUnstable(dt);
     tickPets(dt);
+    tickCodex(dt);
     npcSweep += dt;
-    if (npcSweep > 4000) { npcSweep = 0; tickNpcs(); }
+    if (npcSweep > 4000) { npcSweep = 0; tickNpcs(); tickEncounters(); }
     buffSweep += dt;
     if (buffSweep > 5000) { buffSweep = 0; cleanupBuffs(); }
     emit('tick', { dt });

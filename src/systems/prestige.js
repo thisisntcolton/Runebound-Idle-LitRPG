@@ -8,6 +8,7 @@ import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost,
 import { emit } from '../core/events.js';
 import { spendGold } from './inventory.js';
 import { save } from '../core/save.js';
+import { snapshotCycle, showReturnReport } from './codex.js';
 
 export function canAscend() {
   return totalSkillLevel() >= ASCEND_MIN_TOTAL_LEVEL && pendingShards() > 0;
@@ -16,6 +17,8 @@ export function canAscend() {
 export function ascend() {
   if (!canAscend()) return false;
   const shards = pendingShards();
+  // Record what this cycle cost before the numbers stop existing.
+  snapshotCycle();
   const keep = {
     shards: state.shards + shards,
     ascensions: state.ascensions + 1,
@@ -32,20 +35,68 @@ export function ascend() {
     // so do your deeds
     achievements: state.achievements,
     activeTitle: state.activeTitle,
-    // Hearthwick stands. Whatever else the System takes, it does not
-    // get the town — buildings, staff and all.
-    town: state.town,
-    // And your pets. They were never the System's to take.
+    // Your pets come with you. They were never the System's to take.
     pets: state.pets,
+    // And everything you have worked out about this place.
+    codex: state.codex,
+    // You walk back in as yourself.
+    look: state.look,
   };
+
+  // Hearthwick DOES fall.
+  //
+  // It used to survive intact, and that quietly broke the reset: a returning
+  // player walked out of Ascension into a fully staffed town still printing
+  // gold, and rebought their entire hireling roster inside ten minutes. The
+  // early cycle — the part the whole game is built around — simply vanished.
+  //
+  // So the buildings, staff, stock and coin are gone. What survives is
+  // knowledge: the people you met, and the fact that you have done this
+  // before. That is the seed the next town grows from.
+  const razed = razeTown(state.town);
+
   const fresh = defaultState();
   Object.assign(fresh, keep);
+  fresh.town = razed.town;
   replaceState(fresh);
   save();
-  emit('ascended', { shards });
+  emit('ascended', { shards, razed: razed.summary });
   emit('notify', { type: 'sys', text: `[ SYSTEM ] ASCENSION COMPLETE — +${shards} Fate Shards. The world resets; you do not.` });
+  if (razed.summary.buildings > 0) {
+    emit('notify', { type: 'combat',
+      text: `Hearthwick is gone. ${razed.summary.buildings} building${razed.summary.buildings === 1 ? '' : 's'} and ${razed.summary.staff} worker${razed.summary.staff === 1 ? '' : 's'} unmade with the rest of the world.` });
+  }
+  showReturnReport();
   emit('state-changed');
   return true;
+}
+
+/**
+ * Return a blank town that still remembers who lives in this valley.
+ *
+ * Wiping `metNotables` too would be the harsher reset, but it would also
+ * mean re-introducing yourself to the same six characters every cycle,
+ * which is tedious rather than meaningful. The land resets; the
+ * acquaintances don't.
+ */
+function razeTown(old = {}) {
+  const summary = {
+    buildings: (old.plots || []).filter(p => p.building).length,
+    staff: Object.keys(old.staff || {}).length,
+    revenue: old.lifetimeRevenue || 0,
+  };
+  const blank = defaultState().town;
+  return {
+    summary,
+    town: {
+      ...blank,
+      name: old.name || blank.name,
+      // the valley remembers its people, and that you have built here before
+      metNotables: old.metNotables || {},
+      timesRazed: (old.timesRazed || 0) + (summary.buildings > 0 ? 1 : 0),
+      lifetimeRevenueAllCycles: (old.lifetimeRevenueAllCycles || 0) + summary.revenue,
+    },
+  };
 }
 
 // ---------- Purchases ----------

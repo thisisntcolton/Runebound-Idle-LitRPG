@@ -11,6 +11,8 @@ import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { rollEggDrop } from './pets.js';
+import { rollCrit, critMultiplier, consumeGuaranteedHit, resetQuarry,
+         applyBurn, tickBurn, clearBurn, mendOnKill } from './classes.js';
 import { addXp, stopActivity } from './skills.js';
 import { levelForXp, xpForLevel } from '../core/xp.js';
 import { onUnstableKill, waveMonsterFor, failRun } from './unstable.js';
@@ -56,6 +58,8 @@ export function startCombat(zoneId, monsterId) {
   c.playerTimer = 0;
   c.monsterTimer = 0;
   c.respawn = 0;
+  resetQuarry();
+  clearBurn();
   ensureFood();
   emit('notify', { type: 'combat', text: `Engaged: ${monster.name} (${zone.name})` });
   emit('state-changed');
@@ -97,6 +101,8 @@ export function startDungeon(dungeonId) {
   c.playerTimer = 0;
   c.monsterTimer = 0;
   c.respawn = 0;
+  resetQuarry();
+  clearBurn();
   ensureFood();
   emit('notify', { type: 'combat', text: `🌀 You step into ${d.name} — wave 1 of ${totalWaves(d)}` });
   emit('state-changed');
@@ -213,6 +219,8 @@ function onDungeonKill(monster) {
   const c = state.combat;
   const d = getDungeon(c.dungeonId);
   state.stats.kills++;
+  const mended = mendOnKill();
+  if (mended > 0) emit('combat-hit', { source: 'heal', damage: mended });
   if (monster.boss) state.stats.bossKills++;
   const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
   if (monster.boss) rollEggDrop('boss');
@@ -230,6 +238,8 @@ function onDungeonKill(monster) {
 function onKill(monster) {
   const c = state.combat;
   state.stats.kills++;
+  const mended = mendOnKill();
+  if (mended > 0) emit('combat-hit', { source: 'heal', damage: mended });
   if (monster.boss) state.stats.bossKills++;
   if (monster.id === 'aurelion') state.stats.aurelionKills = (state.stats.aurelionKills || 0) + 1;
 
@@ -322,12 +332,26 @@ export function tickCombat(dt) {
       c.monsterMaxHp = monster.hp;
       c.playerTimer = 0;
       c.monsterTimer = 0;
+      resetQuarry();     // a fresh target earns a fresh guaranteed hit
+      clearBurn();       // the last one's fire dies with it
     }
     return;
   }
 
   c.playerTimer += dt;
   c.monsterTimer += dt;
+
+  // Mage's Ember burns between swings
+  const burn = tickBurn(dt);
+  if (burn > 0) {
+    const dmg = Math.max(1, Math.round(burn));
+    c.monsterHp -= dmg;
+    emit('combat-hit', { source: 'burn', damage: dmg });
+    if (c.monsterHp <= 0) {
+      if (c.dungeonId) onDungeonKill(monster); else onKill(monster);
+      return;
+    }
+  }
 
   // Utility slot: bombs on their own timer, auto-elixir top-ups
   tickUtility((dmg, ability) => {
@@ -349,11 +373,18 @@ export function tickCombat(dt) {
     c.playerTimer -= pInterval;
     const acc = playerAccuracy();
     const hitChance = acc / (acc + monster.defense + BALANCE.ACCURACY_DEFENSE_CONSTANT);
-    if (Math.random() < hitChance) {
+    // Ranger's Quarry: the opening swing on a fresh target is a certainty.
+    const guaranteed = consumeGuaranteedHit();
+    if (guaranteed || Math.random() < hitChance) {
       // Roll between your floor and ceiling, not between 1 and your ceiling.
       const lo = playerMinHit();
       const hi = playerMaxHit();
-      const base = lo + Math.floor(Math.random() * (hi - lo + 1));
+      let base = lo + Math.floor(Math.random() * (hi - lo + 1));
+
+      // Rogue's Backstab: a flat chance to double the swing before any
+      // ability multiplies it, so crit and Strike stack the way you'd hope.
+      const crit = rollCrit();
+      if (crit) base = Math.round(base * critMultiplier());
 
       // Strike ability may amplify or multi-hit this swing
       const strike = applyStrike(base);
@@ -371,6 +402,9 @@ export function tickCombat(dt) {
         emit('notify', { type: 'combat', text: `${strike.label}! ${total} damage` });
         emit('ability-used', { slot: 'strike' });
       }
+      if (crit) emit('combat-crit', { damage: total });
+      // Mage's Ember: the blow keeps burning after it lands.
+      applyBurn(total);
       // XP: style skill + hitpoints
       addXp(state.combat.style, total * 4 * combatXpFactor(), { useMult: false });
       addXp('hitpoints', total * 1.33 * combatXpFactor(), { useMult: false });

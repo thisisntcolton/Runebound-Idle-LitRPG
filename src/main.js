@@ -12,7 +12,10 @@ import { initCloud } from './core/cloud.js';
 import { initTown, townBuff } from './systems/town.js';
 import { setNpcUIHooks } from './systems/npcs.js';
 import { initPets, petBonus, setPetUIHooks } from './systems/pets.js';
-import { registerTownBuff, registerPetBonus } from './core/state.js';
+import { initCodex } from './systems/codex.js';
+import { initClasses, classBonus, setClassUIHooks } from './systems/classes.js';
+import { initEncounters } from './systems/encounters.js';
+import { registerTownBuff, registerPetBonus, registerClassBonus } from './core/state.js';
 import { emit } from './core/events.js';
 
 const hadSave = load();
@@ -27,13 +30,21 @@ registerTownBuff(townBuff);
 initPets();
 registerPetBonus(petBonus);
 
+// Your class feeds the same chain, and must be registered before any
+// panel reads a derived stat off it.
+registerClassBonus(classBonus);
+
 initNotifications();
 initRenderer();
 initQuests();
 setAchievementUIHooks({ popup });
 setNpcUIHooks({ queueModal: showOfflineModalQueue, popup });
 setPetUIHooks({ queueModal: showOfflineModalQueue, popup });
+setClassUIHooks({ queueModal: showOfflineModalQueue, popup });
 initAchievements();
+initCodex();
+initClasses();
+initEncounters();
 
 // Offline progress (counts toward quests via events)
 const offline = hadSave ? processOffline() : null;

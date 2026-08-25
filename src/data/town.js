@@ -7,8 +7,12 @@
 //    gold sink, so gold stops being worthless once upgrades are maxed.
 //  - Businesses consume what your skills produce and sell it at a
 //    markup, so every skill feeds the town.
-//  - The town PERSISTS through Ascension. It is the one thing the
-//    loop cannot take from you.
+//  - A shift pays a flat wage for the LABOUR plus `markup` times the
+//    vendor value of the goods it moved. That is what stops ten logs
+//    and ten mythril ore from earning the same coin.
+//  - The town is RAZED on Ascension. It was persisting, which let a
+//    returning player rebuy their whole hireling roster inside ten
+//    minutes and skip the early cycle entirely.
 // ============================================================
 
 // ---------------- Plots ----------------
@@ -64,7 +68,7 @@ export const BUILDINGS = {
     cost: { gold: 6000, items: { oak_log: 40 } },
     staffSlots: 1, cycleMs: 30000,
     inputs: { any_resource: 4 },
-    revenue: [130, 250],
+    revenue: [55, 100], markup: 1.4,
     buff: { key: 'sell_price', value: 0.06, label: '+6% sell price per level' },
   },
   cafe: {
@@ -74,7 +78,7 @@ export const BUILDINGS = {
     cost: { gold: 22000, items: { willow_log: 60 } },
     staffSlots: 2, cycleMs: 60000,
     inputs: { any_food: 3 },
-    revenue: [300, 520],
+    revenue: [90, 170], markup: 1.8,
     produces: { town_coffee: 1 },
     buff: { key: 'xp', value: 0.03, label: '+3% all XP per level' },
   },
@@ -85,7 +89,7 @@ export const BUILDINGS = {
     cost: { gold: 35000, items: { willow_log: 80, iron_bar: 20 } },
     staffSlots: 2, cycleMs: 70000,
     inputs: { any_herb: 4 },
-    revenue: [480, 850],
+    revenue: [120, 220], markup: 2.0,
     produces: { refined_tonic: 1 },
     buff: { key: 'drop_rate', value: 0.04, label: '+4% rare drop rate per level' },
   },
@@ -96,7 +100,7 @@ export const BUILDINGS = {
     cost: { gold: 60000, items: { maple_log: 90, steel_bar: 30 } },
     staffSlots: 3, cycleMs: 80000,
     inputs: { any_bar: 3 },
-    revenue: [1000, 1750],
+    revenue: [200, 380], markup: 2.2,
     produces: { rune_shard: 1 },
     buff: { key: 'damage', value: 0.03, label: '+3% damage per level' },
   },
@@ -107,7 +111,7 @@ export const BUILDINGS = {
     cost: { gold: 120000, items: { yew_log: 120, mythril_bar: 20 } },
     staffSlots: 3, cycleMs: 90000,
     inputs: { any_food: 4, any_resource: 2 },
-    revenue: [2400, 4000],
+    revenue: [400, 700], markup: 1.6,
     buff: { key: 'offline_hours', value: 1, label: '+1 offline hour per level' },
   },
 };

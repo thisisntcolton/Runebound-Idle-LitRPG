@@ -13,6 +13,7 @@ import { state, maxHp, combatLevel, dropRateMultiplier } from '../core/state.js'
 import { getItem } from '../data/items.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { rollEggDrop } from './pets.js';
+import { resetQuarry, clearBurn } from './classes.js';
 import { emit } from '../core/events.js';
 import { stopActivity } from './skills.js';
 import { getBuilding } from '../data/town.js';
@@ -149,6 +150,8 @@ export function enterRift() {
   c.playerTimer = 0;
   c.monsterTimer = 0;
   c.respawn = 0;
+  resetQuarry();
+  clearBurn();
 
   state.unstable.run = {
     id: offer.id,

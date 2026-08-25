@@ -14,6 +14,9 @@ import { displayOdds, ROLLS_PER_PROFILE } from '../data/loot.js';
 import { dropRateMultiplier } from '../core/state.js';
 import { abilityStatus } from '../systems/abilities.js';
 import { currentMonster } from '../systems/combat.js';
+import { activeRun as unstableRun, UNSTABLE } from '../systems/unstable.js';
+import { heroBust } from './heroart.js';
+import { currentClass } from '../systems/classes.js';
 import { enchantCost, canEnchant, MAX_ENCHANT } from '../systems/enchant.js';
 import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
@@ -175,24 +178,43 @@ export function combatPanel(ui) {
   const rift = c.dungeonId ? getDungeon(c.dungeonId) : null;
 
   let arena = '';
-  if (inCombat && (rift || (c.zoneId && c.monsterId))) {
+  if (inCombat && (rift || c.unstable || (c.zoneId && c.monsterId))) {
     const monster = currentMonster();
     const mhp = Math.max(0, c.monsterHp);
     const php = Math.max(0, c.playerHp);
     const cap = maxHp();
+    // An Unstable Rift has no dungeon record: its waves are generated, the
+    // clock is the threat, and the panel needs to say all of that.
+    const run = c.unstable ? unstableRun() : null;
+    const unstableBanner = run ? `
+      <div class="stat-points-banner unstable-card" style="display:block">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <span>🌀 UNSTABLE RIFT — WAVE ${run.waves + 1} / ${UNSTABLE.SEAL_WAVES}</span>
+          <span style="display:flex;gap:4px">${Array.from({ length: UNSTABLE.SEAL_WAVES }, (_, i) =>
+            `<span style="width:12px;height:8px;border-radius:3px;background:${i < run.waves ? 'var(--xp)' : i === run.waves ? 'var(--danger)' : 'var(--bg-card)'}"></span>`).join('')}</span>
+          <span style="font-family:var(--font-mono)">${Math.ceil(run.remaining / 1000)}s left</span>
+        </div>
+        <div class="action-bar-outer" style="margin-top:8px">
+          <div class="action-bar-inner" id="unstable-timer"
+               style="width:${Math.max(0, run.remaining / UNSTABLE.DURATION_MS * 100)}%;background:var(--danger)"></div>
+        </div>
+        <div class="muted" style="margin-top:6px">Seal it by clearing ${UNSTABLE.SEAL_WAVES} waves before the clock runs out.
+          Flee or fail and Hearthwick takes the raid.</div>
+      </div>` : '';
     const riftBanner = rift ? `
       <div class="stat-points-banner" style="display:flex;justify-content:space-between;align-items:center">
         <span>🌀 ${rift.name} — WAVE ${(c.wave || 0) + 1} / ${totalWaves(rift)}</span>
         <span style="display:flex;gap:4px">${Array.from({ length: totalWaves(rift) }, (_, i) =>
           `<span style="width:14px;height:8px;border-radius:3px;background:${i < (c.wave || 0) ? 'var(--xp)' : i === (c.wave || 0) ? 'var(--sys-blue)' : 'var(--bg-card)'}"></span>`).join('')}</span>
       </div>` : '';
-    arena = `
+    arena = monster ? `
+      ${unstableBanner}
       ${riftBanner}
       <div class="combat-arena">
         <div class="combatant player-side" id="player-box">
-          <div class="combatant-name">🧙 You</div>
-          <div class="combatant-level">Combat Lv. ${cl}</div>
-          <div class="combatant-icon">🧙</div>
+          <div class="combatant-name">${state.look?.name || 'You'}</div>
+          <div class="combatant-level">Combat Lv. ${cl}${currentClass() ? ` · ${currentClass().icon} ${currentClass().name}` : ''}</div>
+          <div class="combatant-icon">${heroBust(state.look, 66)}</div>
           <div class="hp-bar-outer">
             <div class="hp-bar-inner" id="player-hp-bar" style="width:${php / cap * 100}%"></div>
             <div class="hp-bar-text" id="player-hp-text">${Math.ceil(php)} / ${cap}</div>
@@ -202,7 +224,7 @@ export function combatPanel(ui) {
         <div class="vs-divider">VS</div>
         <div class="combatant enemy-side" id="monster-box">
           <div class="combatant-name">${monster.name}${monster.boss ? ' 👑' : ''}</div>
-          <div class="combatant-level">${monster.level ? `Lv. ${monster.level}` : (rift ? 'Rift-spawn' : '')}</div>
+          <div class="combatant-level">${monster.level ? `Lv. ${monster.level}` : (run ? `Rift-spawn · wave ${run.waves + 1}` : rift ? 'Rift-spawn' : '')}</div>
           <div class="combatant-icon">${monster.icon}</div>
           <div class="hp-bar-outer">
             <div class="hp-bar-inner" id="monster-hp-bar" style="width:${mhp / monster.hp * 100}%"></div>
@@ -210,7 +232,7 @@ export function combatPanel(ui) {
           </div>
           <div class="attack-timer-outer"><div class="attack-timer-inner" id="monster-atk-timer"></div></div>
         </div>
-      </div>`;
+      </div>` : '';
   }
 
   const foods = Object.entries(state.inventory)
@@ -456,7 +478,19 @@ export function characterPanel() {
 
   const st = state.stats;
   return `
-    <div class="panel-header"><div class="panel-title">📜 Character Sheet</div></div>
+    <div class="panel-header">
+      <div class="panel-title">📜 ${state.look?.name || 'Character Sheet'}</div>
+      <div class="panel-subtitle">${currentClass() ? `${currentClass().icon} ${currentClass().name}` : 'No path chosen'}</div>
+    </div>
+    <div class="char-hero-row">
+      <div class="char-hero-art">${heroBust(state.look, 120)}</div>
+      <div class="muted" style="flex:1;min-width:200px">
+        ${currentClass()
+          ? `<b>${currentClass().signature.icon} ${currentClass().signature.name}</b> — ${currentClass().signature.desc}`
+          : 'Reach character level 10 to choose a path.'}
+        <div style="margin-top:8px"><button class="btn btn-sm" data-act="nav" data-view="look">🪞 Change appearance</button></div>
+      </div>
+    </div>
     <div class="char-sheet" style="max-width:760px">
       <div class="char-sheet-header">
         <span>ADVENTURER — ${state.ascensions > 0 ? `ASCENDED ×${state.ascensions}` : 'MORTAL'}</span>

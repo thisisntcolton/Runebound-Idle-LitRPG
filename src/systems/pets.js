@@ -497,9 +497,33 @@ export function rollEggDrop(source) {
 }
 
 // ---------------- Tick ----------------
+
+/**
+ * Announce eggs that have finished incubating.
+ *
+ * Hatching is a button press, so without this the only way to learn an egg
+ * was ready was to happen to open the Menagerie. The flag lives on the egg
+ * record so the news survives a reload and never repeats.
+ */
+function announceReadyEggs() {
+  for (const egg of state.pets.incubator || []) {
+    if (egg.announced || !eggReady(egg)) continue;
+    egg.announced = true;
+    const sp = getSpecies(egg.species);
+    if (!sp) continue;
+    emit('notify', { type: 'loot', text: `${sp.eggIcon} The ${sp.eggName} is rocking. It's ready to hatch!` });
+    hooks.popup('SOMETHING IS HATCHING',
+      `${sp.eggIcon} <b>${sp.eggName}</b><br><span style="font-size:12px;color:var(--text-dim)">Open the Menagerie to meet it.</span>`,
+      { gold: true, ttl: 8 });
+    emit('egg-ready', { eggId: egg.id, species: egg.species });
+    emit('state-changed');
+  }
+}
+
 let sinceSettle = 0;
 export function tickPets(dt) {
   if (!state.pets) return;
+  announceReadyEggs();
   sinceSettle += dt;
   if (sinceSettle < 10000) return;    // care changes slowly; no need to churn
   sinceSettle = 0;

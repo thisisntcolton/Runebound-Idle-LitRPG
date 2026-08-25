@@ -38,7 +38,10 @@ to allocate: STR / AGI / VIT / INT / LUK. System-window popups, a status-screen 
 and a scrolling SYSTEM LOG narrate the grind.
 
 **Ascension (prestige)** — at total skill level 120+, reset for **Fate Shards** (+2% XP & gold each,
-permanent) and spend them on Fate Perks: offline cap, damage, drop rate, global speed…
+permanent) and spend them on Fate Perks: offline cap, damage, drop rate, global speed… Ascending
+also razes Hearthwick, clears your class so you can pick a new one, and plays a **return report**
+that quotes real numbers back at you from the cycle you just spent. Your pets, your look, your
+Codex and your chronicle come with you; nothing else does.
 
 **Story & Quests (dark-mystery LitRPG)** — a 14-quest main chain narrated by a System that is
 cheerful, helpful, and lying; 5 hireling side quests (each one a loose thread in the world);
@@ -49,10 +52,36 @@ top of the Dragonspire offers the choice the whole game builds toward — **Feed
 Rare "whispers" surface in the system log until the mystery resolves. All story beats persist
 across cycles — the world forgets; you don't.
 
+**Classes** — at character level 10 you choose a path, and it holds for the rest of the cycle:
+**Rogue** (attack speed and 20% crits), **Ranger** (accuracy, loot and a guaranteed opening
+swing), **Mage** (damage that scales off INT, hits that burn, and paper-thin defences),
+**Priest** (huge health pool, heavy mitigation, heals on every kill) or **Artisan** — which gets
+*no combat bonus at all* and in exchange runs the strongest economy in the game: +30% gathering,
++50% town revenue, cheaper construction and an extra staff slot on every building. Ascend and you
+choose again, so a class is a commitment for one run rather than for the save.
+
+**Appearance** — a Mii-style character builder: face shape, skin, ten hairstyles, eyes, brows,
+mouth, facial hair, scars and war paint and rune brands, build and colours, all hand-drawn SVG.
+Your hero appears on the character sheet and in every fight, and survives Ascension.
+
+**The Codex** — 35 discoverable entries across six categories, every one unlocked by something
+you actually did: fifty slimes killed, mining 45, a town grown, a cycle survived. Seventeen of
+them **deepen when you Ascend** — re-read an entry in a later cycle and it has more to say,
+because you know more than you did. Ambient world-facts drip into the system log while you play,
+tied to whatever you are currently doing.
+
+**Village encounters** — Hearthwick has weather. A fire on the row, something coming down the
+east road, a light strongbox, nine seconds of the valley shrugging, and once in a while a circus.
+Each is a timed choice with three real answers: pay for it, handle it yourself, or let it happen.
+Miss one and the town decides for itself, badly but survivably.
+
 **Hearthwick (the town layer)** — buy parcels, build Lumber Yards, Market Stalls, Cafes,
 Apothecaries, Smithies and Inns, hire staff with traits and wages, and stock them with the
 materials your skills produce. Buildings run shifts on a timer, turning raw output into gold and
-town buffs. The town **survives Ascension** — it's the one thing the loop can't take from you.
+town buffs. Buildings pay a flat wage for the labour plus a markup on the *value* of the goods they move, so
+routing mythril through a Market Stall earns vastly more than routing logs. Hearthwick is **razed
+every Ascension** — only the people you have met carry over — because a town that survived intact
+let a returning player rebuy their whole hireling roster in ten minutes and skip the early cycle.
 NPCs move in as it grows, notable residents show up with their own business, and travelling
 visitors bring offers worth accepting or refusing.
 
@@ -119,6 +148,10 @@ src/
 │   ├── town.js        # Hearthwick buildings, plots, staff traits
 │   ├── npcs.js        # residents, wanderers, visiting notables
 │   ├── pets.js        # species, growth stages, care rates, traits, breeding
+│   ├── classes.js     # the five paths, their bonuses and signatures
+│   ├── codex.js       # discoverable lore, cycle-deepening passes, tidbits
+│   ├── encounters.js  # village events and their branching outcomes
+│   ├── appearance.js  # hero option lists and palettes
 │   ├── abilities.js   # ability tomes and their effects
 │   └── lore.js        # fragments, cycle revelations, endings, whispers
 ├── systems/           # game logic
@@ -131,6 +164,9 @@ src/
 │   ├── town.js        # shift cycles, wages, stock, town buffs
 │   ├── npcs.js        # population growth, visitor offers
 │   ├── pets.js        # incubation, care decay, bonding, breeding, egg drops
+│   ├── classes.js     # class choice, bonus hook, crit/quarry/burn/mend
+│   ├── codex.js       # discovery engine, ambient tidbits, cycle memory
+│   ├── encounters.js  # scheduling, resolution, consequence effects
 │   ├── abilities.js   # cooldowns, triggers, tome learning
 │   ├── unstable.js    # timed rift events and their consequences
 │   ├── enchant.js     # gear enchanting
@@ -145,6 +181,10 @@ src/
     ├── townart.js     # hand-drawn SVG buildings, townsfolk, scenery
     ├── pets.js        # Menagerie: incubator, roster, care, breeding, shop
     ├── petart.js      # hand-drawn SVG creatures, mood-responsive
+    ├── classes.js     # the Path panel
+    ├── codex.js       # the Codex panel
+    ├── appearance.js  # the Mii-style editor
+    ├── heroart.js     # hand-drawn SVG hero, assembled from option indices
     ├── abilities.js   # ability bar + tome panel
     ├── rifts.js       # dungeons + unstable rift panel
     ├── achievements.js
@@ -157,8 +197,14 @@ test/                  # API integration tests + a Playwright browser suite
 ## Tests
 
 ```bash
+npm run test:content   # every Codex entry and encounter option is reachable and well-formed
 npm run test:api       # 19 tests: validation, sessions, OAuth/CSRF, saves, leaderboard
-npm run test:pets      # 35 browser tests: hatch -> feed -> level -> breed, offline, multipliers
+npm run test:browser   # 37 tests: every view, appearance, codex, classes, encounters
+npm run test:pets      # 35 tests: hatch -> feed -> level -> breed, offline, multipliers
+npm run test:classes   # 10 tests: the choice, the lock-in, Artisan's zero combat power
+npm run test:ascension # 16 tests: the town is razed, pets survive, the rebuy hole is shut
+npm run balance        # simulations: town profit by material tier, class power indices
+npm run preview:heroes # contact sheet of every appearance option, as a PNG
 ```
 
 `test:api` needs a Postgres URL and OAuth env vars — see
@@ -178,6 +224,14 @@ npm run test:pets
 - **New tree/ore/fish**: one line in `data/skills.js` + the item in `data/items.js`.
 - **New monster or zone**: `data/monsters.js`.
 - **New upgrade/hireling/perk**: `data/upgrades.js` — costs and effects are data-driven.
+- **New class**: one entry in `data/classes.js`. Bonuses are numbers read through a single
+  hook, so a new class needs no code unless it wants a signature mechanic.
+- **New Codex entry**: `data/codex.js` — declare a `when` condition and, optionally, `deeper`
+  passes keyed to cycle numbers. `npm run test:content` proves it is reachable.
+- **New encounter**: `data/encounters.js` — options and effects are data; the resolver reports
+  back exactly what it applied.
+- **New hairstyle or feature**: append to the list in `data/appearance.js` and draw it in
+  `ui/heroart.js`. Existing saves are unaffected — a look is just a bag of indices.
 - **New pet species**: one entry in `data/pets.js` (rarity, bonus key, favourite foods, hatch
   time, palette) plus a drawing function in `ui/petart.js`. The egg item, the shop or drop entry
   and the whole care/breeding loop follow automatically.

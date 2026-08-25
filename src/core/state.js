@@ -89,6 +89,13 @@ export function defaultState() {
     charStats: { STR: 0, AGI: 0, VIT: 0, INT: 0, LUK: 0 },
     statPointsSpent: 0,
 
+    // Class — chosen at character level 10, cleared by Ascension.
+    classId: null,
+    classChosenAt: 0,
+
+    // Appearance — the hero you actually look like. Survives Ascension.
+    look: null,
+
     stats: {            // lifetime trackers
       kills: 0, deaths: 0, actions: 0, itemsSold: 0, bossKills: 0,
       highestDamage: 0, offlineEarnings: 0,
@@ -109,8 +116,8 @@ export function defaultState() {
     achievements: {},   // achievementId -> unlock timestamp
     activeTitle: null,  // title string shown on the leaderboard
 
-    // Hearthwick — the town layer. Persists through Ascension:
-    // the one thing the loop cannot take from you.
+    // Hearthwick — the town layer. Razed on Ascension (see prestige.js);
+    // only the people you met carry over.
     town: {
       unlocked: false,
       name: 'Hearthwick',
@@ -126,9 +133,11 @@ export function defaultState() {
       extraPopulation: 0,
       visitor: null,
       nextVisitorAt: 0,
+      timesRazed: 0,
+      lifetimeRevenueAllCycles: 0,
     },
 
-    // The Menagerie — pets persist through Ascension alongside the town.
+    // The Menagerie — pets are the one thing that survives Ascension intact.
     pets: {
       owned: {},        // petId -> pet record
       incubator: [],    // eggs currently warming
@@ -136,6 +145,20 @@ export function defaultState() {
       hatched: 0,
       bred: 0,
     },
+
+    // The Codex — discovered world lore, and what the last cycle cost.
+    // Persists through Ascension: the world forgets, you don't.
+    codex: {
+      seen: {},        // entryId -> unlock timestamp
+      kills: {},       // monsterId -> lifetime count
+      items: {},       // itemId -> ever held
+      flags: {},       // one-off story markers
+      lastCycle: null, // snapshot used by the return report
+      unread: 0,
+    },
+
+    // Village encounters — fires, raids, thefts, quakes, and the circus
+    encounters: { nextAt: 0, offer: null, history: {}, resolved: 0 },
 
     // Unstable rifts — timed emergency events
     unstable: { nextAt: 0, offer: null, run: null },
@@ -236,6 +259,11 @@ let _petBonus = () => 0;
 export function registerPetBonus(fn) { _petBonus = fn; }
 export function petBonus(key) { try { return _petBonus(key) || 0; } catch { return 0; } }
 
+// And once more for your class (systems/classes.js imports state.js).
+let _classBonus = () => 0;
+export function registerClassBonus(fn) { _classBonus = fn; }
+export function classBonus(key) { try { return _classBonus(key) || 0; } catch { return 0; } }
+
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'xp'))
@@ -243,6 +271,7 @@ export function xpMultiplier() {
        * (1 + buffEffect('xp'))
        * (1 + townBonus('xp'))
        * (1 + petBonus('xp'))
+       * (1 + classBonus('xp'))
        * endingMult();
 }
 
@@ -252,6 +281,7 @@ export function goldMultiplier() {
        * (1 + state.charStats.LUK * 0.005)
        * (1 + buffEffect('gold'))
        * (1 + petBonus('gold'))
+       * (1 + classBonus('gold'))
        * endingMult();
 }
 
@@ -264,12 +294,13 @@ export function dropRateMultiplier() {
        * (1 + state.charStats.LUK * 0.005)
        * (1 + buffEffect('dropRate'))
        * (1 + townBonus('drop_rate'))
-       * (1 + petBonus('drop_rate'));
+       * (1 + petBonus('drop_rate'))
+       * (1 + classBonus('drop_rate'));
 }
 
 // Town Market Stalls raise what vendors pay you.
 export function sellPriceMultiplier() {
-  return 1 + townBonus('sell_price');
+  return 1 + townBonus('sell_price') + classBonus('sell_price');
 }
 
 // Action time for a skill action after all speed bonuses
@@ -281,6 +312,7 @@ export function actionTime(skillId, action) {
   speedBonus += sumEffect(PERKS, perkLevel, 'speed');
   speedBonus += state.charStats.AGI * 0.005;
   speedBonus += buffEffect('speed');
+  speedBonus += classBonus('gather_speed');
   if (skillId === 'woodcutting') speedBonus += townBonus('woodcutting_speed');
   return action.baseTime / (1 + speedBonus);
 }
@@ -318,13 +350,16 @@ export function gearStats() {
 
 export function maxHp() {
   const gear = gearStats();
-  return Math.floor((10 * skillLevel('hitpoints') + gear.hp) * (1 + state.charStats.VIT * 0.01));
+  return Math.floor((10 * skillLevel('hitpoints') + gear.hp)
+                    * (1 + state.charStats.VIT * 0.01)
+                    * (1 + classBonus('maxhp')));
 }
 
 export function playerAccuracy() {
-  return BALANCE.ACCURACY_BASE
+  return (BALANCE.ACCURACY_BASE
        + skillLevel('attack') * BALANCE.ACCURACY_PER_ATTACK_LEVEL
-       + gearStats().atk;
+       + gearStats().atk)
+       * (1 + classBonus('accuracy'));
 }
 
 export function playerMaxHit() {
@@ -337,6 +372,8 @@ export function playerMaxHit() {
              * (1 + buffEffect('damage'))
              * (1 + townBonus('damage'))
              * (1 + petBonus('damage'))
+             * (1 + classBonus('damage'))
+             * (1 + state.charStats.INT * classBonus('int_damage'))
              * (state.ending === 'broken' ? 1.10 : 1);
   return Math.max(1, Math.floor(base * mult));
 }
@@ -380,11 +417,15 @@ export function damageReduction() {
   const mult = Math.min(BALANCE.DR_MULT_CAP, upgradeLevel('polish') * 0.06
              + sumEffect(PERKS, perkLevel, 'reduction')
              + buffEffect('reduction'));
-  return Math.min(BALANCE.DR_TOTAL_CAP, flat + mult * (1 - flat));
+  // A class can push this DOWN (the Mage wears robes), so clamp at zero
+  // rather than assuming every modifier is a bonus.
+  const total = (flat + mult * (1 - flat)) * (1 + classBonus('dr'));
+  return Math.max(0, Math.min(BALANCE.DR_TOTAL_CAP, total));
 }
 
 export function attackInterval() {
-  return BALANCE.ATTACK_INTERVAL_MS / (1 + state.charStats.AGI * 0.005 + buffEffect('speed'));
+  return BALANCE.ATTACK_INTERVAL_MS
+       / (1 + state.charStats.AGI * 0.005 + buffEffect('speed') + classBonus('attack_speed'));
 }
 
 export function offlineCapHours() {

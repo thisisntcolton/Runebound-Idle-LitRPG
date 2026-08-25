@@ -1,0 +1,442 @@
+// ============================================================
+// THE MENAGERIE — incubator, roster, care, breeding, egg shop
+// ============================================================
+import { state } from '../core/state.js';
+import { getItem } from '../data/items.js';
+import { getSpecies, getTrait, CARE, STAGES, stageFor, MAX_PET_LEVEL,
+         BREEDING, EGG_SHOP, EGG_DROPS } from '../data/pets.js';
+import { hunger, happiness, mood, petLevel, petLevelProgress,
+         xpForPetLevel, incubatorSlots, eggReady, playCooldownLeft,
+         canBreed, breedCooldownLeft, petBonusFor,
+         activePetSummary } from '../systems/pets.js';
+import { petPortrait, eggPortrait, petArt } from './petart.js';
+import { fmt, fmtInt, fmtDuration } from '../core/format.js';
+
+export const petsUI = { tab: 'nest', selected: null, breedA: null, breedB: null };
+
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function pets() { return Object.values(state.pets?.owned || {}); }
+function eggs() { return state.pets?.incubator || []; }
+
+function bar(pct, color, height = 8) {
+  return `<div class="care-bar" style="height:${height}px">
+    <div class="care-bar-fill" style="width:${Math.max(0, Math.min(100, pct))}%;background:${color}"></div>
+  </div>`;
+}
+
+function careColor(v) {
+  return v < 30 ? 'var(--danger)' : v < 70 ? 'var(--gold)' : 'var(--xp)';
+}
+
+// ---------------- Active companion banner ----------------
+
+function companionBanner() {
+  const summary = activePetSummary();
+  if (!summary) {
+    return `
+      <div class="pet-banner empty">
+        <div class="pet-banner-art muted" style="font-size:44px">🐾</div>
+        <div>
+          <div class="pet-banner-name">No companion at your side</div>
+          <div class="muted">An active pet grants a passive bonus that scales with its level and its mood.
+          Hatch an egg below, then set one as your companion.</div>
+        </div>
+      </div>`;
+  }
+  const { pet, species, mood: m, level, effects } = summary;
+  const h = hunger(pet), p = happiness(pet);
+  return `
+    <div class="pet-banner">
+      <div class="pet-banner-art">${petPortrait(pet, m.id, 110)}</div>
+      <div class="pet-banner-info">
+        <div class="pet-banner-name">
+          ${species.icon} ${esc(pet.name)}
+          <span class="pill rarity-${species.rarity}">${species.rarity}</span>
+          <span class="pill">${getTrait(pet.trait)?.icon} ${getTrait(pet.trait)?.name}</span>
+        </div>
+        <div class="muted">${stageFor(level).name} ${species.name} · Level ${level}/${MAX_PET_LEVEL} · ${m.icon} ${m.label}</div>
+        <div class="pet-banner-effects">
+          ${effects.length
+            ? effects.map(e => `<span class="pet-effect">${e}</span>`).join('')
+            : `<span class="pet-effect off">Too unhappy to help right now</span>`}
+        </div>
+        <div class="pet-care-row">
+          <span class="care-label">🍖 ${Math.round(h)}</span>${bar(h, careColor(h))}
+          <span class="care-label">💚 ${Math.round(p)}</span>${bar(p, careColor(p))}
+        </div>
+      </div>
+      <div class="pet-banner-actions">
+        <button class="btn btn-sm btn-primary" data-act="select-pet" data-pet="${pet.id}">Open</button>
+      </div>
+    </div>`;
+}
+
+// ---------------- Incubator ----------------
+
+function eggSlot(egg) {
+  const sp = getSpecies(egg.species);
+  const total = egg.readyAt - egg.startedAt;
+  const left = Math.max(0, egg.readyAt - Date.now());
+  const pct = total > 0 ? 1 - left / total : 1;
+  const ready = eggReady(egg);
+  return `
+    <div class="egg-slot ${ready ? 'ready' : ''}">
+      <div class="egg-art">${eggPortrait(egg.species, pct, 86)}</div>
+      <div class="egg-name rarity-${sp.rarity}">${sp.eggName}</div>
+      ${egg.inherit?.parents
+        ? `<div class="muted" style="font-size:10.5px">${esc(egg.inherit.parents.join(' × '))}</div>` : ''}
+      ${ready
+        ? `<button class="btn btn-sm btn-gold btn-block" data-act="hatch-egg" data-egg="${egg.id}">✦ It's hatching!</button>`
+        : `${bar(pct * 100, 'var(--sys-blue)', 6)}
+           <div class="muted" style="font-size:11px;font-family:var(--font-mono)">${fmtDuration(left / 1000)}</div>`}
+    </div>`;
+}
+
+function emptyEggSlot(n) {
+  return `
+    <div class="egg-slot empty">
+      <div class="egg-art" style="font-size:34px;opacity:0.35;line-height:86px">🪹</div>
+      <div class="muted">Empty nest ${n}</div>
+    </div>`;
+}
+
+function ownedEggs() {
+  return Object.entries(state.inventory || {})
+    .filter(([id, qty]) => qty > 0 && getItem(id)?.type === 'egg')
+    .map(([id, qty]) => ({ item: getItem(id), qty }));
+}
+
+function incubatorSection() {
+  const slots = incubatorSlots();
+  const list = eggs();
+  const cells = [];
+  for (let i = 0; i < slots; i++) {
+    cells.push(list[i] ? eggSlot(list[i]) : emptyEggSlot(i + 1));
+  }
+  const inBag = ownedEggs();
+  const room = list.length < slots;
+
+  return `
+    <div class="section-title">🥚 Incubator <span class="pill">${list.length}/${slots} nests</span></div>
+    <div class="muted" style="margin-bottom:10px">Eggs warm on a real clock — they keep incubating while the game is closed.
+    Every 5 hatchlings earns you another nest.</div>
+    <div class="egg-grid">${cells.join('')}</div>
+
+    <div class="section-title">Eggs in your bag</div>
+    ${inBag.length ? `
+      <div class="pet-food-strip">
+        ${inBag.map(({ item, qty }) => `
+          <button class="food-chip rarity-${item.rarity}" data-act="incubate" data-item="${item.id}"
+                  ${room ? '' : 'disabled'} title="${room ? 'Place in the incubator' : 'The incubator is full'}">
+            <span style="font-size:19px">${item.icon}</span>
+            <span>${item.name}</span>
+            <b>×${qty}</b>
+          </button>`).join('')}
+      </div>`
+      : `<div class="muted">No eggs on hand. Buy one from the Hatchery, or find the rarer sorts out in the world.</div>`}
+  `;
+}
+
+// ---------------- Roster ----------------
+
+function petTile(pet) {
+  const sp = getSpecies(pet.species);
+  const m = mood(pet);
+  const lvl = petLevel(pet);
+  const isActive = state.pets.active === pet.id;
+  const sel = petsUI.selected === pet.id;
+  const h = hunger(pet), p = happiness(pet);
+  return `
+    <div class="pet-tile ${sel ? 'sel' : ''} ${isActive ? 'is-active' : ''} border-${sp.rarity}"
+         data-act="select-pet" data-pet="${pet.id}">
+      ${isActive ? '<div class="pet-tile-badge">AT YOUR SIDE</div>' : ''}
+      <div class="pet-tile-art">${petPortrait(pet, m.id, 92)}</div>
+      <div class="pet-tile-name">${esc(pet.name)}</div>
+      <div class="muted" style="font-size:11px">${sp.icon} ${stageFor(lvl).name} · Lv.${lvl}</div>
+      <div class="pet-tile-mood">${m.icon} ${m.label}</div>
+      <div class="pet-care-row tiny">
+        ${bar(h, careColor(h), 5)}${bar(p, careColor(p), 5)}
+      </div>
+    </div>`;
+}
+
+function rosterSection() {
+  const list = pets();
+  if (!list.length) {
+    return `<div class="section-title">🐾 Your pets</div>
+      <div class="muted">Nothing hatched yet. The Hatchery tab sells eggs.</div>`;
+  }
+  const sorted = list.slice().sort((a, b) => petLevel(b) - petLevel(a));
+  return `
+    <div class="section-title">🐾 Your pets <span class="pill">${list.length}</span></div>
+    <div class="pet-grid">${sorted.map(petTile).join('')}</div>`;
+}
+
+// ---------------- Detail ----------------
+
+function feedableItems(pet) {
+  const sp = getSpecies(pet.species);
+  const out = [];
+  for (const [id, qty] of Object.entries(state.inventory || {})) {
+    if (qty <= 0) continue;
+    const item = getItem(id);
+    if (!item) continue;
+    const liked = sp.likes.includes(id);
+    if (item.type !== 'food' && !liked) continue;
+    out.push({ item, qty, liked });
+  }
+  out.sort((a, b) => (b.liked - a.liked) || ((b.item.sell || 0) - (a.item.sell || 0)));
+  return out.slice(0, 14);
+}
+
+function petDetail(pet) {
+  const sp = getSpecies(pet.species);
+  const m = mood(pet);
+  const lvl = petLevel(pet);
+  const st = stageFor(lvl);
+  const trait = getTrait(pet.trait);
+  const h = hunger(pet), p = happiness(pet);
+  const cd = playCooldownLeft(pet);
+  const isActive = state.pets.active === pet.id;
+  const food = feedableItems(pet);
+
+  const nextStage = STAGES.find(s => s.atLevel > lvl);
+  const bonusLines = [];
+  const pushBonus = b => {
+    const v = petBonusFor(pet, b.key);
+    const potential = b.perLevel * lvl;
+    bonusLines.push(`
+      <div class="pet-bonus-line">
+        <span>${b.label}</span>
+        <b style="color:${v > 0 ? 'var(--xp)' : 'var(--danger)'}">+${(v * 100).toFixed(1)}%</b>
+        <span class="muted">of +${(potential * 100).toFixed(1)}% at full mood</span>
+      </div>`);
+  };
+  pushBonus(sp.bonus);
+  if (sp.bonus.second) pushBonus(sp.bonus.second);
+
+  return `
+    <div class="pet-detail">
+      <div class="pet-detail-left">
+        <svg viewBox="0 0 120 120" width="200" height="200" class="pet-svg big">${petArt(pet, m.id)}</svg>
+        <div class="pet-mood-tag">${m.icon} ${m.label}</div>
+        ${isActive
+          ? `<div class="pill" style="border-color:var(--sys-blue);color:var(--sys-blue)">At your side</div>`
+          : `<button class="btn btn-sm btn-primary" data-act="pet-active" data-pet="${pet.id}">Take along</button>`}
+      </div>
+
+      <div class="pet-detail-right">
+        <div class="pet-detail-head">
+          <input class="pet-name-input" id="pet-rename-input" value="${esc(pet.name)}" maxlength="18" />
+          <button class="btn btn-sm" data-act="pet-rename" data-pet="${pet.id}">Rename</button>
+        </div>
+        <div class="muted">${sp.icon} ${st.name} ${sp.name} ·
+          <span class="rarity-${sp.rarity}">${sp.rarity}</span> ·
+          ${trait?.icon} <b>${trait?.name}</b> — ${trait?.desc}</div>
+        <div class="muted" style="font-style:italic;margin-top:6px">${sp.desc}</div>
+        ${pet.parents ? `<div class="muted" style="margin-top:4px">Born of ${esc(pet.parents.join(' and '))}.</div>` : ''}
+
+        <div class="section-title" style="margin-top:16px">Bond</div>
+        <div class="xp-bar-outer"><div class="xp-bar-inner" style="width:${petLevelProgress(pet) * 100}%"></div></div>
+        <div class="xp-bar-label">Level ${lvl}/${MAX_PET_LEVEL} · ${fmtInt(pet.xp)} / ${fmtInt(xpForPetLevel(Math.min(MAX_PET_LEVEL, lvl + 1)))} bond XP${
+          nextStage ? ` · becomes a ${nextStage.name} at Lv.${nextStage.atLevel}` : ' · fully grown'}</div>
+
+        <div class="section-title">Care</div>
+        <div class="pet-care-detail">
+          <div><span class="care-label">🍖 Fullness ${Math.round(h)}%</span>${bar(h, careColor(h), 10)}</div>
+          <div><span class="care-label">💚 Happiness ${Math.round(p)}%</span>${bar(p, careColor(p), 10)}</div>
+        </div>
+        <div class="muted" style="margin-top:6px">
+          Fullness falls ${CARE.HUNGER_DECAY_PER_HOUR}/hr, happiness ${CARE.HAPPY_DECAY_PER_HOUR}/hr${
+            trait?.hungerSlow || trait?.happySlow ? ` (slowed by ${trait.name})` : ''}.
+          Below ${CARE.HUNGRY_AT} the bonus mostly stops; above ${CARE.WELL_KEPT_AT} on both it's boosted.
+        </div>
+
+        <div class="pet-actions">
+          <button class="btn btn-sm ${cd > 0 ? '' : 'btn-primary'}" data-act="pet-play" data-pet="${pet.id}" ${cd > 0 ? 'disabled' : ''}>
+            🧶 Play ${cd > 0 ? `(${fmtDuration(cd / 1000)})` : `(+${CARE.PLAY_HAPPY} happy)`}
+          </button>
+          <button class="btn btn-sm btn-danger" data-act="pet-release" data-pet="${pet.id}">Release</button>
+        </div>
+
+        <div class="section-title">Feed</div>
+        ${food.length ? `
+          <div class="pet-food-strip">
+            ${food.map(({ item, qty, liked }) => `
+              <button class="food-chip ${liked ? 'liked' : ''}" data-act="pet-feed" data-pet="${pet.id}" data-item="${item.id}"
+                      title="${liked ? 'A favourite — 60% more nourishing and double bond XP' : 'Nourishment scales with the food\'s value'}">
+                <span style="font-size:19px">${item.icon}</span>
+                <span>${item.name}</span>
+                <b>×${fmt(qty)}</b>
+                ${liked ? '<span class="heart">♥</span>' : ''}
+              </button>`).join('')}
+          </div>`
+          : `<div class="muted">Nothing edible in the bag. Cook something, or catch it a fish.</div>`}
+        <div class="muted" style="margin-top:6px">Favourites: ${sp.likes.map(id => getItem(id)?.name).filter(Boolean).join(', ') || '—'}</div>
+
+        <div class="section-title">What it does for you</div>
+        ${bonusLines.join('')}
+      </div>
+    </div>
+    <button class="btn btn-sm" data-act="pets-tab" data-tab="nest" style="margin-top:16px">← Back to the menagerie</button>`;
+}
+
+// ---------------- Breeding ----------------
+
+function breedCandidate(pet, slot) {
+  const sp = getSpecies(pet.species);
+  const ok = canBreed(pet);
+  const chosen = (slot === 'a' ? petsUI.breedA : petsUI.breedB) === pet.id;
+  const cd = breedCooldownLeft(pet);
+  return `
+    <div class="pet-tile small ${chosen ? 'sel' : ''} ${ok ? '' : 'locked'}"
+         ${ok ? `data-act="breed-select" data-pet="${pet.id}" data-slot="${slot}"` : ''}>
+      <div class="pet-tile-art">${petPortrait(pet, mood(pet).id, 64)}</div>
+      <div class="pet-tile-name">${esc(pet.name)}</div>
+      <div class="muted" style="font-size:10.5px">${sp.icon} Lv.${petLevel(pet)} ${getTrait(pet.trait)?.icon}</div>
+      ${!ok ? `<div class="lock-req" style="font-size:10px">${
+        cd > 0 ? `Resting ${fmtDuration(cd / 1000)}` : 'Not fully grown'}</div>` : ''}
+    </div>`;
+}
+
+function breedingSection() {
+  const list = pets();
+  const grown = list.filter(p => p.stage === 'adult' || p.stage === 'elder');
+  const a = petsUI.breedA ? state.pets.owned[petsUI.breedA] : null;
+  const b = petsUI.breedB ? state.pets.owned[petsUI.breedB] : null;
+  const ready = a && b && a.id !== b.id && canBreed(a) && canBreed(b);
+  const room = eggs().length < incubatorSlots();
+  const afford = state.gold >= BREEDING.COST_GOLD;
+
+  let odds = null;
+  if (a && b) {
+    const spA = getSpecies(a.species), spB = getSpecies(b.species);
+    const luck = BREEDING.BASE_UPGRADE_CHANCE
+      + (a.species === b.species ? BREEDING.SAME_SPECIES_BONUS : 0)
+      + (getTrait(a.trait)?.breedLuck || 0)
+      + (getTrait(b.trait)?.breedLuck || 0);
+    odds = { luck, baseSpecies: [spA, spB] };
+  }
+
+  return `
+    <div class="section-title">💞 The Breeding Pen</div>
+    <div class="muted" style="margin-bottom:12px">
+      Two fully grown pets can produce an egg. The child takes after the rarer parent, inherits one of their traits
+      (with a small chance of something new), and has a shot at climbing a rarity tier —
+      better odds when the parents are the same species, or when either is 🍀 Fertile.
+      Costs 🪙 ${fmtInt(BREEDING.COST_GOLD)} and rests both parents for ${BREEDING.COOLDOWN_MS / 3600000}h.
+    </div>
+    ${grown.length < 2
+      ? `<div class="muted">You need two Adults (level ${STAGES.find(s => s.id === 'adult').atLevel}+) before anything can be bred.
+         You have ${grown.length}.</div>`
+      : `
+      <div class="breed-lanes">
+        <div>
+          <div class="muted" style="margin-bottom:6px">Parent A</div>
+          <div class="pet-grid small">${list.map(p => breedCandidate(p, 'a')).join('')}</div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:6px">Parent B</div>
+          <div class="pet-grid small">${list.map(p => breedCandidate(p, 'b')).join('')}</div>
+        </div>
+      </div>
+      <div class="breed-summary">
+        ${a && b && a.id !== b.id ? `
+          <div><b>${esc(a.name)}</b> × <b>${esc(b.name)}</b></div>
+          <div class="muted">Rarity climb chance: <b style="color:var(--r-epic)">${(odds.luck * 100).toFixed(0)}%</b>
+            ${a.species === b.species ? '· same species bonus applied' : ''}</div>
+          <div class="muted">Cost: <span class="cost ${afford ? '' : 'unaffordable'}">🪙 ${fmtInt(BREEDING.COST_GOLD)}</span>
+            ${room ? '' : '· <span style="color:var(--danger)">no free nest</span>'}</div>
+        ` : `<div class="muted">Pick one pet on each side.</div>`}
+        <button class="btn ${ready && room && afford ? 'btn-primary' : ''}" data-act="breed-go"
+                ${ready && room && afford ? '' : 'disabled'}>💞 Breed</button>
+      </div>`}
+  `;
+}
+
+// ---------------- Hatchery (shop) ----------------
+
+function shopSection() {
+  return `
+    <div class="section-title">🏪 The Hatchery</div>
+    <div class="muted" style="margin-bottom:12px">Old Merric keeps a back room full of things that are, allegedly, eggs.</div>
+    <div class="card-grid">
+      ${EGG_SHOP.map(entry => {
+        const sp = getSpecies(entry.species);
+        const afford = state.gold >= entry.gold;
+        const bonus = [sp.bonus, sp.bonus.second].filter(Boolean)
+          .map(b => `+${(b.perLevel * 100).toFixed(1)}% ${b.label} per level`).join(' · ');
+        return `
+          <div class="card">
+            <div class="card-title"><span class="card-icon">${sp.eggIcon}</span> ${sp.eggName}
+              <span class="pill rarity-${sp.rarity}">${sp.rarity}</span></div>
+            <div class="card-sub">${entry.label}</div>
+            <div class="card-sub" style="font-style:italic;opacity:0.75">${sp.blurb}</div>
+            <div class="card-sub">Hatches into a <b>${sp.name}</b> · ${fmtDuration(sp.hatchMs / 1000)} to incubate</div>
+            <div class="card-sub" style="color:var(--xp)">${bonus}</div>
+            <div class="card-yield"><span class="cost ${afford ? '' : 'unaffordable'}">🪙 ${fmtInt(entry.gold)}</span></div>
+            <button class="btn btn-sm ${afford ? 'btn-gold' : ''} btn-block" data-act="buy-egg"
+                    data-species="${sp.id}" ${afford ? '' : 'disabled'}>Buy egg</button>
+          </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section-title">Not for sale</div>
+    <div class="card-grid">
+      ${Object.entries(EGG_DROPS).map(([id, d]) => {
+        const sp = getSpecies(id);
+        const owned = (state.pets?.owned && Object.values(state.pets.owned).some(p => p.species === id))
+          || eggs().some(e => e.species === id);
+        const bonus = [sp.bonus, sp.bonus.second].filter(Boolean)
+          .map(b => `+${(b.perLevel * 100).toFixed(1)}% ${b.label} per level`).join(' · ');
+        return `
+          <div class="card ${owned ? '' : 'locked'}">
+            <div class="card-title"><span class="card-icon">${sp.eggIcon}</span> ${sp.eggName}
+              <span class="pill rarity-${sp.rarity}">${sp.rarity}</span></div>
+            <div class="card-sub">${owned ? sp.blurb : 'You have never seen one of these.'}</div>
+            <div class="card-sub">Found in: <b>${d.from}</b> — roughly ${(d.chance * 100).toFixed(0)}% a drop</div>
+            <div class="card-sub" style="color:var(--xp)">${owned ? bonus : '???'}</div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ---------------- Panel ----------------
+
+function tabBtn(id, label) {
+  return `<button class="btn btn-sm ${petsUI.tab === id ? 'btn-primary' : ''}"
+                  data-act="pets-tab" data-tab="${id}">${label}</button>`;
+}
+
+export function petsPanel() {
+  // A pet that was selected then released shouldn't strand the view
+  if (petsUI.selected && !state.pets?.owned?.[petsUI.selected]) petsUI.selected = null;
+
+  const header = `
+    <div class="panel-header">
+      <div class="panel-title">🐾 The Menagerie</div>
+      <div class="panel-subtitle">${pets().length} pet${pets().length === 1 ? '' : 's'} ·
+        ${eggs().length} egg${eggs().length === 1 ? '' : 's'} warming ·
+        ${fmtInt(state.pets?.hatched || 0)} hatched all told</div>
+    </div>
+    <div class="panel-desc">Creatures you raise. They get hungry whether or not you're watching, and a
+    happy one makes the whole grind go faster. Nothing here can die — a neglected pet just sulks until you make it up to them.</div>
+    ${companionBanner()}
+    <div class="combat-controls" style="margin-top:14px">
+      ${tabBtn('nest', '🥚 Nest')}
+      ${tabBtn('breed', '💞 Breeding')}
+      ${tabBtn('shop', '🏪 Hatchery')}
+    </div>`;
+
+  if (petsUI.selected) {
+    const pet = state.pets.owned[petsUI.selected];
+    return header + petDetail(pet);
+  }
+
+  if (petsUI.tab === 'breed') return header + breedingSection();
+  if (petsUI.tab === 'shop') return header + shopSection();
+  return header + incubatorSection() + rosterSection();
+}
