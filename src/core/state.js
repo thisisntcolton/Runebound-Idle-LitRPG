@@ -105,6 +105,10 @@ export function defaultState() {
       aurelionKills: 0, flamesFed: 0,
       dungeonRuns: 0, dungeonClears: {},   // dungeonId -> clears
       potionsDrunk: 0, enchants: 0,
+      // Counters the newer systems keep. Declared here rather than
+      // sprung into existence by the first increment, so a Deed reads
+      // "0 / 5" on a fresh save instead of showing nothing at all.
+      riftsSealed: 0, theftsFought: 0, tomesLearned: 0, errands: 0,
     },
 
     abilities: {
@@ -151,6 +155,15 @@ export function defaultState() {
       // through Ascension, so the Menagerie's compendium is a record of
       // what you have found rather than what you happen to own today.
       seen: {},
+    },
+
+    // The Gilded Snake. Kept through Ascension: the tally of what this
+    // place has taken off you is the point, and resetting it every cycle
+    // would let a player believe they were ahead.
+    casino: {
+      shoe: [], cut: 0, hand: null, hazard: null,
+      wagered: 0, won: 0, lost: 0, hands: 0,
+      bestWin: 0, worstLoss: 0, streak: 0, bestStreak: 0, lastBet: 500,
     },
 
     // The Codex — discovered world lore, and what the last cycle cost.
@@ -262,7 +275,19 @@ function sumEffect(defs, levels, key) {
     const lvl = levels(def.id);
     if (lvl > 0 && def.effect?.[key]) total += def.effect[key] * lvl;
   }
+  // Compound Interest amplifies the rest of the perk board — but never
+  // itself, or it would be a feedback loop that ends in infinity.
+  if (defs === PERKS && key !== 'perk_amp') {
+    const amp = (PERKS.find(p => p.id === 'compound_interest')?.effect.perk_amp || 0)
+              * (state.perks?.compound_interest || 0);
+    total *= 1 + amp;
+  }
   return total;
+}
+
+/** A named perk's summed effect, for systems outside this file. */
+export function perkEffect(key) {
+  return sumEffect(PERKS, perkLevel, key);
 }
 
 // Multipliers ------------------------------------------------
@@ -425,7 +450,7 @@ export function hirelingRate(skillId) {
   const lvl = state.hirelings[h.id] || 0;
   if (lvl === 0) return 0;
   return (HIRELING_BASE_RATE + (lvl - 1) * HIRELING_RATE_PER_RANK)
-       * (1 + classBonus('hireling_rate'));
+       * (1 + classBonus('hireling_rate') + sumEffect(PERKS, perkLevel, 'hireling_rate'));
 }
 
 // Combat-derived stats --------------------------------------

@@ -93,6 +93,34 @@ export const PERKS = [
     desc: '+20% rare drop chance per rank', baseCost: 4, effect: { dropRate: 0.20 } },
   { id: 'haste', name: 'Chronomancer\'s Haste', icon: '💨', maxLevel: 5,
     desc: '+5% action speed per rank (all skills)', baseCost: 5, effect: { speed: 0.05 } },
+
+  // ============================================================
+  // THE DEEP PERKS
+  //
+  // Everything above costs between two and five shards a rank, which
+  // means a player four cycles in can buy the entire board and then has
+  // nothing to spend shards on ever again. These are the answer: each one
+  // costs more than the whole original list combined, and they are meant
+  // to be the thing you are still saving toward after fifty hours.
+  //
+  // They are also deliberately not "+X% of a thing you already have a
+  // percentage of". Each changes how something works.
+  // ============================================================
+  { id: 'compound_interest', name: 'Compound Interest', icon: '📈', maxLevel: 5,
+    desc: '+3% to ALL other Fate Perk effects per rank. It multiplies the board, not the game.',
+    baseCost: 40, effect: { perk_amp: 0.03 } },
+  { id: 'second_shadow', name: 'The Second Shadow', icon: '👥', maxLevel: 4,
+    desc: 'Your hirelings work +25% faster per rank, in every skill, forever.',
+    baseCost: 55, effect: { hireling_rate: 0.25 } },
+  { id: 'unspent_hours', name: 'Unspent Hours', icon: '🕰️', maxLevel: 3,
+    desc: 'Offline progress runs at +20% efficiency per rank. The time you were not here counts for more.',
+    baseCost: 70, effect: { offline_rate: 0.20 } },
+  { id: 'keen_edge', name: 'Keen Edge', icon: '🗡️', maxLevel: 5,
+    desc: '+4% critical hit chance per rank. Not damage — the chance itself.',
+    baseCost: 60, effect: { crit: 0.04 } },
+  { id: 'the_long_memory', name: 'The Long Memory', icon: '🧠', maxLevel: 3,
+    desc: 'Every skill keeps 4% of its XP through Ascension per rank. The only thing that has ever survived the reset.',
+    baseCost: 120, effect: { xp_carry: 0.04 } },
 ];
 
 export const SHARD_XP_BONUS = 0.02;   // each Fate Shard: +2% XP…

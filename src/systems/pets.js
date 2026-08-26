@@ -10,7 +10,7 @@ import { SPECIES, getSpecies, stageFor, STAGES, CARE, PET_TRAITS, TRAIT_LIST,
          getTrait, BREEDING, MAX_PET_LEVEL, RARITY_RANK, RARITIES,
          randomPetName, eggItemId, BREEDABLE_STAGE, EGG_SHOP, SPECIES_LIST } from '../data/pets.js';
 import { getItem } from '../data/items.js';
-import { addItem, removeItem, itemCount, spendGold } from './inventory.js';
+import { addItem, removeItem, itemCount, spendGold, addGold } from './inventory.js';
 import { emit, on } from '../core/events.js';
 
 let hooks = { queueModal: () => {}, popup: () => {} };
@@ -640,4 +640,129 @@ export function initPets() {
   settleAll();
   activityCreditAt = Date.now();
   wireActivity();
+}
+
+// ============================================================
+// ERRANDS
+//
+// The drain is applied as a settled cost rather than by teaching the
+// decay function about time windows. settle() already brings a pet up to
+// now at the normal rate; an errand then charges the DIFFERENCE — the
+// extra (DRAIN_MULT - 1) worth of decay over the span it was working,
+// plus a flat arrival cost. Same result, and the decay maths stays the
+// one simple thing it has always been.
+// ============================================================
+import { ERRANDS, ERRAND_LIST, getErrand } from '../data/pets.js';
+import { combatIncome } from '../data/adventure.js';
+import { combatLevel } from '../core/state.js';
+import { addXp } from './skills.js';
+
+/** Can this pet be sent out, and if not, why not? */
+export function canErrand(pet) {
+  if (!pet || pet.stage === 'egg') return { ok: false, why: 'Not hatched yet.' };
+  if (pet.errand) return { ok: false, why: 'Already out on an errand.' };
+  if (petLevel(pet) < ERRANDS.MIN_LEVEL) {
+    return { ok: false, why: `Needs to be fully grown — level ${ERRANDS.MIN_LEVEL}. This one is ${petLevel(pet)}.` };
+  }
+  if (mood(pet).id !== ERRANDS.REQUIRED_MOOD) {
+    return { ok: false, why: 'Only a thriving pet will work. Feed it and play with it first.' };
+  }
+  const left = errandCooldownLeft(pet);
+  if (left > 0) return { ok: false, why: `Resting — ready in ${Math.ceil(left / 60000)} min.` };
+  return { ok: true, why: '' };
+}
+
+export function errandCooldownLeft(pet) {
+  return Math.max(0, (pet.errandAt || 0) + ERRANDS.COOLDOWN_MS - Date.now());
+}
+
+export function errandReady(pet) {
+  return !!pet.errand && Date.now() >= pet.errand.readyAt;
+}
+
+export function errandTimeLeft(pet) {
+  return pet.errand ? Math.max(0, pet.errand.readyAt - Date.now()) : 0;
+}
+
+export function sendOnErrand(petId, errandId) {
+  const pet = state.pets?.owned?.[petId];
+  const def = getErrand(errandId);
+  if (!pet || !def) return false;
+  settle(pet);
+  const check = canErrand(pet);
+  if (!check.ok) {
+    emit('notify', { type: 'sys', text: check.why });
+    return false;
+  }
+  const now = Date.now();
+  pet.errand = { id: errandId, startedAt: now, readyAt: now + ERRANDS.DURATION_MS };
+  // A working pet is not at your side.
+  if (state.pets.active === petId) state.pets.active = null;
+  emit('notify', { type: 'sys', text: `${getSpecies(pet.species)?.icon} ${pet.name} sets off to ${def.name.toLowerCase()}.` });
+  emit('pets-changed', {});
+  emit('state-changed');
+  return true;
+}
+
+/**
+ * Bring the pet home. Pays out, then charges what the work cost it.
+ */
+export function collectErrand(petId) {
+  const pet = state.pets?.owned?.[petId];
+  if (!pet?.errand) return false;
+  if (!errandReady(pet)) return false;
+  const def = getErrand(pet.errand.id);
+  const workedMs = Date.now() - pet.errand.startedAt;
+  pet.errand = null;
+  pet.errandAt = Date.now();
+  state.stats.errands = (state.stats.errands || 0) + 1;
+
+  settle(pet);   // normal decay up to now, so the extra below is additive
+
+  // What the work took out of it, over and above simply existing.
+  const t = getTrait(pet.trait);
+  const hours = Math.min(workedMs, ERRANDS.DURATION_MS) / (60 * 60 * 1000);
+  const extraH = hours * CARE.HUNGER_DECAY_PER_HOUR * (ERRANDS.DRAIN_MULT - 1) * (1 - (t?.hungerSlow || 0));
+  const extraP = hours * CARE.HAPPY_DECAY_PER_HOUR * (ERRANDS.DRAIN_MULT - 1) * (1 - (t?.happySlow || 0));
+  pet.hunger = Math.max(0, (pet.hunger ?? 100) - extraH - ERRANDS.ARRIVAL_HUNGER_COST);
+  pet.happy = Math.max(0, (pet.happy ?? 100) - extraP - ERRANDS.ARRIVAL_HAPPY_COST);
+
+  // Paid in the same combat-minute currency the road uses, so an errand
+  // can never quietly become the best gold in the game.
+  const perMinute = combatIncome(combatLevel(), state.era || 1).gold;
+  const parts = [];
+  const gold = Math.round(perMinute * (def.payout || 1));
+  if (gold > 0) { addGold(gold, { silent: true }); parts.push(`🪙 ${gold.toLocaleString()}`); }
+
+  for (const [id, range] of Object.entries(def.items || {})) {
+    const n = Array.isArray(range)
+      ? range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1))
+      : range;
+    addItem(id, n);
+    parts.push(`${getItem(id)?.icon || '📦'} ${getItem(id)?.name || id} ×${n}`);
+  }
+  for (const [skillId, n] of Object.entries(def.xp || {})) {
+    if (state.skills[skillId]) { addXp(skillId, n * Math.max(1, petLevel(pet))); parts.push(`✨ ${skillId}`); }
+  }
+
+  emit('notify', { type: 'gold',
+    text: `${def.icon} ${pet.name} ${def.done} — ${parts.join(' · ')}` });
+  emit('pets-changed', {});
+  emit('state-changed');
+  return true;
+}
+
+/** Everything the panel needs. */
+export function errandView(pet) {
+  if (!pet) return null;
+  return {
+    list: ERRAND_LIST,
+    can: canErrand(pet),
+    out: !!pet.errand,
+    ready: errandReady(pet),
+    timeLeft: errandTimeLeft(pet),
+    cooldownLeft: errandCooldownLeft(pet),
+    current: pet.errand ? getErrand(pet.errand.id) : null,
+    durationMs: ERRANDS.DURATION_MS,
+  };
 }

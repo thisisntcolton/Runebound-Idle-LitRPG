@@ -3,7 +3,7 @@
 // Active skill action + hirelings progress; combat pauses
 // ("your hero makes camp").
 // ============================================================
-import { state, actionTime, hirelingRate, skillLevel, offlineCapHours } from '../core/state.js';
+import { state, actionTime, hirelingRate, skillLevel, offlineCapHours, perkEffect } from '../core/state.js';
 import { SKILLS, getAction, TRAINABLE_SKILLS } from '../data/skills.js';
 import { getItem } from '../data/items.js';
 import { hasInputs } from './inventory.js';
@@ -61,7 +61,9 @@ export function processOffline() {
     const action = getAction(skillId, actionId);
     if (!action || skillLevel(skillId) < action.level) continue;
     const time = actionTime(skillId, action) / 1000;
-    let completions = Math.floor((seconds * rate) / time);
+    // Unspent Hours makes the time you were away count for more.
+    const offlineRate = rate * (1 + perkEffect('offline_rate'));
+    let completions = Math.floor((seconds * offlineRate) / time);
     let done = 0;
     while (completions-- > 0) {
       if (action.input && !hasInputs(action.input)) break;

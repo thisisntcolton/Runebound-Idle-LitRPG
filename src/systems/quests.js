@@ -4,7 +4,7 @@
 // ============================================================
 import { state, skillLevel } from '../core/state.js';
 import { SOFT_CAP } from '../core/xp.js';
-import { MAIN_QUESTS, SIDE_QUESTS, BOUNTIES, ALL_QUESTS, getQuest } from '../data/quests.js';
+import { MAIN_QUESTS, SIDE_QUESTS, DEEDS, BOUNTIES, ALL_QUESTS, getQuest } from '../data/quests.js';
 import { FRAGMENTS, CYCLES, ENDING, WHISPERS, WASTE_TRAFFIC, WASTES_ARRIVAL } from '../data/lore.js';
 import { getItem } from '../data/items.js';
 import { getZone } from '../data/monsters.js';
@@ -38,8 +38,28 @@ export function setQuestFlag(name) {
 }
 
 export function activeSideQuests() {
-  return SIDE_QUESTS.filter(q =>
+  const open = SIDE_QUESTS.filter(q =>
     !state.quests.completed[q.id] && (state.hirelings[q.unlockHireling] || 0) > 0);
+  return [...open, ...activeDeeds()];
+}
+
+/**
+ * Deeds — standalone quests with their own gates rather than a hireling.
+ *
+ * Side quests were all keyed to hiring somebody, which meant every new
+ * system shipped with nothing to do in the Journal. A deed gates on
+ * whatever it is actually about.
+ */
+export function activeDeeds() {
+  const era = state.era || 1;
+  return DEEDS.filter(q => {
+    if (state.quests.completed[q.id]) return false;
+    const w = q.when || {};
+    if (w.era && era < w.era) return false;
+    if (w.ascensions !== undefined && (state.ascensions || 0) < w.ascensions) return false;
+    if (w.requires && !state.quests.completed[w.requires]) return false;
+    return true;
+  });
 }
 
 export function questProgress(q) {
@@ -56,8 +76,24 @@ export function questProgress(q) {
     // A flag goal is completed by another system announcing it, rather than
     // by a counter — used for the Era II beats that are events, not grinds.
     case 'flag': return { cur: state.quests.flags?.[g.flag] ? 1 : 0, max: 1 };
+    // A counter that already exists somewhere on state. Added because
+    // every new system since v1.4 keeps its own tally — chains walked,
+    // hands played, wardens felled — and writing a bespoke goal kind for
+    // each one would mean the quest engine grows a branch per feature
+    // forever. One dotted path reads all of them.
+    case 'count': return { cur: Math.min(readPath(g.path), g.count), max: g.count };
     default: return { cur: 0, max: 1 };
   }
+}
+
+/** Read a dotted path off state, treating anything missing as zero. */
+function readPath(path) {
+  let node = state;
+  for (const part of String(path || '').split('.')) {
+    if (node == null) return 0;
+    node = node[part];
+  }
+  return Number(node) || 0;
 }
 
 function isComplete(q) {

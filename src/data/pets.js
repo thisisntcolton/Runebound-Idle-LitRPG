@@ -349,3 +349,89 @@ export const EGG_SOURCES = {
 export const EGG_RARITY_ODDS = { common: '75%', rare: '20%', epic: '4.5%', legendary: '0.5%' };
 
 export function eggItemId(speciesId) { return `egg_${speciesId}`; }
+
+// ============================================================
+// ERRANDS — what a finished pet does next
+//
+// A pet that reaches level 60 and thriving mood has nowhere left to go.
+// Its bonus is capped, its bond bar is full, and the only remaining
+// interaction is feeding it so the number stays where it already is. That
+// is a dead end dressed as a reward.
+//
+// An errand is the way out. A finished pet can be sent to do a job on its
+// own for a fixed span — never indefinite, because an idle game with a
+// fire-and-forget income button is a game that plays itself — and it
+// comes back tired and hungry. The cost is real: hunger and happiness
+// drain several times faster while it is working, so running errands
+// back to back means a pet that is miserable and earning nothing.
+//
+// The gate is deliberately strict. Level 60 AND thriving: you cannot
+// shortcut it by feeding a level-20 pet to full, and a pet you have
+// neglected cannot be pressed into service to dig you out.
+// ============================================================
+
+export const ERRANDS = {
+  /** Every errand runs exactly this long. Nothing here is indefinite. */
+  DURATION_MS: 10 * 60 * 1000,
+  /** Care drains this many times faster while working. */
+  DRAIN_MULT: 7,
+  /** It comes home this much emptier, on top of the accelerated drain. */
+  ARRIVAL_HUNGER_COST: 12,
+  ARRIVAL_HAPPY_COST: 8,
+  /** Level required. The bond has to actually be finished. */
+  MIN_LEVEL: 60,
+  /** And it has to be thriving — not merely 'not miserable'. */
+  REQUIRED_MOOD: 'thriving',
+  /** A pet can only be sent this often, so errands are a decision. */
+  COOLDOWN_MS: 25 * 60 * 1000,
+};
+
+/**
+ * The jobs themselves.
+ *
+ * `payout` is in the same combat-minute currency the road uses, so an
+ * errand cannot drift away from the rest of the economy the way the
+ * road's rewards did. Ten minutes of a pet's work is worth a few minutes
+ * of your own, which is the right shape: it is a bonus for having
+ * finished something, not a replacement for playing.
+ */
+export const ERRAND_LIST = [
+  {
+    id: 'restock', icon: '📦', name: 'Restock a stall',
+    blurb: 'Hearthwick\'s traders will take deliveries from anything with a mouth and a sense of direction.',
+    payout: 2.2, stockCategory: 'any_resource', stockQty: [3, 7],
+    done: 'came back smelling of sawdust and self-importance',
+  },
+  {
+    id: 'forage', icon: '🌿', name: 'Forage the hedgerows',
+    blurb: 'Herbs, mostly. Some of them are even the ones you asked for.',
+    payout: 1.4, items: { herb_sagewort: [4, 9] },
+    done: 'returned with a great deal of vegetation, some of it medicinal',
+  },
+  {
+    id: 'ratting', icon: '🐀', name: 'Clear the cellars',
+    blurb: 'The inn has a problem. Your pet considers it a job offer.',
+    payout: 2.8, xp: { hitpoints: 14 },
+    done: 'is extremely pleased with itself and will not say why',
+  },
+  {
+    id: 'courier', icon: '✉️', name: 'Run the post',
+    blurb: 'Letters between Hearthwick and the outlying farms. Nobody asks how they arrive.',
+    payout: 3.4,
+    done: 'delivered everything, eventually, in an order of its own devising',
+  },
+  {
+    id: 'dig', icon: '⛏️', name: 'Dig where you pointed',
+    blurb: 'It does not know what you are looking for. It digs anyway, with enormous commitment.',
+    payout: 1.8, items: { copper_ore: [3, 8] },
+    done: 'excavated something. Several things. A hole, mainly',
+  },
+  {
+    id: 'guard', icon: '🛡️', name: 'Mind the gate',
+    blurb: 'An honorary post. The pay is real and the threat level is not.',
+    payout: 2.4, xp: { defense: 12 },
+    done: 'guarded the gate with total seriousness for ten entire minutes',
+  },
+];
+
+export const getErrand = id => ERRAND_LIST.find(e => e.id === id);

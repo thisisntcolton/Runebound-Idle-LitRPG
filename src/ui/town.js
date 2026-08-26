@@ -306,7 +306,10 @@ function plotDetail(index) {
     <div class="section-title">${def.icon} ${def.name} <span class="pill">Lv.${plot.level}</span></div>
     <div class="shop-row" style="border-color:var(--border-bright);gap:20px;flex-wrap:wrap">
       <div><div class="muted">REVENUE / SHIFT</div><div class="shop-row-title yield-gold">🪙 ${fmt(Math.round(report.revenuePerCycle))}</div></div>
-      <div><div class="muted">WAGES / SHIFT</div><div class="shop-row-title" style="color:var(--danger)">🪙 ${fmt(report.wagePerCycle)}</div></div>
+      <div><div class="muted">WAGES / SHIFT</div><div class="shop-row-title" style="color:var(--danger)">🪙 ${fmt(report.wagePerCycle)}</div>
+        ${report.commissionPerCycle > 0
+          ? `<div class="muted" style="font-size:10.5px">${fmt(report.baseWagePerCycle)} wages + ${fmt(report.commissionPerCycle)} commission</div>`
+          : ''}</div>
       <div><div class="muted">PROFIT / SHIFT</div><div class="shop-row-title" style="color:${report.profitPerCycle >= 0 ? 'var(--xp)' : 'var(--danger)'}">🪙 ${fmt(Math.round(report.profitPerCycle))}</div></div>
       <div><div class="muted">PER MINUTE</div><div class="shop-row-title">🪙 ${fmt(Math.round(report.profitPerMin))}</div></div>
       <div><div class="muted">SHIFT LENGTH</div><div class="shop-row-title">${(report.cycleMs / 1000).toFixed(0)}s</div></div>

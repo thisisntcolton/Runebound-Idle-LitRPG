@@ -181,6 +181,55 @@ export const ABILITIES = {
   },
 };
 
+
+// ============================================================
+// THE SECOND SHELF
+//
+// Five more, added once the roster was big enough to have shape. The
+// brief for each was "does this change a decision", not "is this a bigger
+// number": Riposte rewards a defensive build with offence, Rupture makes
+// a slow fight faster for everyone rather than just you, and Last Word is
+// deliberately useless until a fight is nearly over.
+// ============================================================
+
+Object.assign(ABILITIES, {
+  riposte: {
+    id: 'riposte', name: 'Riposte', icon: '🤞', slot: 'guard',
+    cooldown: 0, rarity: 'rare',
+    desc: 'Passive: 14% chance to turn a blow aside and answer it for 70% of your max hit.',
+    flavor: 'Defence, if you are honest about it, is just attacking on their turn.',
+    effect: { type: 'riposte', value: 0.14, counter: 0.70 },
+  },
+  rupture: {
+    id: 'rupture', name: 'Rupture', icon: '🩻', slot: 'strike',
+    cooldown: 14000, rarity: 'epic',
+    desc: 'Every 14s, hit for ×1.6 and break 35% of the target\'s defence until it dies.',
+    flavor: 'Something structural goes. You feel it more than hear it.',
+    effect: { type: 'sunder', value: 1.6, shred: 0.35 },
+  },
+  last_word: {
+    id: 'last_word', name: 'Last Word', icon: '⚰️', slot: 'strike',
+    cooldown: 9000, rarity: 'legendary',
+    desc: 'Every 9s, if the enemy is below 45% health, hit for ×4.2.',
+    flavor: 'Worth nothing for most of a fight. Worth everything for the end of one.',
+    effect: { type: 'execute', threshold: 0.45, value: 4.2 },
+  },
+  wellspring: {
+    id: 'wellspring', name: 'Wellspring', icon: '⛲', slot: 'utility',
+    cooldown: 16000, rarity: 'rare',
+    desc: 'Every 16s, recover 14% of your maximum health.',
+    flavor: 'Not magic. Just the sensible amount of water, at the sensible time.',
+    effect: { type: 'regen', value: 0.14 },
+  },
+  hollow_point: {
+    id: 'hollow_point', name: 'Hollow Point', icon: '🎯', slot: 'strike',
+    cooldown: 11000, rarity: 'epic',
+    desc: 'Every 11s, add 2% of the target\'s MAXIMUM health to your blow.',
+    flavor: 'Scales with what you are hitting, not with you. The bigger the wall, the bigger the hole.',
+    effect: { type: 'percentMax', value: 0.02 },
+  },
+});
+
 export const ABILITY_LIST = Object.values(ABILITIES);
 
 export function getAbility(id) { return ABILITIES[id]; }

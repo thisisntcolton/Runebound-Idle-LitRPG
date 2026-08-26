@@ -168,12 +168,54 @@ const FACES = ['🧑‍🌾', '👩‍🍳', '🧑‍🔧', '👨‍🌾', '🧑
 export const APPLICANT_POOL_SIZE = 4;
 export const REROLL_COST = 750;
 
+// ============================================================
+// WAGES
+//
+// The town used to pay a flat wage forever: 22 to 70 gold a shift, set
+// once when the worker was hired and never moving again. Revenue, by
+// contrast, scales with the building's level AND with the value of the
+// goods the shift moves — so a level-5 Market Stall running rich stock
+// cleared ninety-two thousand gold a minute against a payroll of a
+// hundred and eighty-eight. Payroll was a rounding error, which meant the
+// whole staffing system — traits, skill, who you hire — was decoration.
+//
+// Wages now have three parts, and the last one is the important one:
+//
+//   BASE        — the flat rate, raised outright.
+//   PER_LEVEL   — a worker at a bigger operation costs more.
+//   COMMISSION  — a share of the value of goods moved. This is what stops
+//                 rich materials being free money: the people handling
+//                 nine thousand gold of stock want paying like it.
+//
+// Calibrated in test/balance.mjs, which prints profit per minute at every
+// building and level for both the cheapest and richest stock you could
+// put through it.
+// ============================================================
+export const WAGES = {
+  // Left at the hired rate on purpose. The flat wage was never the
+  // problem, and it is the ONLY cost the Lumber Yard has — raising it
+  // even 25% cut the first building a new player owns from a 25% margin
+  // to 7%, which taxes the early game to fix a late-game excess.
+  BASE: 1.0,
+  // Growth comes from scale instead: a worker running a level-5 operation
+  // costs a bit over twice what one running a level-1 does, against
+  // revenue that grows 3.4x. Still a real raise, still leaves headroom.
+  PER_LEVEL: 0.32,
+  // The actual fix. Staff take a third of the value of the goods they
+  // move, which leaves a cheap-stock operation roughly where it was and
+  // takes a level-5 building running runite bars from a 94% margin to
+  // about 58%. Rich materials are still the right play — they are just no
+  // longer free money.
+  COMMISSION: 0.35,
+};
+
 export function rollApplicant(rng = Math.random, seedIdx = 0) {
   const trait = TRAIT_LIST[Math.floor(rng() * TRAIT_LIST.length)];
   const skill = 1 + Math.floor(rng() * 5);            // 1..5, scales output
-  // Wages are per completed shift. Kept low enough that the starter
-  // buildings turn a profit, high enough to matter once you run six of them.
-  const baseWage = Math.floor((10 + skill * 12) * (trait.wageMult ?? 1));
+  // Wages are per completed shift, and this is only the LABOUR half —
+  // see WAGES below for the level scaling and the commission, which are
+  // what actually keep a mature town honest.
+  const baseWage = Math.floor((10 + skill * 12) * WAGES.BASE * (trait.wageMult ?? 1));
   return {
     id: `s${Date.now().toString(36)}${seedIdx}${Math.floor(rng() * 1e6).toString(36)}`,
     name: `${FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)]} ${LAST_NAMES[Math.floor(rng() * LAST_NAMES.length)]}`,

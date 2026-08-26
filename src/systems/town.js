@@ -5,7 +5,7 @@ import { state } from '../core/state.js';
 import { BUILDINGS, BUILDING_LIST, getBuilding, BUILDING_UNLOCK_LEVEL,
          MAX_BUILDING_LEVEL, PLOT_COUNT, plotCost, upgradeCostFor,
          INPUT_CATEGORIES, STAFF_TRAITS, rollApplicant, APPLICANT_POOL_SIZE,
-         REROLL_COST, plotsUnlockedAt } from '../data/town.js';
+         REROLL_COST, plotsUnlockedAt, WAGES } from '../data/town.js';
 import { getItem } from '../data/items.js';
 import { addGold, spendGold, addItem, removeItem, itemCount } from './inventory.js';
 import { emit } from '../core/events.js';
@@ -363,16 +363,26 @@ export function plotReport(plotIndex) {
   const labour = ((def.revenue[0] + def.revenue[1]) / 2) * levelMult;
   const revMid = (labour + goodsValue * markup) * mods.revenue * skillMult * (1 + classBonus('town_revenue'));
 
+  // Payroll: the hired rate, scaled by how big an operation they are
+  // running, plus a commission on the goods they actually move. Without
+  // the commission a mature building's wage bill is a rounding error
+  // against its revenue and the entire staffing system stops mattering.
+  const wageLevelMult = 1 + (plot.level - 1) * WAGES.PER_LEVEL;
+  const commission = goodsValue * markup * WAGES.COMMISSION * mods.count;
+  const payroll = mods.wage * wageLevelMult + commission;
+
   return {
     plot, def, mods, levelMult, cycleMs,
     staffed: mods.count > 0,
     fullyStaffed: mods.count >= staffSlotsFor(def),
     needs, stocked, cyclesLeft,
     markup, goodsValue, labour,
-    wagePerCycle: mods.wage,
+    wagePerCycle: payroll,
+    baseWagePerCycle: mods.wage * wageLevelMult,
+    commissionPerCycle: commission,
     revenuePerCycle: revMid,
-    profitPerCycle: revMid - mods.wage,
-    profitPerMin: (revMid - mods.wage) / (cycleMs / 60000),
+    profitPerCycle: revMid - payroll,
+    profitPerMin: (revMid - payroll) / (cycleMs / 60000),
     starved: Object.keys(needs).length > 0 && cyclesLeft < 1,
   };
 }
@@ -430,14 +440,19 @@ function completeCycle(plotIndex, plot, def, mods) {
   }
   plot.stockWarned = false;   // it's working again; re-arm the warning
 
-  // wages first — no coin, no shift
-  if (mods.wage > 0) {
-    if (state.gold < mods.wage) {
+  // Wages first — no coin, no shift. This must use the SAME payroll the
+  // panel quotes, commission included, or the town's projected profit is
+  // a number the game never actually charges.
+  const payroll = Math.round(
+    mods.wage * (1 + (plot.level - 1) * WAGES.PER_LEVEL)
+    + goodsValue * markupFor(def, plot.level) * WAGES.COMMISSION * mods.count);
+  if (payroll > 0) {
+    if (state.gold < payroll) {
       state.town.unpaid = (state.town.unpaid || 0) + 1;
-      reportUnpaid(plotIndex, plot, def, mods.wage);
+      reportUnpaid(plotIndex, plot, def, payroll);
       return false;
     }
-    spendGold(mods.wage);
+    spendGold(payroll);
   }
   plot.wageWarned = false;
 

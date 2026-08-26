@@ -8,7 +8,7 @@
 // Deliberately unauthenticated and deliberately dull — it exposes nothing
 // that isn't already public in the bundle or the repo.
 
-const VERSION = '1.6.0'; // kept in step with package.json by test/content.test.mjs
+const VERSION = '1.7.0'; // kept in step with package.json by test/content.test.mjs
 
 export function GET() {
   const env = process.env;

@@ -4,11 +4,12 @@
 import { state } from '../core/state.js';
 import { getItem } from '../data/items.js';
 import { getSpecies, getTrait, CARE, STAGES, stageFor, MAX_PET_LEVEL,
-         BREEDING, EGG_SHOP, SPECIES_LIST, EGG_SOURCES, EGG_RARITY_ODDS } from '../data/pets.js';
+         BREEDING, EGG_SHOP, SPECIES_LIST, EGG_SOURCES, EGG_RARITY_ODDS,
+         ERRANDS } from '../data/pets.js';
 import { hunger, happiness, mood, petLevel, petLevelProgress,
          xpForPetLevel, incubatorSlots, eggReady, playCooldownLeft,
          canBreed, breedCooldownLeft, petBonusFor,
-         activePetSummary, feedXpFor, hasSeen } from '../systems/pets.js';
+         activePetSummary, feedXpFor, hasSeen, errandView } from '../systems/pets.js';
 import { petPortrait, eggPortrait, petArt } from './petart.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
@@ -218,6 +219,54 @@ function feedableItems(pet) {
   return out.slice(0, 14);
 }
 
+
+// ---------------- Errands ----------------
+//
+// The thing a finished pet does. Shown to every pet rather than only to
+// eligible ones, because "there is something here you have not unlocked"
+// is information, and hiding it is how ten abilities ended up invisible.
+
+function errandSection(pet) {
+  const v = errandView(pet);
+  if (!v) return '';
+  const mins = Math.round(v.durationMs / 60000);
+
+  if (v.out) {
+    const left = v.timeLeft;
+    return `
+      <div class="section-title">${v.current.icon} Out on an errand</div>
+      <div class="errand-active">
+        <div><b>${v.current.name}</b> — ${v.current.blurb}</div>
+        ${v.ready
+          ? `<button class="btn btn-sm btn-gold btn-block" data-act="pet-errand-collect" data-pet="${pet.id}">
+               ✦ ${esc(pet.name)} is back — see what it brought</button>`
+          : `<div class="muted" style="margin-top:6px;font-family:var(--font-mono)">Home in ${fmtDuration(left / 1000)}</div>`}
+      </div>`;
+  }
+
+  const locked = !v.can.ok;
+  return `
+    <div class="section-title">📮 Errands ${locked ? '<span class="pill">locked</span>' : ''}</div>
+    <div class="muted" style="margin-bottom:9px">
+      A fully grown, thriving pet can be sent to work on its own for <b>${mins} minutes</b>.
+      It is hard on them: fullness and happiness fall <b>${ERRANDS.DRAIN_MULT}×</b> faster while
+      they work, and they come home tired. Nothing here runs forever, and a pet cannot be sent
+      out again for ${Math.round(ERRANDS.COOLDOWN_MS / 60000)} minutes.
+      ${locked ? `<br><span class="lock-req">🔒 ${v.can.why}</span>` : ''}
+    </div>
+    <div class="card-grid">
+      ${v.list.map(e => `
+        <div class="card ${locked ? 'locked' : ''}">
+          <div class="card-title"><span class="card-icon">${e.icon}</span> ${e.name}</div>
+          <div class="card-sub" style="font-style:italic;opacity:0.8">${e.blurb}</div>
+          <div class="card-sub" style="color:var(--gold)">Pays about ${e.payout.toFixed(1)}× a minute of fighting${
+            e.items ? ' · brings back goods' : ''}${e.xp ? ' · a little ' + Object.keys(e.xp)[0] + ' XP' : ''}</div>
+          ${locked ? '' : `<button class="btn btn-sm btn-primary btn-block" data-act="pet-errand"
+                  data-pet="${pet.id}" data-errand="${e.id}">Send</button>`}
+        </div>`).join('')}
+    </div>`;
+}
+
 function petDetail(pet) {
   const sp = getSpecies(pet.species);
   const m = mood(pet);
@@ -287,6 +336,8 @@ function petDetail(pet) {
           </button>
           <button class="btn btn-sm btn-danger" data-act="pet-release" data-pet="${pet.id}">Release</button>
         </div>
+
+        ${errandSection(pet)}
 
         <div class="section-title">Feed</div>
         ${food.length ? `

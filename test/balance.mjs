@@ -1,13 +1,16 @@
 // Balance simulations. Run with `npm run balance` after touching any
 // tuning number: classes, town revenue, or the material markup.
 import { BUILDINGS, MAX_BUILDING_LEVEL } from '../src/data/town.js';
+import { WAGES } from '../src/data/town.js';
 import { getItem } from '../src/data/items.js';
 import { CLASSES, SIGNATURE } from '../src/data/classes.js';
 
 const markupFor = (def, level) => (def.markup ?? 1.0) * (1 + (level - 1) * 0.30);
 
-// A representative staff member: average trait, mid skill
-const wageFor = skill => Math.floor(10 + skill * 12);
+// A representative staff member: average trait, mid skill.
+// Reads the real WAGES constants rather than a copy, because a sim with
+// its own idea of the numbers is a sim that tells you what you want.
+const wageFor = skill => Math.floor((10 + skill * 12) * WAGES.BASE);
 
 // cheap vs rich material for each input category
 const SAMPLE = {
@@ -24,7 +27,7 @@ for (const def of Object.values(BUILDINGS)) {
   for (let lvl = 1; lvl <= MAX_BUILDING_LEVEL; lvl++) {
     const staff = def.staffSlots;
     const skill = Math.min(10, 2 + lvl);              // staff you'd plausibly have
-    const wage = wageFor(skill) * staff;
+    const baseWage = wageFor(skill) * staff * (1 + (lvl - 1) * WAGES.PER_LEVEL);
     const skillMult = 1 + (skill * staff) * 0.08;
     const levelMult = 1 + (lvl - 1) * 0.6;
     const labour = ((def.revenue[0] + def.revenue[1]) / 2) * levelMult;
@@ -36,18 +39,24 @@ for (const def of Object.values(BUILDINGS)) {
         const need = Math.max(1, Math.ceil(qty * lvl));
         goods += need * (getItem(SAMPLE[cat][kind])?.sell || 0);
       }
-      const rev = (labour + goods * markupFor(def, lvl)) * skillMult;
+      const goodsRev = goods * markupFor(def, lvl);
+      const rev = (labour + goodsRev) * skillMult;
+      // The commission is what stops rich stock being free money.
+      const wage = baseWage + goodsRev * WAGES.COMMISSION * staff;
       out[kind] = (rev - wage) * cyclesPerMin;
       out[kind + 'Goods'] = goods;
+      out[kind + 'Wage'] = wage * cyclesPerMin;
+      out[kind + 'Margin'] = rev > 0 ? (rev - wage) / rev : 0;
     }
-    rows.push({ lvl, wage: wage * cyclesPerMin, ...out });
+    rows.push({ lvl, wage: baseWage * cyclesPerMin, ...out });
   }
   console.log(`${def.icon} ${def.name}  (${def.cycleMs/1000}s cycle, ${def.staffSlots} staff, markup x${def.markup ?? '-'})`);
   for (const r of rows) {
     const f = n => (n >= 0 ? '+' : '') + Math.round(n).toLocaleString();
-    console.log(`   Lv${r.lvl}  wages ${Math.round(r.wage).toLocaleString().padStart(6)}/min` +
-      `   cheap ${f(r.cheap).padStart(10)}/min (goods ${r.cheapGoods}g)` +
-      `   rich ${f(r.rich).padStart(12)}/min (goods ${r.richGoods.toLocaleString()}g)`);
+    const pct = n => (n * 100).toFixed(0) + '%';
+    console.log(`   Lv${r.lvl}  base wages ${Math.round(r.wage).toLocaleString().padStart(6)}/min` +
+      `   cheap ${f(r.cheap).padStart(9)}/min (payroll ${Math.round(r.cheapWage).toLocaleString().padStart(6)}, margin ${pct(r.cheapMargin).padStart(4)})` +
+      `   rich ${f(r.rich).padStart(11)}/min (payroll ${Math.round(r.richWage).toLocaleString().padStart(8)}, margin ${pct(r.richMargin).padStart(4)})`);
   }
   console.log();
 }

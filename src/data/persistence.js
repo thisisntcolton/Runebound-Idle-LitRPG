@@ -39,6 +39,8 @@ export const KEPT = [
   { key: 'ledger', icon: '📒', label: 'The Ledger' },
   { key: 'repo', icon: '📄', label: 'Anything the Syndicate is holding' },
   { key: 'salvage', icon: '🕳️', label: 'Your dig record' },
+  { key: 'casino', icon: '🎲', label: 'Everything the Gilded Snake has taken',
+    detail: 'The house keeps its books across cycles. It would, wouldn\'t it.' },
   { key: 'stats', icon: '📊', label: 'Lifetime statistics' },
   { key: 'loreSeen', icon: '📜', label: 'The story so far',
     detail: 'Fragments, cycle revelations and the ending you chose.' },

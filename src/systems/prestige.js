@@ -1,7 +1,7 @@
 // ============================================================
 // ASCENSION (prestige) + upgrade/hireling/perk purchases
 // ============================================================
-import { state, replaceState, defaultState, pendingShards, totalSkillLevel,
+import { state, replaceState, defaultState, pendingShards, totalSkillLevel, perkEffect,
          ASCEND_MIN_TOTAL_LEVEL } from '../core/state.js';
 import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost,
          getUpgrade, getHireling, getPerk } from '../data/upgrades.js';
@@ -43,6 +43,7 @@ export function ascend() {
     look: state.look,
     // Talent trees are the one progression nothing ever takes back.
     classProgress: state.classProgress,
+    casino: state.casino,
     // You cannot fall back into the box.
     era: state.era,
     eraEnteredAt: state.eraEnteredAt,
@@ -80,6 +81,20 @@ export function ascend() {
 
   const fresh = defaultState();
   Object.assign(fresh, keep);
+
+  // The Long Memory. The only Fate Perk that touches the reset itself:
+  // every skill keeps a slice of its XP rather than going to zero. It is
+  // deliberately the most expensive thing on the board, because it is the
+  // only one that makes the next cycle shorter instead of richer.
+  const carry = perkEffect('xp_carry');
+  if (carry > 0) {
+    for (const [id, s] of Object.entries(state.skills || {})) {
+      if (!fresh.skills[id]) continue;
+      const kept = Math.floor((s.xp || 0) * carry);
+      // Hitpoints starts at level 10, so never drop it BELOW its floor.
+      fresh.skills[id].xp = Math.max(fresh.skills[id].xp, kept);
+    }
+  }
   fresh.town = inTheWastes ? state.town : razed.town;
   replaceState(fresh);
   save();

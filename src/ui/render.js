@@ -16,6 +16,7 @@ import { riftsPanel } from './rifts.js';
 import { abilitiesPanel } from './abilities.js';
 import { townPanel, townUI } from './town.js';
 import { petsPanel, petsUI } from './pets.js';
+import { casinoPanel, casinoUI } from './casino.js';
 import { codexPanel, codexUI } from './codex.js';
 import { classPanel } from './classes.js';
 import { appearancePanel } from './appearance.js';
@@ -34,7 +35,7 @@ import { chooseClass, currentClass, classPending, classUnlocked,
          setClassUIHooks, buyTalent, talentPoints } from '../systems/classes.js';
 import { setCodexUIHooks, markRead, codex as codexState, progress as codexProgress } from '../systems/codex.js';
 import { startIncubation, hatch, feed, play, renamePet, setActive, release,
-         breed, buyEgg } from '../systems/pets.js';
+         breed, buyEgg, sendOnErrand, collectErrand } from '../systems/pets.js';
 import { buyPlot, build, upgradeBuilding, demolish, hire, fire, assignStaff,
          stockBuilding, withdrawStock, refreshApplicants } from '../systems/town.js';
 import { achievementsPanel } from './achievements.js';
@@ -51,6 +52,8 @@ import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
 import { townLevel } from '../systems/town.js';
+import { deal, hit, stand, double, clearHand, hazardStart, hazardRoll,
+         clearHazard, casinoOpen, legalBet } from '../systems/casino.js';
 import { enterRift, failRun, pendingRift, activeRun, UNSTABLE } from '../systems/unstable.js';
 import { resolveVisitor } from '../systems/npcs.js';
 import { resolveEncounter, pendingEncounter, setEncounterUIHooks } from '../systems/encounters.js';
@@ -158,6 +161,8 @@ export function renderSidebar() {
           working: !!repoNotice() || !!activeCamp() || !!salvageView().active
                    || !!state.combat?.deep || bossView().up })
       : sealedNavHint()}
+    ${casinoOpen() ? navItem('casino', '🎲', 'The Gilded Snake', {
+      working: !!state.casino?.hand || !!state.casino?.hazard }) : ''}
     ${navItem('pets', '🐾', 'Menagerie', { level: petsBadge(), working: eggsReady() })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}
@@ -206,6 +211,7 @@ export function renderView() {
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
   else if (v === 'equipment') el.innerHTML = equipmentPanel();
   else if (v === 'ascension') el.innerHTML = ascensionPanel();
+  else if (v === 'casino') el.innerHTML = casinoPanel();
   else if (v === 'leaderboard') el.innerHTML = leaderboardPanel();
   else if (v === 'settings') el.innerHTML = settingsPanel();
   else el.innerHTML = characterPanel();
@@ -227,6 +233,18 @@ export function renderView() {
  * a dropdown, a text field — blowing away the DOM under them is hostile.
  * Defer the refresh until they're done.
  */
+
+/**
+ * The stake the player has actually typed, preferred over the remembered
+ * one. The input is live DOM rather than state, because re-rendering the
+ * panel on every keystroke would fight the cursor.
+ */
+function currentBet() {
+  const el = document.getElementById('casino-bet');
+  const typed = el ? Number(el.value) : NaN;
+  return legalBet(Number.isFinite(typed) && typed > 0 ? typed : (casinoUI.bet ?? state.casino?.lastBet ?? 500));
+}
+
 function isInteracting() {
   const el = document.activeElement;
   if (!el) return false;
@@ -637,6 +655,21 @@ function handleAction(target) {
     case 'pet-feed': feed(target.dataset.pet, target.dataset.item); break;
     case 'pet-play': play(target.dataset.pet); break;
     case 'pet-active': setActive(target.dataset.pet); break;
+    case 'pet-errand': sendOnErrand(target.dataset.pet, target.dataset.errand); renderView(); break;
+    case 'pet-errand-collect': collectErrand(target.dataset.pet); renderView(); break;
+    case 'casino-table': casinoUI.table = target.dataset.table; renderView(); break;
+    case 'casino-bet':
+      casinoUI.bet = legalBet(target.dataset.bet);
+      renderView();
+      break;
+    case 'casino-deal': deal(currentBet()); renderView(); break;
+    case 'casino-hit': hit(); renderView(); break;
+    case 'casino-stand': stand(); renderView(); break;
+    case 'casino-double': double(); renderView(); break;
+    case 'casino-clear': clearHand(); renderView(); break;
+    case 'casino-hazard': hazardStart(currentBet()); renderView(); break;
+    case 'casino-hazard-roll': hazardRoll(); renderView(); break;
+    case 'casino-hazard-clear': clearHazard(); renderView(); break;
     case 'pet-rename': {
       const input = document.getElementById('pet-rename-input');
       if (input) renamePet(target.dataset.pet, input.value);

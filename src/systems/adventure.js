@@ -20,8 +20,8 @@
 //  that the road knows you. That is also why chains can be gated on
 //  flags: the payoff for helping somebody is meeting them again.
 // ============================================================
-import { state, charLevel, classBonus } from '../core/state.js';
-import { ADVENTURE, CHAINS, rewardUnit, xpUnit } from '../data/adventure.js';
+import { state, charLevel, combatLevel, classBonus } from '../core/state.js';
+import { ADVENTURE, CHAINS, rewardUnit, xpUnit, maxPayout } from '../data/adventure.js';
 import { addGold, addItem } from './inventory.js';
 import { addXp, stopActivity } from './skills.js';
 import { getItem } from '../data/items.js';
@@ -142,12 +142,18 @@ function offer(chain, beatId) {
  */
 function applyEffects(fx = {}) {
   const parts = [];
-  const unit = rewardUnit(charLevel(), state.ascensions || 0);
-  const xu = xpUnit(charLevel());
+  const era = state.era || 1;
+  const cl = combatLevel();
+  const unit = rewardUnit(cl, state.ascensions || 0, era);
+  const xu = xpUnit(cl, era);
   const mult = rewardMult();
 
   if (fx.gold) {
-    const amount = Math.round(fx.gold * unit * (fx.gold > 0 ? mult : 1));
+    // The cap is a backstop against the class of bug that produced an
+    // 820,000-gold vignette, not a balance lever — nothing written today
+    // comes close to it.
+    const raw = Math.round(fx.gold * unit * (fx.gold > 0 ? mult : 1));
+    const amount = raw > 0 ? Math.min(raw, maxPayout(cl, era)) : raw;
     if (amount > 0) { const kept = addGold(amount, { silent: true }); parts.push(`🪙 ${fmt(kept)}`); }
     else { const lost = Math.min(state.gold, -amount); state.gold -= lost; parts.push(`🪙 -${fmt(lost)}`); }
   }
@@ -258,7 +264,7 @@ export function tickAdventure(dt) {
   if (a.progress < a.nextAt) return;
 
   // Something found on the way, so the walking is never dead time.
-  const unit = rewardUnit(charLevel(), state.ascensions || 0);
+  const unit = rewardUnit(combatLevel(), state.ascensions || 0, state.era || 1);
   addGold(ADVENTURE.TRAVEL_GOLD * unit * rewardMult(), { silent: true });
 
   const chain = pickChain();

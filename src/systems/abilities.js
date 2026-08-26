@@ -50,6 +50,7 @@ export function learnTome(tomeItemId) {
 
   removeItem(tomeItemId, 1);
   state.abilities.known[abilityId] = Date.now();
+  state.stats.tomesLearned = (state.stats.tomesLearned || 0) + 1;
   emit('notify', { type: 'loot', text: `📕 Learned ${ability.icon} ${ability.name} — ${ability.desc}` });
   emit('ability-learned', { abilityId });
 
@@ -326,6 +327,20 @@ export function applyGuard(incoming) {
     if (Math.random() < e.value) {
       emit('combat-hit', { source: 'parry', damage: 0 });
       emit('notify', { type: 'combat', text: `🤺 Parried!` });
+      return 0;
+    }
+    return incoming;
+  }
+
+  if (e.type === 'riposte') {
+    // A parry that answers back. The counter is banked the same way
+    // thorns is, and for the same reason: applyGuard runs inside the
+    // enemy's attack resolution, before the blow it reacts to has landed.
+    if (Math.random() < e.value) {
+      state.combat.pendingThorns = (state.combat.pendingThorns || 0)
+        + playerMaxHit() * (e.counter || 0);
+      emit('combat-hit', { source: 'parry', damage: 0 });
+      emit('notify', { type: 'combat', text: `🤞 Riposte — turned aside, and answered.` });
       return 0;
     }
     return incoming;

@@ -33,9 +33,14 @@
 // ============================================================
 
 export const ADVENTURE = {
-  /** Base seconds between encounters, before adventure_speed. */
-  MIN_MS: 32 * 1000,
-  MAX_MS: 62 * 1000,
+  // One encounter every couple of minutes. It used to be every 47 seconds,
+  // which turned a narrative feature into a treadmill with prose on it —
+  // you could not walk anywhere without being interrupted, and the maths
+  // below had to divide a whole hour of income across seventy-seven
+  // payouts, making every individual one feel like nothing. Slower is both
+  // better reading and better economics.
+  MIN_MS: 95 * 1000,
+  MAX_MS: 165 * 1000,
   /** How long a vignette waits for an answer before the road decides. */
   DECIDE_MS: 90 * 1000,
   /** Passive finds while walking, per encounter's worth of travel. */
@@ -43,17 +48,90 @@ export const ADVENTURE = {
   TRAVEL_XP: 0.5,
 };
 
+// ============================================================
+// WHAT A REWARD IS WORTH
+//
+// This used to be `60 * 1.055^charLevel`, written as though charLevel
+// topped out near 100. It does not: charLevel is total skill level over
+// four, so thirteen skills at 99 is character level 317, and 1.055^317 is
+// twenty-three million. A player reported a single vignette paying
+// 820,000 gold and they were only a third of the way up that curve — at
+// the top it was fifty-six billion.
+//
+// The lesson is not "pick a smaller exponent". It is that a reward curve
+// invented in isolation will always drift away from the game it is
+// supposed to sit beside. So the road no longer has a curve of its own:
+// a unit is a fixed slice of what fighting pays at your level, read off
+// the actual monster table. It cannot outrun combat because it is
+// defined in terms of combat.
+//
+// The two constants below are calibrated by test/road.sim.mjs, which
+// walks every option of every chain, computes the real hourly load, and
+// fails if the road drifts off parity in either direction.
+// ============================================================
+
+import { ZONES } from './monsters.js';
+
+/** A gold unit, as a fraction of one minute of level-appropriate fighting. */
+export const UNIT_AS_COMBAT_MINUTES = 0.47;
+/** An XP unit, likewise. Higher because chains grant XP far more sparingly. */
+export const XP_UNIT_AS_COMBAT_MINUTES = 2.82;
+
 /**
- * A "unit" of reward, scaled to the player. Roughly what a minute of
- * level-appropriate play is worth, so an encounter paying `gold: 3` is a
- * pleasant few minutes and one paying `gold: 12` is an event.
+ * No single answer may pay more than this many minutes of fighting.
+ *
+ * A backstop, not a balance lever. Everything above is already anchored,
+ * but the failure that started this was silent and enormous, and a cap
+ * turns the next one into something a player merely notices rather than
+ * something that ruins the save.
  */
-export function rewardUnit(charLevel = 1, ascensions = 0) {
-  return Math.round(60 * Math.pow(1.055, charLevel) * (1 + ascensions * 0.25));
+export const MAX_PAYOUT_COMBAT_MINUTES = 30;
+
+// The game's own kill cadence: 2.6s swings, four to six of them, plus the
+// 1.2s respawn. Twelve seconds door to door for on-level content.
+const KILL_SECS = 12;
+const XP_PER_DAMAGE = 4 + 1.33;      // style XP plus hitpoints XP, per point dealt
+
+const FARMABLE = ZONES
+  .flatMap(z => (z.monsters || []).map(m => ({ ...m, era: z.era || 1 })))
+  .filter(m => !m.boss)
+  .sort((a, b) => a.level - b.level);
+
+/**
+ * Gold and XP per minute from fighting the hardest thing you can hold at
+ * this combat level. Above the top of the table — which Era II reaches,
+ * since the ceiling moves to 199 and the monsters do not — it extends at
+ * a gentle 2% a level rather than stopping dead.
+ */
+export function combatIncome(combatLevel = 1, era = 1) {
+  const open = FARMABLE.filter(m => m.level <= combatLevel && m.era <= era);
+  const m = open[open.length - 1] || FARMABLE[0];
+  const over = Math.max(0, combatLevel - m.level);
+  const drift = Math.pow(1.02, Math.min(over, 100));
+  const perKill = (m.gold[0] + m.gold[1]) / 2;
+  const kpm = 60 / KILL_SECS;
+  return {
+    gold: perKill * kpm * drift,
+    xp: m.hp * XP_PER_DAMAGE * kpm * drift,
+  };
 }
 
-export function xpUnit(charLevel = 1) {
-  return Math.round(40 * Math.pow(1.055, charLevel));
+/**
+ * A "unit" of gold reward. `gold: 3` is a few minutes of fighting;
+ * `gold: 16` is a notable quarter of an hour.
+ */
+export function rewardUnit(combatLevel = 1, ascensions = 0, era = 1) {
+  return Math.round(combatIncome(combatLevel, era).gold
+    * UNIT_AS_COMBAT_MINUTES * (1 + ascensions * 0.06));
+}
+
+export function xpUnit(combatLevel = 1, era = 1) {
+  return Math.round(combatIncome(combatLevel, era).xp * XP_UNIT_AS_COMBAT_MINUTES);
+}
+
+/** The backstop, in gold, for this player. */
+export function maxPayout(combatLevel = 1, era = 1) {
+  return Math.round(combatIncome(combatLevel, era).gold * MAX_PAYOUT_COMBAT_MINUTES);
 }
 
 // ============================================================

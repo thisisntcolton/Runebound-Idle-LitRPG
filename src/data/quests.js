@@ -236,6 +236,187 @@ export const SIDE_QUESTS = [
   },
 ];
 
+
+// ============================================================
+// DEEDS
+//
+// Twenty standalone quests, gated on the thing they are about rather
+// than on hiring somebody. Every system added since v1.4 — the road, the
+// Descent, the Vigil, the casino, pet errands, thieving's consequences —
+// shipped with nothing in the Journal pointing at it, which is a quiet
+// way of telling a player it does not matter.
+//
+// `count` goals read a dotted path off state, so a deed can be about any
+// tally the game already keeps.
+// ============================================================
+
+export const DEEDS = [
+  // ---------- The road ----------
+  {
+    id: 'd_first_mile', name: 'The First Mile', giver: 'Nobody in particular',
+    brief: 'Answer 10 things that happen to you on the road.',
+    goal: { kind: 'count', path: 'adventure.encounters', count: 10 },
+    reward: { gold: 4000 },
+    offer: '[ DEED ] The road is out there and it is not going to walk itself.',
+  },
+  {
+    id: 'd_carried', name: 'Carried Through', giver: 'The road',
+    brief: 'Take 5 chains all the way to an ending. Beginnings are cheap.',
+    goal: { kind: 'count', path: 'adventure.chains', count: 5 },
+    reward: { gold: 15000, shards: 1 },
+    when: { requires: 'd_first_mile' },
+    offer: '[ DEED ] Anyone can start something. Finish five.',
+  },
+  {
+    id: 'd_long_walk', name: 'The Long Walk', giver: 'The road',
+    brief: 'Answer 100 encounters. The road knows you by now.',
+    goal: { kind: 'count', path: 'adventure.encounters', count: 100 },
+    reward: { gold: 60000, shards: 2 },
+    when: { requires: 'd_carried' },
+    offer: '[ DEED ] People on the road have started nodding first.',
+  },
+
+  // ---------- Thieving has consequences ----------
+  {
+    id: 'd_caught', name: 'Caught in the Act', giver: 'Experience',
+    brief: 'Fight your way out of 5 thefts that went wrong.',
+    goal: { kind: 'count', path: 'stats.theftsFought', count: 5 },
+    reward: { gold: 9000, items: { greater_rune: 3 } },
+    offer: '[ DEED ] Sooner or later somebody grabs your wrist. Be ready.',
+  },
+  {
+    id: 'd_lightfingers', name: 'Light Fingers', giver: 'Nobody who will admit it',
+    brief: 'Reach Thieving 60. The trick is not being fast. It is being boring.',
+    goal: { kind: 'skill', skill: 'thieving', level: 60 },
+    reward: { gold: 20000 },
+    offer: '[ DEED ] The good ones are never noticed at all.',
+  },
+
+  // ---------- The Menagerie ----------
+  {
+    id: 'd_hatchling', name: 'Something Is Moving', giver: 'The Menagerie',
+    brief: 'Hatch 3 eggs.',
+    goal: { kind: 'count', path: 'pets.hatched', count: 3 },
+    reward: { gold: 6000 },
+    offer: '[ DEED ] Warm it, wait, and try not to hover.',
+  },
+  {
+    id: 'd_menagerie', name: 'A Proper Menagerie', giver: 'The Menagerie',
+    brief: 'Hatch 12 eggs. The place is getting loud.',
+    goal: { kind: 'count', path: 'pets.hatched', count: 12 },
+    reward: { gold: 45000, shards: 1 },
+    when: { requires: 'd_hatchling' },
+    offer: '[ DEED ] Twelve. You will need a bigger table.',
+  },
+  {
+    id: 'd_bred', name: 'Selective Pressure', giver: 'The Menagerie',
+    brief: 'Breed 5 eggs from parents of your own.',
+    goal: { kind: 'count', path: 'pets.bred', count: 5 },
+    reward: { gold: 30000 },
+    offer: '[ DEED ] Two of yours. One of theirs. Occasionally something better than both.',
+  },
+
+  // ---------- The town ----------
+  {
+    id: 'd_payroll', name: 'Making Payroll', giver: 'Hearthwick',
+    brief: 'Run 200 business cycles. Somebody has to sign the wages.',
+    goal: { kind: 'count', path: 'town.cycles', count: 200 },
+    reward: { gold: 25000 },
+    offer: '[ DEED ] The town does not run itself. It runs on you remembering to stock it.',
+  },
+  {
+    id: 'd_landlord', name: 'Landlord', giver: 'Hearthwick',
+    brief: 'Earn 2,000,000 gold in town revenue across this cycle.',
+    goal: { kind: 'count', path: 'town.lifetimeRevenue', count: 2000000 },
+    reward: { gold: 80000, shards: 1 },
+    when: { requires: 'd_payroll' },
+    offer: '[ DEED ] Two million through the tills. Most of it went straight back out again.',
+  },
+
+  // ---------- The Gilded Snake ----------
+  {
+    id: 'd_first_hand', name: 'The House Thanks You', giver: 'The dealer',
+    brief: 'Play 25 hands at the Gilded Snake. Any outcome.',
+    goal: { kind: 'count', path: 'casino.hands', count: 25 },
+    reward: { gold: 8000 },
+    offer: '[ DEED ] There is a door with no sign on it. The dealer has all night.',
+  },
+  {
+    id: 'd_high_roller', name: 'Chasing It', giver: 'The dealer',
+    brief: 'Wager 1,000,000 gold in total. The house is not worried.',
+    goal: { kind: 'count', path: 'casino.wagered', count: 1000000 },
+    reward: { gold: 50000, items: { blank_tome: 2 } },
+    when: { requires: 'd_first_hand' },
+    offer: '[ DEED ] The dealer remembers your face now. That is not a compliment.',
+  },
+
+  // ---------- Abilities & gear ----------
+  {
+    id: 'd_studied', name: 'Well Read', giver: 'The System',
+    brief: 'Learn 6 abilities from tomes.',
+    goal: { kind: 'count', path: 'stats.tomesLearned', count: 6 },
+    reward: { gold: 18000 },
+    offer: '[ DEED ] Six things you did not know how to do. Now you do.',
+  },
+  {
+    id: 'd_rifts', name: 'Sealed', giver: 'The System',
+    brief: 'Seal 15 Unstable Rifts before they flood.',
+    goal: { kind: 'count', path: 'stats.riftsSealed', count: 15 },
+    reward: { gold: 40000, shards: 1 },
+    offer: '[ DEED ] Fifteen holes closed. Nobody is counting except the System.',
+  },
+  {
+    id: 'd_enchanter', name: 'Sharper Than It Was', giver: 'Forge-Sister Vera',
+    brief: 'Enchant gear 20 times.',
+    goal: { kind: 'count', path: 'stats.enchants', count: 20 },
+    reward: { gold: 22000 },
+    offer: '[ DEED ] Vera says the metal remembers every one. She may be being literal.',
+  },
+
+  // ---------- The cycle ----------
+  {
+    id: 'd_again', name: 'Again', giver: 'The System',
+    brief: 'Ascend twice. The world winds back; you do not.',
+    goal: { kind: 'count', path: 'ascensions', count: 2 },
+    reward: { gold: 30000, shards: 2 },
+    offer: '[ DEED ] The System is delighted you are considering it.',
+  },
+  {
+    id: 'd_veteran', name: 'Four Times Round', giver: 'The System',
+    brief: 'Ascend four times. Something opens at four.',
+    goal: { kind: 'count', path: 'ascensions', count: 4 },
+    reward: { gold: 120000, shards: 3 },
+    when: { requires: 'd_again' },
+    offer: '[ DEED ] Four. The System has stopped saying "recommendation".',
+  },
+
+  // ---------- Era II ----------
+  {
+    id: 'd_descent', name: 'Downward', giver: 'Ferrin Vale',
+    brief: 'Reach depth 10 in the Descent.',
+    goal: { kind: 'count', path: 'deep.best', count: 10 },
+    reward: { gold: 90000, shards: 1 },
+    when: { era: 2 },
+    offer: '[ DEED ] Ferrin says it goes further than the surveys admit. Ferrin is right.',
+  },
+  {
+    id: 'd_wardens', name: 'What Is Down There Minding It', giver: 'Ferrin Vale',
+    brief: 'Fell 10 Wardens.',
+    goal: { kind: 'count', path: 'deep.wardens', count: 10 },
+    reward: { gold: 200000, shards: 2 },
+    when: { era: 2, requires: 'd_descent' },
+    offer: '[ DEED ] Something put them there. Nobody has asked what, out loud.',
+  },
+  {
+    id: 'd_vigil', name: 'It Was Never Switched Off', giver: 'Nobody',
+    brief: 'Bring the Vigil down once.',
+    goal: { kind: 'count', path: 'worldBoss.felled', count: 1 },
+    reward: { gold: 400000, shards: 5 },
+    when: { era: 2 },
+    offer: '[ DEED ] It is very large and it has been running for nine hundred years.',
+  },
+];
+
 // Repeatable per-zone bounties: kill N of anything in the zone.
 export const BOUNTIES = [
   { zone: 'meadow',      count: 25, gold: 150 },
@@ -245,5 +426,5 @@ export const BOUNTIES = [
   { zone: 'dragonspire', count: 25, gold: 22000 },
 ];
 
-export const ALL_QUESTS = [...MAIN_QUESTS, ...SIDE_QUESTS];
+export const ALL_QUESTS = [...MAIN_QUESTS, ...SIDE_QUESTS, ...DEEDS];
 export function getQuest(id) { return ALL_QUESTS.find(q => q.id === id); }

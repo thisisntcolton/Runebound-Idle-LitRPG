@@ -75,7 +75,7 @@ export const ZONES = [
           common:   [{ item: 'raw_trout', qty: [1, 2] }, { item: 'herb_mooncap', qty: [1, 2] }],
           uncommon: [{ item: 'iron_ore', qty: [1, 3] }, { item: 'willow_log', qty: [2, 4] }],
           rare:     [{ item: 'wolf_fang_charm', qty: 1 }, { item: 'rune_shard', qty: [2, 3] }],
-          epic:     [{ item: 'tome_heavy_blow', qty: 1 }, { item: 'iron_weapon', qty: 1 }],
+          epic:     [{ item: 'tome_riposte', qty: 1 }, { item: 'tome_heavy_blow', qty: 1 }, { item: 'iron_weapon', qty: 1 }],
         },
       },
       {
@@ -104,6 +104,7 @@ export const ZONES = [
           uncommon: [{ item: 'raw_salmon', qty: [1, 2] }, { item: 'iron_bar', qty: 1 }],
           rare:     [{ item: 'rune_shard', qty: [2, 4] }, { item: 'steel_boots', qty: 1 }],
           epic:     [{ item: 'tome_cleave', qty: 1 }],
+                  legendary: [{ item: 'tome_wellspring', qty: 1 }],
         },
       },
       {
@@ -115,6 +116,7 @@ export const ZONES = [
           uncommon: [{ item: 'coal', qty: [2, 4] }, { item: 'steel_bar', qty: 1 }],
           rare:     [{ item: 'bone_ring', qty: 1 }, { item: 'greater_rune', qty: [1, 2] }],
           epic:     [{ item: 'tome_field_kit', qty: 1 }, { item: 'tome_cleave', qty: 1 }, { item: 'steel_weapon', qty: 1 }],
+                  legendary: [{ item: 'tome_rupture', qty: 1 }],
         },
       },
       {
@@ -197,7 +199,7 @@ export const ZONES = [
           common:   [{ item: 'runite_bar', qty: [1, 2] }, { item: 'herb_kingsleaf', qty: [1, 2] }],
           uncommon: [{ item: 'runite_ore', qty: [2, 3] }, { item: 'raw_leviathan', qty: [2, 3] }],
           rare:     [{ item: 'runite_chest', qty: 1 }, { item: 'void_rune', qty: [2, 3] }],
-          epic:     [{ item: 'runite_weapon', qty: 1 }, { item: 'tome_execute', qty: 1 }],
+          epic:     [{ item: 'tome_hollow_point', qty: 1 }, { item: 'runite_weapon', qty: 1 }, { item: 'tome_execute', qty: 1 }],
           legendary:[{ item: 'tome_unmaking', qty: 1 }, { item: 'tome_rune_of_return', qty: 1 }],
         },
       },
@@ -209,7 +211,7 @@ export const ZONES = [
           common:   [{ item: 'runite_bar', qty: [2, 4] }, { item: 'herb_kingsleaf', qty: [2, 3] }],
           uncommon: [{ item: 'void_rune', qty: [1, 2] }, { item: 'runite_ore', qty: [3, 5] }],
           rare:     [{ item: 'runite_weapon', qty: 1 }, { item: 'void_rune', qty: [3, 4] }],
-          epic:     [{ item: 'runite_chest', qty: 1 }, { item: 'tome_rune_of_return', qty: 1 }],
+          epic:     [{ item: 'tome_last_word', qty: 1 }, { item: 'runite_chest', qty: 1 }, { item: 'tome_rune_of_return', qty: 1 }],
           legendary:[{ item: 'tome_unyielding', qty: 1 }, { item: 'wyrmslayer_blade', qty: 1 }, { item: 'dragonhide_cloak', qty: 1 }],
         },
       },

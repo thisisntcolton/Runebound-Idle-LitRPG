@@ -2,7 +2,10 @@
 // ACHIEVEMENT ENGINE — checks conditions on game events,
 // grants achievements + titles, feeds the popup system.
 // ============================================================
-import { state, skillLevel, totalSkillLevel, combatLevel, charLevel } from '../core/state.js';
+import { state, skillLevel, totalSkillLevel, combatLevel, charLevel,
+         uncappedSkillLevel } from '../core/state.js';
+import { getSpecies } from '../data/pets.js';
+import { masteredClasses } from './classes.js';
 import { ACHIEVEMENTS, TITLE_SET } from '../data/achievements.js';
 import { SKILL_IDS } from '../data/skills.js';
 import { on, emit } from '../core/events.js';
@@ -18,6 +21,15 @@ function ctx() {
     combatLevel: combatLevel(),
     charLevel: charLevel(),
     anySkillAtLeast: n => SKILL_IDS.some(id => skillLevel(id) >= n),
+    // The true level, ignoring the Era I ceiling — an achievement for
+    // passing 99 has to see the XP that is being held back, or it could
+    // never fire for the player it is written about.
+    uncapped: uncappedSkillLevel,
+    speciesRarity: id => getSpecies(id)?.rarity,
+    masteries: masteredClasses().length,
+    talentRanks: Object.values(state.classProgress || {})
+      .reduce((sum, p) => sum + Object.values(p?.spent || {})
+        .reduce((s, n) => s + (n || 0), 0), 0),
   };
 }
 
