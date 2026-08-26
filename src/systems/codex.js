@@ -168,6 +168,9 @@ const recentTidbits = [];
 
 function currentContext() {
   const act = state.activity;
+  // An excavation is not an `activity` in the state machine sense, so it
+  // has to be checked before the idle fallbacks or it never surfaces.
+  if ((state.era || 1) >= 2 && state.salvage?.active) return 'wastes';
   if (act?.type === 'combat') return 'combat';
   if (act?.type === 'skill') return act.skillId;
   if (state.town?.unlocked) return 'town';

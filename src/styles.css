@@ -1097,3 +1097,64 @@ body.era-wastes .ascend-shards-preview { color: #c9b6f0; text-shadow: 0 0 20px r
   body.era-wastes #topbar::after,
   body.era-wastes .town-map-wrap::before { animation: none; }
 }
+
+/* ==================== ERA II — THE WASTES ==================== */
+.ledger-card, .repo-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;
+}
+.ledger-card { border-left: 3px solid var(--gold); }
+.ledger-card.settled { border-left-color: var(--xp); background: linear-gradient(160deg, rgba(70,196,111,0.08), var(--bg-card)); }
+.ledger-head, .repo-head { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.ledger-icon, .repo-icon { font-size: 28px; line-height: 1; }
+.ledger-title, .repo-title { font-weight: 800; font-size: 16px; }
+.ledger-figure {
+  margin-left: auto; font-family: var(--font-mono); font-weight: 900;
+  font-size: 22px; color: var(--gold); white-space: nowrap;
+}
+#modal-window .ledger-figure { margin: 14px 0; font-size: 30px; text-align: center; }
+
+.repo-card { border-left: 3px solid var(--danger); }
+.repo-card.holding { border-left-color: #a97ede; }
+.repo-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.repo-option {
+  display: flex; flex-direction: column; gap: 5px; text-align: left;
+  background: var(--bg-panel-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; cursor: pointer; color: var(--text); font-family: var(--font-ui);
+  transition: border-color 0.15s, transform 0.1s;
+}
+.repo-option:hover:not(:disabled) { border-color: var(--border-bright); transform: translateY(-2px); }
+.repo-option:disabled { opacity: 0.45; cursor: default; }
+.repo-option-label { font-weight: 700; font-size: 13.5px; font-family: var(--font-mono); }
+.repo-option-desc { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; flex: 1; }
+.repo-camp { margin: 10px 0; padding: 10px 12px; background: var(--bg-panel-2); border-radius: 8px; }
+
+.dig-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.dig-card, .dig-active {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.dig-card.locked { opacity: 0.55; }
+.dig-card.tier-3 { border-color: rgba(77,163,255,0.35); }
+.dig-card.tier-4 { border-color: rgba(192,132,252,0.40); }
+.dig-card.tier-5 {
+  border-color: var(--shard);
+  background: linear-gradient(160deg, rgba(126,224,255,0.10), var(--bg-card));
+}
+.dig-active { border-color: var(--sys-blue); }
+.dig-head { display: flex; gap: 11px; align-items: center; }
+.dig-icon { font-size: 26px; line-height: 1; }
+.dig-name { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.dig-blurb { font-family: var(--font-ui); font-size: 12.5px; color: var(--text-dim); line-height: 1.55; flex: 1; }
+.dig-reqs { display: flex; gap: 6px; flex-wrap: wrap; }
+.dig-req {
+  font-size: 11px; font-family: var(--font-mono); padding: 2px 8px; border-radius: 20px;
+  border: 1px solid var(--danger); color: var(--danger);
+}
+.dig-req.met { border-color: var(--xp); color: var(--xp); }
+.dig-haul { display: flex; gap: 5px; flex-wrap: wrap; }
+.haul-chip {
+  font-size: 11px; padding: 2px 8px; border-radius: 20px;
+  background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text-dim);
+}
+.haul-chip b { color: var(--text); font-family: var(--font-mono); }

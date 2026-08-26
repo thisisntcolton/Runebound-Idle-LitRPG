@@ -19,6 +19,10 @@ import { petsPanel, petsUI } from './pets.js';
 import { codexPanel, codexUI } from './codex.js';
 import { classPanel } from './classes.js';
 import { appearancePanel } from './appearance.js';
+import { wastesPanel } from './wastes.js';
+import { startDig, cancelDig, salvageView } from '../systems/salvage.js';
+import { contest, settle as repoSettle, pendingNotice as repoNotice, activeCamp } from '../systems/repo.js';
+import { payOff as ledgerPayOff, isOpen as ledgerOpen } from '../systems/ledger.js';
 import { heroBust } from './heroart.js';
 import { normalizeLook, randomLook, defaultLook } from '../data/appearance.js';
 import { chooseClass, currentClass, classPending, classUnlocked,
@@ -116,6 +120,9 @@ export function renderSidebar() {
     ${navItem('town', '🏘️', 'Hearthwick', {
       level: state.town?.unlocked ? 'Lv.' + townLevel() : null,
       working: !!pendingEncounter() })}
+    ${(state.era || 1) >= 2 ? navItem('wastes', '🕳️', 'The Wastes', {
+      level: ledgerOpen() ? '📒' : null,
+      working: !!repoNotice() || !!activeCamp() || !!salvageView().active }) : ''}
     ${navItem('pets', '🐾', 'Menagerie', { level: petsBadge(), working: eggsReady() })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}
@@ -157,6 +164,7 @@ export function renderView() {
   else if (v === 'codex') el.innerHTML = codexPanel();
   else if (v === 'class') el.innerHTML = classPanel();
   else if (v === 'look') el.innerHTML = appearancePanel();
+  else if (v === 'wastes') el.innerHTML = wastesPanel();
   else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
@@ -281,6 +289,13 @@ function updateDynamic() {
   if (utimer) {
     const run = activeRun();
     if (run) utimer.style.width = Math.max(0, (run.remaining / UNSTABLE.DURATION_MS) * 100) + '%';
+  }
+
+  // the excavation bar
+  const digBar = document.getElementById('dig-bar');
+  if (digBar) {
+    const a = salvageView().active;
+    if (a) digBar.style.width = Math.min(100, (a.elapsed / a.total) * 100) + '%';
   }
 
   // hireling progress bars tick even while you do something else
@@ -550,6 +565,16 @@ function handleAction(target) {
       break;
     }
     case 'buy-talent': buyTalent(target.dataset.node); renderView(); break;
+    // ---- The Wastes ----
+    case 'start-dig': startDig(target.dataset.uid); renderView(); break;
+    case 'cancel-dig': cancelDig(); renderView(); break;
+    case 'ledger-pay': ledgerPayOff(); renderView(); break;
+    case 'repo-contest': contest(); renderView(); break;
+    case 'repo-settle': repoSettle(); renderView(); break;
+    case 'raid-camp':
+      ui.selectedZone = 'repo_camp';
+      setView('combat');
+      break;
     case 'choose-class':
       if (chooseClass(target.dataset.class)) { closeModal(); setView('class'); }
       break;
@@ -668,6 +693,12 @@ export function initRenderer() {
   on('class-chosen', renderView);
   on('class-level', () => { if (ui.view === 'class') safeRenderView(); else renderSidebar(); });
   on('encounter-offered', () => { if (ui.view === 'town') renderView(); else renderSidebar(); });
+  on('salvage-changed', () => { if (ui.view === 'wastes') safeRenderView(); });
+  on('salvage-collected', () => { if (ui.view === 'wastes') safeRenderView(); });
+  for (const ev of ['repo-notice','repo-seized','repo-recovered','repo-resolved','ledger-opened','ledger-settled']) {
+    on(ev, () => { if (ui.view === 'wastes') renderView(); else renderSidebar(); });
+  }
+  on('repo-progress', () => { if (ui.view === 'wastes') safeRenderView(); });
   on('encounter-resolved', () => { if (ui.view === 'town') renderView(); });
   on('combat-crit', ({ damage }) => {
     if (ui.view === 'combat') spawnSplat('monster-box', `CRIT ${damage}`, '#ff8a8e');
@@ -683,11 +714,14 @@ export function initRenderer() {
     renderView();
   });
   // Town revenue ticks constantly; refresh the view at a calm pace
-  let townRefresh = 0, riftRefresh = 0, petRefresh = 0;
+  let townRefresh = 0, riftRefresh = 0, petRefresh = 0, wastesRefresh = 0;
   on('tick', ({ dt }) => {
     if (ui.view === 'town') {
       townRefresh += dt;
       if (townRefresh > 3000) { townRefresh = 0; safeRenderView(); }
+    } else if (ui.view === 'wastes') {
+      wastesRefresh += dt;
+      if (wastesRefresh > 2000) { wastesRefresh = 0; safeRenderView(); }
     } else if (ui.view === 'pets') {
       // egg timers and care bars both drift in real time
       petRefresh += dt;

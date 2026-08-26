@@ -167,12 +167,17 @@ export function defaultState() {
     unstable: { nextAt: 0, offer: null, run: null },
 
     // Story & quests
-    quests: { progress: {}, completed: {}, seenOffers: {} },
+    quests: { progress: {}, completed: {}, seenOffers: {}, flags: {} },
     bounties: {},        // zoneId -> { kills, claimed }
     loreSeen: {},        // fragmentId -> true (persists across cycles)
     cycleSeen: {},       // cycle revelation shown flags (persists)
     ending: null,        // null | 'fed' | 'broken' (persists)
     endingOfferedCycle: -1,
+
+    // Era II systems. All inert until era >= 2.
+    salvage: { sites: [], active: null, nextSiteAt: 0, digs: 0, hauls: {} },
+    repo: { nextAt: 0, notice: null, camps: [], seized: 0, recovered: 0, repelled: 0 },
+    ledger: { assessed: 0, balance: 0, paid: 0, settled: false, openedAt: 0 },
 
     // Which Era the world is in. 1 = the sandbox (the tutorial, though
     // nobody has told you that). 2 = the Scrap Wastes, after the break.
@@ -274,6 +279,11 @@ let _classBonus = () => 0;
 export function registerClassBonus(fn) { _classBonus = fn; }
 export function classBonus(key) { try { return _classBonus(key) || 0; } catch { return 0; } }
 
+// And the Ledger, once it has been settled.
+let _ledgerBonus = () => 0;
+export function registerLedgerBonus(fn) { _ledgerBonus = fn; }
+export function ledgerBonus(key) { try { return _ledgerBonus(key) || 0; } catch { return 0; } }
+
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'xp'))
@@ -292,6 +302,7 @@ export function goldMultiplier() {
        * (1 + buffEffect('gold'))
        * (1 + petBonus('gold'))
        * (1 + classBonus('gold'))
+       * (1 + ledgerBonus('gold'))
        * endingMult();
 }
 

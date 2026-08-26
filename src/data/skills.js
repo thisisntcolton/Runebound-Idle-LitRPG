@@ -167,6 +167,10 @@ export const SKILLS = {
         input: { greater_rune: 3, herb_voidbloom: 1 }, output: { void_rune: 1 } },
       { id: 'tome',     name: 'Scribe a Blank Tome', icon: '📕', level: 70, baseTime: 11000, xp: 340,
         input: { binding_sigil: 2, void_rune: 1 }, output: { blank_tome: 1 } },
+      // Era II. A corrupt sigil is a rune somebody else bound and abandoned.
+      // Ollun says unpicking one is like reading a stranger's handwriting.
+      { id: 'decode',   name: 'Unpick a Corrupt Sigil', icon: '🕳️', level: 50, baseTime: 7000, xp: 300,
+        input: { corrupt_sigil: 1 }, output: { greater_rune: 4, rune_essence: 10 } },
     ],
   },
   // Combat skills — no actions; trained through combat

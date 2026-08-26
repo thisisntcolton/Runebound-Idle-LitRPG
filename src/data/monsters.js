@@ -215,6 +215,27 @@ export const ZONES = [
       },
     ],
   },
+
+  // ------------------------------------------------------------
+  // ERA II. Not a place so much as wherever they have parked. The zone
+  // only appears once the Syndicate is holding something of yours, and
+  // every kill here counts toward getting it back.
+  // ------------------------------------------------------------
+  {
+    id: 'repo_camp', name: 'A Syndicate Camp', level: 60, era: 2,
+    desc: 'A ring of crates and a folding table, somewhere out in the grey. Your property is in one of the crates. The reference number is on the lid.',
+    monsters: [
+      { id: 'repo_clerk', name: 'Syndicate Clerk', icon: '📋', level: 62,
+        hp: 900, defense: 150, attack: 62, attackSpeed: 2500, gold: [400, 900],
+        loot: [{ item: 'scrap_code', qty: [2, 6], chance: 0.6 }, { item: 'orphaned_shard', qty: [1, 2], chance: 0.3 }] },
+      { id: 'repo_bailiff', name: 'Syndicate Bailiff', icon: '🛡️', level: 72,
+        hp: 1500, defense: 230, attack: 88, attackSpeed: 2700, gold: [900, 1800],
+        loot: [{ item: 'glitched_ore', qty: [2, 6], chance: 0.5 }, { item: 'deprecated_asset', qty: [1, 1], chance: 0.12 }] },
+      { id: 'repo_auditor', name: 'Armoured Auditor', icon: '📄', level: 84, boss: true,
+        hp: 3400, defense: 330, attack: 118, attackSpeed: 2900, gold: [3000, 6500],
+        loot: [{ item: 'corrupt_sigil', qty: [1, 3], chance: 0.5 }, { item: 'deprecated_asset', qty: [1, 3], chance: 0.4 }] },
+    ],
+  },
 ];
 
 export function getZone(zoneId) { return ZONES.find(z => z.id === zoneId); }

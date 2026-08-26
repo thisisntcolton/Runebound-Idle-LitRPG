@@ -167,6 +167,42 @@ export const CODEX = [
     ],
   },
 
+  {
+    id: 's_ledger', cat: 'system', title: 'The Ledger', when: { era: 2 },
+    text: `Containment is a service. It was rendered, across four lifetimes, in good faith,
+    at cost. While you were inside the unit those costs sat at department level. You are not
+    inside the unit.<br><br>
+    The bill covers food, ground, weather, respawns and one (1) dragon. It is itemised.
+    Somebody itemised it.<br><br>
+    [ SYSTEM ] No action is required from you. No action is possible from you.`,
+    deeper: [
+      { cycle: 6, text: `Ferrin got hold of the itemisation. Line 4,412 is <i>"grass, maintenance
+        of, per diem"</i>. Line 9,006 is <i>"one (1) child, arrested development of, ongoing"</i>.<br><br>
+        He has not shown Pell. He is not going to.` },
+    ],
+  },
+  {
+    id: 'p_syndicate', cat: 'people', title: 'The Syndicate', when: { era: 2 },
+    text: `They are not monsters. They wear something between armour and a uniform, they
+    arrive in fours, and the one at the front reads aloud from a form before anything happens.<br><br>
+    They have never destroyed anything. Everything they take is crated, tagged with a reference
+    number, and logged. Holt finds this more frightening than looting, and Holt has been to a war.`,
+    deeper: [
+      { cycle: 6, text: `Wren treated one of them. He had been hurt at a previous collection,
+        somewhere else, from somebody else, and he thanked her, and he asked whether she had
+        considered that her town was operating without a licence.<br><br>
+        She said she had not. He said nobody ever has, and looked, for a moment, extremely tired.` },
+    ],
+  },
+  {
+    id: 'r_deprecated', cat: 'relics', title: 'Deprecated Assets', when: { item: 'deprecated_asset' },
+    text: `Finished work. Not broken, not half-made — <b>done</b>, and then thrown away: a
+    cart with the wheels still true, a sign for a shop that never opened, a full set of somebody's
+    armour with their initials inside the collar.<br><br>
+    Vera has stopped keeping the initials. She says there were too many and they were starting
+    to repeat.`,
+  },
+
   // ------------------------------------------------------------
   // BESTIARY
   // ------------------------------------------------------------
@@ -208,6 +244,19 @@ export const CODEX = [
     She kept them — walled in silk, alive, fed. Hundreds of years of them.<br><br>
     Holt thinks it was a nest instinct gone wrong. Wren went down, looked at the
     arrangement of them, and said it was a <b>ward</b>. She would not say against what.`,
+  },
+  {
+    id: 'b_repo', cat: 'bestiary', title: 'On the Repo Men', when: { killsOf: { id: 'repo_clerk', n: 20 } },
+    text: `They do not fight like things that want to live. They fight like people finishing
+    a shift.<br><br>
+    Cut one down and the others do not scatter or rage; the next in line steps up, picks up the
+    form, and starts reading again from the top. Holt says that is the worst part and Holt is right.`,
+    deeper: [
+      { cycle: 7, text: `You have started recognising faces. The same clerk, the same bailiff,
+        the same tired man with the same clipboard, at camp after camp, week after week.<br><br>
+        They come back too. Of course they come back too. Nothing here was ever allowed to
+        stop, and that turns out to include them.` },
+    ],
   },
   {
     id: 'b_rift_things', cat: 'bestiary', title: 'On Rift-Spawn', when: { stat: { key: 'riftsSealed', n: 1 } },
@@ -577,6 +626,13 @@ export const TIDBITS = {
     'They always come back. You have stopped finding this reassuring.',
     'Nothing you kill has ever had a wound that was not yours.',
     'It flinched before you moved. It always flinches before you move.',
+  ],
+  wastes: [
+    'You have dug up the same road three times. It stops at the same place each time.',
+    'Something down there is still running. You can feel it through the handle.',
+    'The crate had a name stencilled on it. It was not a name; it was a version number.',
+    'A whole orchard, upside down, forty feet under. Still fruiting.',
+    'Every so often the ground gives back something with your handwriting on it.',
   ],
   town: [
     'The chimney smoke leans east. There is no wind.',

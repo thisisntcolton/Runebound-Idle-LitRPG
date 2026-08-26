@@ -15,7 +15,10 @@ import { initPets, petBonus, setPetUIHooks } from './systems/pets.js';
 import { initCodex } from './systems/codex.js';
 import { initClasses, classBonus, setClassUIHooks } from './systems/classes.js';
 import { initEncounters } from './systems/encounters.js';
-import { registerTownBuff, registerPetBonus, registerClassBonus } from './core/state.js';
+import { initSalvage, setSalvageUIHooks } from './systems/salvage.js';
+import { initRepo, setRepoUIHooks } from './systems/repo.js';
+import { setLedgerUIHooks, ledgerBonus, initLedger } from './systems/ledger.js';
+import { registerTownBuff, registerPetBonus, registerClassBonus, registerLedgerBonus } from './core/state.js';
 import { emit } from './core/events.js';
 
 const hadSave = load();
@@ -33,6 +36,7 @@ registerPetBonus(petBonus);
 // Your class feeds the same chain, and must be registered before any
 // panel reads a derived stat off it.
 registerClassBonus(classBonus);
+registerLedgerBonus(ledgerBonus);
 
 initNotifications();
 initRenderer();
@@ -41,10 +45,16 @@ setAchievementUIHooks({ popup });
 setNpcUIHooks({ queueModal: showOfflineModalQueue, popup });
 setPetUIHooks({ queueModal: showOfflineModalQueue, popup });
 setClassUIHooks({ queueModal: showOfflineModalQueue, popup });
+setSalvageUIHooks({ queueModal: showOfflineModalQueue, popup });
+setRepoUIHooks({ queueModal: showOfflineModalQueue, popup });
+setLedgerUIHooks({ queueModal: showOfflineModalQueue, popup });
 initAchievements();
 initCodex();
 initClasses();
 initEncounters();
+initSalvage();
+initRepo();
+initLedger();
 
 // Offline progress (counts toward quests via events)
 const offline = hadSave ? processOffline() : null;

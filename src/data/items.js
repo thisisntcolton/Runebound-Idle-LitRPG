@@ -181,6 +181,17 @@ def({ id: 'caravan_spoils', name: 'Caravan Spoils', icon: '🐎', type: 'valuabl
 def({ id: 'vault_prize',    name: 'Vault Prize',    icon: '🔐', type: 'valuable', rarity: 'epic',     sell: 500 });
 def({ id: 'stolen_fragment',name: 'Stolen Fragment',icon: '⬛', type: 'valuable', rarity: 'legendary', sell: 1100 });
 
+// ---------- Era II: salvage from the Wastes ----------
+// Priced above the clean equivalent, because it is worth more and behaves
+// worse. Glitched ore smelts hotter and cracks; deprecated assets are
+// somebody's finished work that nobody came back for.
+def({ id: 'scrap_code',       name: 'Scrap Code',        icon: '🧩', type: 'resource', rarity: 'common',   sell: 18 });
+def({ id: 'glitched_ore',     name: 'Glitched Ore',      icon: '🟪', type: 'resource', rarity: 'uncommon', sell: 88 });
+def({ id: 'glitched_bar',     name: 'Glitched Bar',      icon: '🧱', type: 'resource', rarity: 'rare',     sell: 260 });
+def({ id: 'orphaned_shard',   name: 'Orphaned Shard',    icon: '🔻', type: 'resource', rarity: 'rare',     sell: 145 });
+def({ id: 'corrupt_sigil',    name: 'Corrupt Sigil',     icon: '🕳️', type: 'resource', rarity: 'epic',     sell: 620 });
+def({ id: 'deprecated_asset', name: 'Deprecated Asset',  icon: '📦', type: 'valuable', rarity: 'epic',     sell: 1250 });
+
 // ---------- Runecrafting ----------
 def({ id: 'rune_essence',  name: 'Rune Essence',  icon: '⚱️', type: 'resource', rarity: 'common',   sell: 12 });
 def({ id: 'minor_rune',    name: 'Minor Rune',    icon: '🔹', type: 'resource', rarity: 'uncommon', sell: 55 });

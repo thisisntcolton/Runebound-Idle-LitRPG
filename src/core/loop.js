@@ -11,6 +11,8 @@ import { tickNpcs } from '../systems/npcs.js';
 import { tickPets } from '../systems/pets.js';
 import { tickCodex } from '../systems/codex.js';
 import { tickEncounters } from '../systems/encounters.js';
+import { tickSalvage } from '../systems/salvage.js';
+import { tickRepo } from '../systems/repo.js';
 import { emit } from './events.js';
 
 let buffSweep = 0;
@@ -38,8 +40,9 @@ export function startLoop() {
     tickUnstable(dt);
     tickPets(dt);
     tickCodex(dt);
+    tickSalvage(dt);
     npcSweep += dt;
-    if (npcSweep > 4000) { npcSweep = 0; tickNpcs(); tickEncounters(); }
+    if (npcSweep > 4000) { npcSweep = 0; tickNpcs(); tickEncounters(); tickRepo(); }
     buffSweep += dt;
     if (buffSweep > 5000) { buffSweep = 0; cleanupBuffs(); }
     emit('tick', { dt });

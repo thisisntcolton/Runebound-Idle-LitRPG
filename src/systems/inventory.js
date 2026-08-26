@@ -4,6 +4,7 @@
 import { state, goldMultiplier, sellPriceMultiplier } from '../core/state.js';
 import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
+import { garnish } from './ledger.js';
 
 export function addItem(itemId, qty = 1) {
   state.inventory[itemId] = (state.inventory[itemId] || 0) + qty;
@@ -34,11 +35,16 @@ export function consumeInputs(inputs) {
 }
 
 export function addGold(amount, { silent = false } = {}) {
-  const gained = Math.floor(amount * goldMultiplier());
-  state.gold += gained;
-  state.lifetimeGold += gained;
-  if (!silent) emit('gold', { amount: gained, total: state.gold });
-  return gained;
+  const gross = Math.floor(amount * goldMultiplier());
+  // The Ledger takes its share here, at the single point every gold source
+  // in the game funnels through, so nothing can quietly escape the garnish.
+  // lifetimeGold counts the GROSS: what you earned is what you earned, even
+  // if a department took some of it on the way past.
+  const kept = Math.floor(garnish(gross));
+  state.gold += kept;
+  state.lifetimeGold += gross;
+  if (!silent) emit('gold', { amount: kept, total: state.gold, gross });
+  return kept;
 }
 
 export function spendGold(amount) {

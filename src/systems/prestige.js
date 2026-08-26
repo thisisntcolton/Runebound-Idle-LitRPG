@@ -47,6 +47,11 @@ export function ascend() {
     era: state.era,
     eraEnteredAt: state.eraEnteredAt,
     eraSeen: state.eraSeen,
+    // The Wastes do not reset with the world. Neither does what you owe,
+    // nor what the Syndicate is holding of yours.
+    ledger: state.ledger,
+    repo: state.repo,
+    salvage: state.salvage,
   };
 
   // Hearthwick falls — but only while the loop still owns it.

@@ -133,6 +133,59 @@ export const MAIN_QUESTS = [
     story: 'last_flame',
     offer: '[ QUEST ] The Last Flame — he is waiting. He has always been waiting. Go and see.',
   },
+
+  // ------------------------------------------------------------
+  // ERA II. Everything below is gated on `era: 2` and does not appear
+  // until you are out of the box.
+  //
+  // Note the objectives. "Mine 10,000 Glitched Ore" was the obvious
+  // version and it is the treadmill in a costume: the same verb you
+  // already have, times a hundred. These ask you to do things you have
+  // never done instead — dig a site open with a skill you levelled for
+  // other reasons, settle a bill nobody has ever settled, walk into a
+  // camp and take your dog back.
+  // ------------------------------------------------------------
+  {
+    id: 'not_kansas', name: 'Not In Kansas Anymore', giver: 'The Administrator', era: 2,
+    brief: 'Salvage anything at all out of the Wastes. Twenty pieces of it.',
+    goal: { kind: 'loot', item: 'scrap_code', count: 20 },
+    reward: { gold: 8000 },
+    requires: 'last_flame',
+    offer: `[ ADMIN ] Listen. You were not supposed to get out. The dragon was costed to be
+      unwinnable without a purchase, and somebody in Design is going to have a very long
+      afternoon about it. But you ARE out, so: there is glitched material in the grey, it is
+      nobody's, and management would like it inventoried. Grab a pickaxe.`,
+  },
+  {
+    id: 'back_taxes', name: 'Back-Taxes', giver: 'The Administrator', era: 2,
+    brief: 'Settle the Ledger. Nobody has ever settled the Ledger.',
+    goal: { kind: 'flag', flag: 'ledger_settled' },
+    reward: { gold: 50000, shards: 2 },
+    requires: 'not_kansas',
+    offer: `[ ADMIN ] Also, and I want to stress that this is not personal, you owe back-taxes
+      on your last four lives. Containment is a service. It was rendered. There is a form.`,
+  },
+  {
+    id: 'dont_touch_dog', name: "Don't Touch The Dog", giver: 'Hearthwick', era: 2,
+    brief: 'Recover what the Syndicate has taken.',
+    goal: { kind: 'flag', flag: 'repo_recovered' },
+    reward: { gold: 30000, items: { corrupt_sigil: 2 } },
+    requires: 'not_kansas',
+    offer: `[ HEARTHWICK ] The Repo Men have been. They had a form and a reference number and
+      they said the word "unlicensed" about something that has a NAME.<br><br>
+      Holt has been quiet all morning. Pell knows which way they went. You have a level ninety-nine
+      pickaxe and a very clear afternoon.`,
+  },
+  {
+    id: 'deep_grey', name: 'The Deep Grey', giver: 'Ferrin Vale', era: 2,
+    brief: 'Open a Deprecated Build. Somebody else got this far and did not get further.',
+    goal: { kind: 'loot', item: 'deprecated_asset', count: 5 },
+    reward: { gold: 60000, items: { blank_tome: 1 } },
+    requires: 'dont_touch_dog',
+    offer: `[ FERRIN ] There is a whole town out there, face down. Not a ruin — a ruin was
+      something once. This was <i>finished</i>, and then it was <i>discarded</i>, and I would
+      very much like to know which of those two things happened first.`,
+  },
 ];
 
 export const SIDE_QUESTS = [

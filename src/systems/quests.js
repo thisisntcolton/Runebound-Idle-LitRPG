@@ -16,12 +16,24 @@ export function setQuestUIHooks(h) { hooks = h; }
 
 // ---------------- Active-quest queries ----------------
 export function activeMainQuest() {
+  const era = state.era || 1;
   for (const q of MAIN_QUESTS) {
     if (state.quests.completed[q.id]) continue;
+    // Era II quests do not exist until you are out of the box.
+    if ((q.era || 1) > era) return null;
     if (q.requires && !state.quests.completed[q.requires]) return null; // chain gap (shouldn't happen)
     return q;
   }
   return null;
+}
+
+/** Set by other systems to complete a `flag` goal. */
+export function setQuestFlag(name) {
+  if (!state.quests.flags) state.quests.flags = {};
+  if (state.quests.flags[name]) return;
+  state.quests.flags[name] = Date.now();
+  checkAll();
+  emit('state-changed');
 }
 
 export function activeSideQuests() {
@@ -40,6 +52,9 @@ export function questProgress(q) {
     case 'skill': return { cur: skillLevel(g.skill), max: g.level };
     case 'hire': return { cur: Object.values(state.hirelings).filter(v => v > 0).length, max: g.count };
     case 'goldLifetime': return { cur: Math.min(state.lifetimeGold, g.amount), max: g.amount };
+    // A flag goal is completed by another system announcing it, rather than
+    // by a counter — used for the Era II beats that are events, not grinds.
+    case 'flag': return { cur: state.quests.flags?.[g.flag] ? 1 : 0, max: 1 };
     default: return { cur: 0, max: 1 };
   }
 }
@@ -246,6 +261,8 @@ export function enterTheWastes() {
   state.eraEnteredAt = Date.now();
   emit('notify', { type: 'combat', text: '[ SYSTEM ] Containment unit HEARTHWICK_SANDBOX_04: integrity loss. Location unindexed.' });
   emit('notify', { type: 'sys', text: 'Hearthwick came with you. Nothing resets any more.' });
+  // The Ledger opens itself off this event rather than being called
+  // directly: quests and ledger would otherwise import each other.
   emit('era-changed', { era: 2 });
 
   // The townsfolk get the next word, one at a time. They are the reason
@@ -293,6 +310,11 @@ function startWhispers() {
 
 // ---------------- Init ----------------
 export function initQuests() {
+  // Systems that finish a `flag` goal announce it; quests listens. Keeps
+  // the dependency one-way.
+  on('ledger-settled', () => setQuestFlag('ledger_settled'));
+  on('repo-recovered', () => setQuestFlag('repo_recovered'));
+
   on('loot', ({ itemId, qty, source }) => {
     bumpCounters(g => {
       if (g.kind === 'loot' && g.item === itemId) return qty;

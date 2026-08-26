@@ -17,6 +17,7 @@ import { currentMonster } from '../systems/combat.js';
 import { activeRun as unstableRun, UNSTABLE } from '../systems/unstable.js';
 import { heroBust } from './heroart.js';
 import { currentClass } from '../systems/classes.js';
+import { activeCamp } from '../systems/repo.js';
 import { enchantCost, canEnchant, MAX_ENCHANT } from '../systems/enchant.js';
 import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
@@ -260,7 +261,11 @@ export function combatPanel(ui) {
       ${SKILLS[s].icon} ${SKILLS[s].name} <span class="muted">Lv.${skillLevel(s)}</span>
     </button>`).join('');
 
-  const zonePills = ZONES.map(z => {
+  // The Syndicate camp is not a place on the map. It exists only while they
+  // are holding something of yours, and it disappears the moment you have
+  // it back, so it never sits in the zone list as dead content.
+  const visibleZones = ZONES.filter(z => z.id !== 'repo_camp' || activeCamp());
+  const zonePills = visibleZones.map(z => {
     const unlocked = cl >= z.level;
     const sel = ui.selectedZone === z.id;
     return `<button class="btn btn-sm ${sel ? 'btn-primary' : ''}" data-act="select-zone" data-zone="${z.id}" ${unlocked ? '' : 'disabled'}>

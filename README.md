@@ -52,6 +52,23 @@ eventually discover is a containment unit. Breaking the cycle is not the end of 
 the end of the tutorial, and the beginning of **Era II: the Scrap Wastes**, where the sky scrolls
 with error traffic, the gods turn out to be middle management, and nothing resets any more.
 
+**Era II brings three systems, none of which is another progress bar:**
+
+**Salvage** — the Wastes are the dumping ground for deleted code and failed Ascensions, so you
+dig them rather than mine them. Salvage has no level of its own: every site is *locked*, and the
+keys are skills you already spent a hundred hours on. Buried needs Mining, sealed needs Thieving,
+encoded needs Runecrafting, fused needs Smithing. Hauls are a roll, not a wage, and unstable digs
+collapse, corrupt, or wake something that files paperwork for a living.
+
+**The Ledger** — containment was a service, it was rendered across four lifetimes, and the bill
+is itemised. A share of every coin you earn is collected at source until it is settled. Nobody has
+ever settled one. There is not a procedure for it.
+
+**The Syndicate Repo Men** — everything you own out here is, administratively speaking,
+unlicensed. They serve notice, and if you refuse or sleep through it they take something real: a
+building level, an enchantment, a pet. They never destroy anything. It goes in a crate with a
+reference number on it, to a camp, and camps can be cleared.
+
 **Story & Quests (dark-mystery LitRPG)** — a 14-quest main chain narrated by a System that is
 cheerful, helpful, and lying; 5 hireling side quests (each one a loose thread in the world);
 repeatable zone bounties; and a re-readable Lore Archive of recovered fragments. Ascensions are
@@ -173,6 +190,7 @@ src/
 │   ├── pets.js        # species, growth stages, care rates, traits, breeding
 │   ├── classes.js     # the five paths, their bonuses and signatures
 │   ├── talents.js     # five-tier tree per class, curve, capstones
+│   ├── salvage.js     # Era II dig sites, skill locks, haul tables
 │   ├── codex.js       # discoverable lore, cycle-deepening passes, tidbits
 │   ├── encounters.js  # village events and their branching outcomes
 │   ├── appearance.js  # hero option lists and palettes
@@ -190,6 +208,9 @@ src/
 │   ├── pets.js        # incubation, care decay, bonding, breeding, egg drops
 │   ├── classes.js     # class choice, bonus hook, crit/quarry/burn/mend
 │   ├── codex.js       # discovery engine, ambient tidbits, cycle memory
+│   ├── salvage.js     # excavation loop, site rotation, instability
+│   ├── repo.js        # Syndicate notices, seizure, camps, recovery
+│   ├── ledger.js      # back-taxes, the garnish, settling up
 │   ├── encounters.js  # scheduling, resolution, consequence effects
 │   ├── abilities.js   # cooldowns, triggers, tome learning
 │   ├── unstable.js    # timed rift events and their consequences
@@ -207,6 +228,7 @@ src/
     ├── petart.js      # hand-drawn SVG creatures, mood-responsive
     ├── classes.js     # the Path panel
     ├── codex.js       # the Codex panel
+    ├── wastes.js      # Era II: the Ledger, the Syndicate, the dig board
     ├── appearance.js  # the Mii-style editor
     ├── heroart.js     # hand-drawn SVG hero, assembled from option indices
     ├── abilities.js   # ability bar + tome panel
@@ -229,6 +251,7 @@ npm run test:pets      # 35 tests: hatch -> feed -> level -> breed, offline, mul
 npm run test:classes   # 17 tests: the choice, the lock-in, Artisan's zero combat power, talents
 npm run test:ascension # 22 tests: the town is razed; pets, talents and your look survive
 npm run test:era1      # 24 tests: the four-beat reveal, the Wastes, the town surviving after
+npm run test:era2      # 24 tests: salvage, the Ledger's garnish, seizure and recovery
 npm run balance        # sims: town profit by material tier, class power at 0/20/50 talent points
 npm run preview:heroes # contact sheet of every appearance option, as a PNG
 ```

@@ -11,6 +11,7 @@ import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { rollEggDrop } from './pets.js';
+import { creditClear } from './repo.js';
 import { rollCrit, critMultiplier, consumeGuaranteedHit, resetQuarry,
          applyBurn, tickBurn, clearBurn, mendOnKill,
          overLevelDamageMult, overLevelLootMult, overLevelGap,
@@ -265,6 +266,8 @@ function onKill(monster) {
     if (banner) emit('rare-drop', { itemId: drop.item, rarity: item.rarity, tier: drop.tier });
   }
   if (monster.boss) rollEggDrop('boss');
+  // Clearing a Syndicate camp is what gets your property back.
+  if (c.zoneId === 'repo_camp') creditClear();
   emit('kill', { monsterId: monster.id, zoneId: c.zoneId, boss: !!monster.boss });
   c.respawn = RESPAWN_MS;
 }
