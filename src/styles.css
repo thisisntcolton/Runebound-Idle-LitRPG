@@ -1556,3 +1556,14 @@ body.era-wastes .ascend-shards-preview { color: #c9b6f0; text-shadow: 0 0 20px r
   border-radius: 5px; background: var(--bg-panel-2);
   font-size: 12.5px; line-height: 1.65; color: var(--text-dim);
 }
+
+/* A class's free levels in the skill it knows. */
+.class-specialty {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--xp);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--xp) 8%, transparent);
+  font-size: 12.5px;
+  line-height: 1.55;
+}

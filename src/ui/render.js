@@ -47,7 +47,8 @@ import { drinkPotion } from '../systems/potions.js';
 import { setTitle } from '../systems/achievements.js';
 import { activeBuffs } from '../core/state.js';
 import { fmtDuration as fmtDur } from '../core/format.js';
-import { setQuestUIHooks, chooseEnding, activeMainQuest, enterTheWastes } from '../systems/quests.js';
+import { setQuestUIHooks, chooseEnding, activeMainQuest, enterTheWastes,
+         offerEndingNow } from '../systems/quests.js';
 import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
@@ -546,6 +547,7 @@ function handleAction(target) {
     case 'ending-feed': closeModal(); chooseEnding('feed'); break;
     case 'ending-break': closeModal(); chooseEnding('break'); break;
     case 'enter-wastes': closeModal(); enterTheWastes(); break;
+    case 'ending-offer': offerEndingNow(); break;
     case 'cloud-signin': signIn(target.dataset.provider); break;
     case 'cloud-signout': signOut().then(renderView); break;
     case 'cloud-sync': syncNow().then(renderView); break;

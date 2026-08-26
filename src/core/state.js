@@ -5,6 +5,7 @@ import { SKILL_IDS, TRAINABLE_SKILLS, COMBAT_SKILLS, SKILLS } from '../data/skil
 import { UPGRADES, HIRELINGS, PERKS, SHARD_XP_BONUS, SHARD_GOLD_BONUS,
          HIRELING_BASE_RATE, HIRELING_RATE_PER_RANK } from '../data/upgrades.js';
 import { getItem } from '../data/items.js';
+import { CLASSES } from '../data/classes.js';
 import { levelForXp, xpForLevel, MAX_LEVEL, SOFT_CAP } from './xp.js';
 
 export const SAVE_VERSION = 1;
@@ -237,8 +238,39 @@ export function levelCap() {
   return (state.era || 1) >= 2 ? MAX_LEVEL : SOFT_CAP;
 }
 
-export function skillLevel(skillId) {
+/**
+ * The level your XP alone has earned, capped by the era.
+ *
+ * This is the PROGRESSION number: it is what total skill level, character
+ * level, the Ascension threshold and Fate Shard payout are all counted
+ * from. The class specialty below must never touch it — a Rogue whose
+ * free twenty Thieving levels counted toward shards would be farming
+ * Ascension currency by picking a class.
+ */
+function earnedSkillLevel(skillId) {
   return Math.min(levelForXp(state.skills[skillId].xp), levelCap());
+}
+
+/**
+ * Levels your class simply gives you in the skill it knows.
+ *
+ * Clamped by the era ceiling like everything else, which gives it a
+ * deliberate shape: it is enormous in the first hour of a cycle, opens
+ * actions you could not otherwise touch, and quietly stops mattering once
+ * you are near the cap. A head start, not a permanent lead.
+ */
+export function classSkillBonus(skillId) {
+  const cls = CLASSES[state.classId];
+  if (!cls?.specialty || cls.specialty.skill !== skillId) return 0;
+  return cls.specialty.levels || 0;
+}
+
+/**
+ * The level everything that USES a skill should read: actions unlocked,
+ * yields, speeds, thieving risk, hireling output.
+ */
+export function skillLevel(skillId) {
+  return Math.min(earnedSkillLevel(skillId) + classSkillBonus(skillId), levelCap());
 }
 
 /** True XP level, ignoring the era ceiling — for "banked" messaging. */
@@ -247,7 +279,8 @@ export function uncappedSkillLevel(skillId) {
 }
 
 export function totalSkillLevel() {
-  return SKILL_IDS.reduce((sum, id) => sum + skillLevel(id), 0);
+  // earnedSkillLevel, not skillLevel — see the note above.
+  return SKILL_IDS.reduce((sum, id) => sum + earnedSkillLevel(id), 0);
 }
 
 // LitRPG character level: 1 + one level per 4 total skill levels above base
@@ -429,7 +462,12 @@ export function actionTime(skillId, action) {
   speedBonus += buffEffect('speed');
   speedBonus += classBonus('gather_speed');
   speedBonus += petBonus('gather_speed');
-  if (skillId === 'woodcutting') speedBonus += townBonus('woodcutting_speed');
+  // Every generator building buffs the skill it mirrors. This used to be
+  // hard-coded to woodcutting because the Lumber Yard was the only one —
+  // which meant the Hatchery, the Garden and the Quarry would each have
+  // shipped with a buff line in the UI and no effect behind it, exactly
+  // the way ten ability tomes shipped with no drop table.
+  speedBonus += townBonus(`${skillId}_speed`);
   return action.baseTime / (1 + speedBonus);
 }
 

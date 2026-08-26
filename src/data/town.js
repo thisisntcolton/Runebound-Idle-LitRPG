@@ -114,6 +114,54 @@ export const BUILDINGS = {
     revenue: [400, 700], markup: 1.6,
     buff: { key: 'offline_hours', value: 1, label: '+1 offline hour per level' },
   },
+
+  // ============================================================
+  // THE GENERATORS
+  //
+  // The Lumber Yard was the only building that fed itself — everything
+  // else needs you to walk over and stock it. That made one building
+  // structurally different from the other five and gave Woodcutting a
+  // town presence nothing else had.
+  //
+  // These three fix that. Each pairs with a gathering skill, generates its
+  // raw material on its own, and pays a modest flat wage against a modest
+  // flat revenue: no goods move, so there is no commission and no runaway.
+  // They are the quiet, reliable half of the town, and they are what keeps
+  // the other half stocked.
+  // ============================================================
+  hatchery: {
+    id: 'hatchery', name: 'The Fish Hatchery', icon: '🐟',
+    blurb: 'Hemlock consulted on the design and then refused to set foot in it.',
+    desc: 'Raises fish in stocked ponds — needs no input, and keeps the Gilded Bean fed.',
+    cost: { gold: 18000, items: { willow_log: 50 } },
+    staffSlots: 2, cycleMs: 50000,
+    inputs: {},
+    generates: { raw_shrimp: 5, raw_trout: 3, raw_salmon: 1 },
+    revenue: [70, 130],
+    buff: { key: 'fishing_speed', value: 0.05, label: '+5% Fishing speed per level' },
+  },
+  herb_garden: {
+    id: 'herb_garden', name: 'The Walled Garden', icon: '🌿',
+    blurb: 'Mirella walks the rows at dusk and talks to the kingsleaf. It seems to help.',
+    desc: 'Grows herbs without stock of any kind — the Apothecary\'s supply line.',
+    cost: { gold: 42000, items: { willow_log: 70, iron_bar: 25 } },
+    staffSlots: 2, cycleMs: 65000,
+    inputs: {},
+    generates: { herb_sagewort: 4, herb_mooncap: 2, herb_emberpetal: 1 },
+    revenue: [110, 200],
+    buff: { key: 'farming_speed', value: 0.05, label: '+5% Farming speed per level' },
+  },
+  quarry: {
+    id: 'quarry', name: 'The Shale Quarry', icon: '⛰️',
+    blurb: 'Grimda calls it "the shallow end" and will not be drawn further.',
+    desc: 'Cuts ore and coal out of the hillside on its own — the Smithy\'s supply line.',
+    cost: { gold: 95000, items: { maple_log: 100, steel_bar: 35 } },
+    staffSlots: 3, cycleMs: 75000,
+    inputs: {},
+    generates: { copper_ore: 5, iron_ore: 3, coal: 3, mythril_ore: 1 },
+    revenue: [230, 400],
+    buff: { key: 'mining_speed', value: 0.05, label: '+5% Mining speed per level' },
+  },
 };
 
 export const BUILDING_LIST = Object.values(BUILDINGS);
@@ -121,7 +169,8 @@ export function getBuilding(id) { return BUILDINGS[id]; }
 
 // Buildings unlock as the town grows
 export const BUILDING_UNLOCK_LEVEL = {
-  lumber_yard: 0, market_stall: 0, cafe: 2, apothecary: 4, smithy: 7, inn: 10,
+  lumber_yard: 0, market_stall: 0, hatchery: 1, cafe: 2, apothecary: 4,
+  herb_garden: 5, smithy: 7, quarry: 8, inn: 10,
 };
 
 export const MAX_BUILDING_LEVEL = 5;

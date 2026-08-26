@@ -207,6 +207,35 @@ function onAscended() {
   }
 }
 
+/**
+ * Has this player earned the right to end the loop?
+ *
+ * Deliberately does NOT ask whether the popup has already fired. The
+ * popup was the only route to the single most important transition in the
+ * game, and it consumed its own gate before rendering — so closing the
+ * modal without picking a button (or picking the comfortable one) locked
+ * the choice away until the next cycle, and the next cycle meant grinding
+ * a level-1 character back to 95 to fight Aurelion again. A player
+ * reported exactly that: five Ascensions deep and never once offered it.
+ *
+ * aurelionKills is a lifetime stat that survives Ascension, so once you
+ * have beaten him the door stays open.
+ */
+export function canBreakCycle() {
+  return (state.era || 1) < 2
+      && state.ending !== 'broken'
+      && (state.ascensions || 0) >= 4
+      && (state.stats?.aurelionKills || 0) >= 1;
+}
+
+/** The choice, on demand, from the Ascension panel. */
+export function offerEndingNow() {
+  if (!canBreakCycle()) return false;
+  showEndingChoice();
+  emit('state-changed');
+  return true;
+}
+
 function maybeOfferEnding() {
   // Feeding the flame is the comfortable choice, not a locked door: the
   // offer comes back every cycle so nobody is shut out of four fifths of
@@ -214,8 +243,15 @@ function maybeOfferEnding() {
   // own quiet characterisation.
   if (state.ending === 'broken') return;
   if (state.ascensions < 4) return;
-  if (state.endingOfferedCycle === state.ascensions) return; // once per cycle
+  // This guard now only stops the popup firing twice for two kills in the
+  // same cycle. It no longer gates the choice itself — the Ascension panel
+  // offers it whenever canBreakCycle() is true.
+  if (state.endingOfferedCycle === state.ascensions) return;
   state.endingOfferedCycle = state.ascensions;
+  showEndingChoice();
+}
+
+function showEndingChoice() {
   hooks.queueModal(`
     <div class="modal-tag">◈ THE CHOICE ◈</div>
     <div class="modal-title">${ENDING.offer.title}</div>

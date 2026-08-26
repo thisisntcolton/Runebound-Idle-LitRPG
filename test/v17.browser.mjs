@@ -36,9 +36,13 @@ const base = {
     staff: { w1: { id: 'w1', name: 'Perrin Vane', icon: '🧑‍🌾', trait: 'diligent',
                    skill: 4, wage: 58, assigned: 0 } },
     cycles: 40, lifetimeRevenue: 500000,
-    plots: Array.from({ length: 9 }, (_, i) => i === 0
-      ? { owned: true, building: 'market_stall', level: 4, stock: { runite_bar: 40 }, progress: 0 }
-      : { owned: false, building: null, level: 0, stock: {}, progress: 0 }),
+    // Plot 0 built (for the payroll checks), plot 1 owned but EMPTY so the
+    // build menu is reachable — an unowned parcel offers a purchase prompt,
+    // not a list of buildings.
+    plots: Array.from({ length: 9 }, (_, i) =>
+      i === 0 ? { owned: true, building: 'market_stall', level: 4, stock: { runite_bar: 40 }, progress: 0 }
+    : i === 1 ? { owned: true, building: null, level: 0, stock: {}, progress: 0 }
+    :           { owned: false, building: null, level: 0, stock: {}, progress: 0 }),
   },
 };
 
@@ -176,6 +180,35 @@ ok('the achievement count includes the new ones',
 await go('journal');
 const jr = await page.textContent('#main-panel');
 ok('deeds show up in the Journal', /DEED|Deed/.test(jr) || /road|Menagerie|dealer/.test(jr));
+
+
+console.log('\n[a class knows a skill]');
+await go('class');
+const cls = await page.textContent('#main-panel');
+ok('class cards state their specialty', /simply for walking this path/.test(cls));
+ok('and name the skill and the amount', /\+20 Smithing|\+20 Thieving|\+20 Alchemy/.test(cls), (cls.match(/\+20 \w+/) || [''])[0]);
+// The fixture is an Artisan, whose skill is Smithing.
+await go('skill:smithing');
+const smi = await page.textContent('#main-panel');
+ok('the skill panel shows where the free levels came from', /\+20 Artisan/.test(smi),
+   (smi.match(/Lv\.\s*\d+\s*\/\s*\d+[^<]{0,30}/) || [''])[0]);
+const lvl = Number((smi.replace(/\s+/g,' ').match(/Lv\. (\d+) \//) || [0,0])[1]);
+ok('and the level actually reflects it', lvl >= 20, `smithing reads ${lvl}`);
+await go('skill:mining');
+ok('a skill the class does not know is untouched',
+   !/\+20 Artisan/.test(await page.textContent('#main-panel')));
+
+console.log('\n[the town can feed itself]');
+await go('town');
+// Plots are SVG <g> elements, which have no .click() and do not respond
+// to a synthesised MouseEvent the way an HTML button does.
+await page.locator('[data-act="select-plot"][data-plot="1"]').click();
+await page.waitForTimeout(350);
+const buildable = await page.evaluate(() =>
+  [...document.querySelectorAll('#main-panel')].map(e => e.textContent).join(' '));
+ok('the generation buildings are offered',
+   /Fish Hatchery/.test(buildable) || /Walled Garden/.test(buildable) || /Shale Quarry/.test(buildable),
+   'none named');
 
 console.log('\n[nothing broke]');
 ok('no runtime errors', errs.length === 0, errs.slice(0, 3).join(' | '));

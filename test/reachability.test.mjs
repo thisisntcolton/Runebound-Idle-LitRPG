@@ -30,7 +30,10 @@ import { state } from '../src/core/state.js';
 import { ABILITY_LIST, tomeIdFor } from '../src/data/abilities.js';
 import { SPECIES_LIST, EGG_SHOP, eggItemId } from '../src/data/pets.js';
 import { CLASSES } from '../src/data/classes.js';
-import { SKILLS } from '../src/data/skills.js';
+import { SKILLS, TRAINABLE_SKILLS } from '../src/data/skills.js';
+import { BUILDING_LIST } from '../src/data/town.js';
+import { ITEMS } from '../src/data/items.js';
+import { totalSkillLevel, pendingShards } from '../src/core/state.js';
 import { CHAINS } from '../src/data/adventure.js';
 import { TIERS, MASTERIES, TREES } from '../src/data/talents.js';
 import { ACHIEVEMENTS } from '../src/data/achievements.js';
@@ -253,6 +256,67 @@ good(`${Object.keys(CLASSES).length} classes, all with trees`);
 const masteryless = Object.keys(CLASSES).filter(id => !MASTERIES[id]);
 if (masteryless.length) fail(`classes with no Mastery to earn: ${masteryless.join(', ')}`);
 else good(`${Object.keys(MASTERIES).length} Masteries, one per class`);
+
+
+// ============================================================
+console.log('\n=== THE TOWN ===');
+{
+  // A building buff that nothing reads is a line of UI making a promise
+  // the game does not keep — the same failure as a tome with no drop.
+  const engine = readFileSync(new URL('../src/core/state.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/town.js', import.meta.url), 'utf8');
+  const dead = BUILDING_LIST.filter(b => {
+    const k = b.buff?.key;
+    if (!k) return false;
+    const generic = k.endsWith('_speed') && TRAINABLE_SKILLS.includes(k.slice(0, -6));
+    return !generic && !new RegExp(`['"\`]${k}['"\`]`).test(engine);
+  });
+  if (dead.length) fail(`${dead.length} building buff(s) are read by nothing: ${dead.map(b => b.buff.key).join(', ')}`);
+  else good(`all ${BUILDING_LIST.filter(b => b.buff).length} building buffs are read`);
+
+  const gens = BUILDING_LIST.filter(b => Object.keys(b.generates || {}).length);
+  good(`${gens.length} of ${BUILDING_LIST.length} buildings feed themselves: ${gens.map(b => b.name).join(', ')}`);
+
+  // Anything a building generates or consumes has to be a real item.
+  const badItems = [];
+  for (const b of BUILDING_LIST) {
+    for (const id of Object.keys(b.generates || {})) if (!ITEMS[id]) badItems.push(`${b.name} generates unknown "${id}"`);
+    for (const id of Object.keys(b.produces || {})) if (!ITEMS[id]) badItems.push(`${b.name} produces unknown "${id}"`);
+    for (const [id, q] of Object.entries(b.cost?.items || {})) if (!ITEMS[id]) badItems.push(`${b.name} costs unknown "${id}"`);
+  }
+  if (badItems.length) { fail(`${badItems.length} building item reference(s) are broken:`); badItems.forEach(m => console.log('      ' + m)); }
+  else good('every building references real items');
+}
+
+// ============================================================
+console.log('\n=== CLASS SPECIALTIES ===');
+{
+  const missing = Object.values(CLASSES).filter(c => !c.specialty);
+  if (missing.length) flag(`${missing.length} class(es) have no specialty skill: ${missing.map(c => c.id).join(', ')}`);
+  else good(`all ${Object.keys(CLASSES).length} classes specialise in a skill`);
+
+  const badSkill = Object.values(CLASSES).filter(c => c.specialty && !TRAINABLE_SKILLS.includes(c.specialty.skill));
+  if (badSkill.length) fail(`specialty names a skill that is not trainable: ${badSkill.map(c => c.specialty.skill).join(', ')}`);
+  else good('every specialty names a real trainable skill');
+
+  // The one thing that must never be true: a specialty inflating the
+  // numbers Ascension is paid from.
+  const saved = state.classId;
+  state.classId = null;
+  const cleanTotal = totalSkillLevel(), cleanShards = pendingShards();
+  const leaks = [];
+  for (const id of Object.keys(CLASSES)) {
+    state.classId = id;
+    if (totalSkillLevel() !== cleanTotal || pendingShards() !== cleanShards) leaks.push(id);
+  }
+  state.classId = saved;
+  if (leaks.length) fail(`${leaks.length} class specialty leaks into Ascension payout: ${leaks.join(', ')}`);
+  else good('no specialty leaks into total level or Fate Shards');
+
+  const covered = new Set(Object.values(CLASSES).map(c => c.specialty?.skill).filter(Boolean));
+  const orphan = TRAINABLE_SKILLS.filter(s => !covered.has(s));
+  if (orphan.length) console.log(`      (no class patronises ${orphan.join(', ')} — deliberate, there are more skills than classes)`);
+}
 
 // ============================================================
 console.log('\n=== WHAT IS ERA II ONLY ===');

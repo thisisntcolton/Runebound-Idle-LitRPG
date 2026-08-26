@@ -13,7 +13,7 @@ import { deepView } from '../systems/deep.js';
 import { bossView } from '../systems/worldboss.js';
 import { getDungeon, totalWaves } from '../data/dungeons.js';
 import { displayOdds, ROLLS_PER_PROFILE } from '../data/loot.js';
-import { dropRateMultiplier, levelCap } from '../core/state.js';
+import { dropRateMultiplier, levelCap, classSkillBonus } from '../core/state.js';
 import { abilityStatus } from '../systems/abilities.js';
 import { currentMonster } from '../systems/combat.js';
 import { activeRun as unstableRun, UNSTABLE } from '../systems/unstable.js';
@@ -26,6 +26,7 @@ import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
 import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost } from '../data/upgrades.js';
 import { STAT_INFO } from '../systems/character.js';
+import { canBreakCycle } from '../systems/quests.js';
 import { hirelingProgress, hirelingTask, stealRisk } from '../systems/skills.js';
 import { cloud } from '../core/cloud.js';
 import { levelForXp, xpForLevel, levelProgress, MAX_LEVEL, SOFT_CAP } from '../core/xp.js';
@@ -127,7 +128,10 @@ export function skillPanel(skillId) {
     <div class="skill-header">
       <div class="skill-header-top">
         <div class="skill-level-big">Lv. ${lvl} / ${levelCap()}${
-          lvl > SOFT_CAP ? ' <span class="pill" style="border-color:var(--shard);color:var(--shard)">past the ceiling</span>' : ''}</div>
+          lvl > SOFT_CAP ? ' <span class="pill" style="border-color:var(--shard);color:var(--shard)">past the ceiling</span>' : ''}${
+          classSkillBonus(skillId) > 0
+            ? ` <span class="pill" style="border-color:var(--xp);color:var(--xp)" title="Your class knows this skill. These levels are free and they do not count toward Ascension.">+${classSkillBonus(skillId)} ${currentClass()?.name || 'class'}</span>`
+            : ''}</div>
         <div class="muted">${dbl > 0 ? `${Math.round(dbl * 100)}% double yield · ` : ''}XP ×${xpMultiplier().toFixed(2)}</div>
       </div>
       ${xpBarBlock(skillId)}
@@ -630,21 +634,25 @@ function titlePicker() {
 function wayOnwardBlock() {
   if ((state.era || 1) >= 2) return '';
   if ((state.ascensions || 0) < 4) return '';
-  const takenThisCycle = state.endingOfferedCycle === state.ascensions;
+  const earned = canBreakCycle();
   return `
     <div class="way-onward">
       <div class="way-onward-title">◈ There is a way out of the loop</div>
       <div class="way-onward-body">
         You have gone round four times. That was the requirement, though nothing said so.
-        <b>Defeat Aurelion, the Last Flame</b> in the Dragonspire and the System will put a
-        choice in front of you: renew the seal, or break it.
+        ${earned
+          ? `You have already beaten <b>Aurelion, the Last Flame</b>, which is the other half of it.
+             The System will put the choice in front of you whenever you are ready.`
+          : `<b>Defeat Aurelion, the Last Flame</b> in the Dragonspire. That is the other half of
+             it, and once it is done it stays done — you will not have to fight him again.`}
         <br><br>
         <b>Feeding the flame</b> pays five Fate Shards and keeps everything exactly as it is —
         including the ceiling on every one of your skills, and the content behind it.
         <b>Breaking the cycle</b> is the way forward. It is the only way forward.
-        ${takenThisCycle
-          ? `<br><br><span class="way-onward-warn">⚠ You have already been offered the choice this cycle.
-             If you fed the flame, the offer returns after your next Ascension.</span>`
+        ${earned
+          ? `<div style="margin-top:14px">
+               <button class="btn btn-primary" data-act="ending-offer">◈ Face the choice</button>
+             </div>`
           : ''}
       </div>
     </div>`;

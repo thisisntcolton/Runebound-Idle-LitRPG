@@ -28,6 +28,7 @@ export const CLASS_UNLOCK_LEVEL = 10;
 export const CLASSES = {
   rogue: {
     id: 'rogue', name: 'Rogue', icon: '🗡️', school: 'physical',
+    specialty: { skill: 'thieving', levels: 20, note: 'Hands that have never once been caught. Officially.' },
     tagline: 'Hit first, hit often, leave before the bill arrives.',
     blurb: `You were never taught to fight. You were taught to <i>finish</i>, quickly,
             and preferably from behind. It has worked out.`,
@@ -50,6 +51,7 @@ export const CLASSES = {
 
   ranger: {
     id: 'ranger', name: 'Ranger', icon: '🏹', school: 'physical',
+    specialty: { skill: 'woodcutting', levels: 20, note: 'You have been reading treelines since before you had a class.' },
     tagline: 'Patient, precise, and paid by the pelt.',
     blurb: `Someone who has spent more of their life watching things than
             fighting them, and who has noticed that the two are the same job
@@ -76,6 +78,7 @@ export const CLASSES = {
 
   mage: {
     id: 'mage', name: 'Mage', icon: '🔮', school: 'magical',
+    specialty: { skill: 'alchemy', levels: 20, note: 'Half of magic is knowing what happens when you mix the two blue ones.' },
     tagline: 'Damage as an academic exercise.',
     blurb: `The System indexes your discipline as "unsupported". You have taken
             this as encouragement and it has not corrected you, which from the
@@ -101,6 +104,7 @@ export const CLASSES = {
 
   priest: {
     id: 'priest', name: 'Priest', icon: '✨', school: 'magical',
+    specialty: { skill: 'runecrafting', levels: 20, note: 'The shapes come easily. Nobody taught you them.' },
     tagline: 'Walk into what is too big for you. Come back out.',
     blurb: `Wren approves of you, which is the only professional endorsement
             available in Hearthwick and worth more than it sounds.<br><br>
@@ -134,6 +138,7 @@ export const CLASSES = {
 
   artisan: {
     id: 'artisan', name: 'Artisan', icon: '⚒️', school: 'craft',
+    specialty: { skill: 'smithing', levels: 20, note: 'You can hear when the metal is ready. It is not a metaphor.' },
     tagline: 'Let someone else swing things.',
     blurb: `You looked at a world of monsters and loot and infinite respawns
             and thought: <i>there is a margin in this.</i><br><br>
@@ -185,6 +190,7 @@ export const CLASSES = {
 
   warden: {
     id: 'warden', name: 'Warden', icon: '🛡️', school: 'physical',
+    specialty: { skill: 'mining', levels: 20, note: 'Stone gives, eventually, to anyone patient enough to disagree with it.' },
     tagline: 'Stand in front of it. Keep standing in front of it.',
     blurb: `Holt trained you, in the sense that Holt stood next to you for a year and
             occasionally said "no". You have never won a fight quickly. You have
@@ -212,6 +218,7 @@ export const CLASSES = {
 
   beastmaster: {
     id: 'beastmaster', name: 'Beastmaster', icon: '🐾', school: 'wild',
+    specialty: { skill: 'farming', levels: 20, note: 'Things grow for you. It is mildly unfair on everyone else.' },
     tagline: 'You are not the dangerous one in this arrangement.',
     blurb: `You have never been the strongest thing in a fight you were in, and you
             have stopped finding that troubling.<br><br>
@@ -239,6 +246,7 @@ export const CLASSES = {
 
   wanderer: {
     id: 'wanderer', name: 'Wanderer', icon: '🧭', school: 'wild',
+    specialty: { skill: 'fishing', levels: 20, note: 'A road that follows water feeds you. You worked this out early.' },
     tagline: 'The road is the point. The destination keeps moving anyway.',
     blurb: `Quill has nine roads mapped and all nine come back. You have walked all
             nine and you disagree, and you cannot say why, and you keep going out.<br><br>

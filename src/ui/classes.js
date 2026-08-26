@@ -8,6 +8,7 @@ import { TIERS, treeFor, tierInfo, MAX_CLASS_LEVEL, MAX_POINTS, totalCost,
 import { currentClass, classUnlocked, classPending, classLevel,
          classLevelProgress, talentPoints, rankOf, tierUnlocked, tierGate,
          canBuy, classProgress, hasMastery, masteredClasses } from '../systems/classes.js';
+import { SKILLS } from '../data/skills.js';
 import { fmtInt } from '../core/format.js';
 import { KEPT, LOST } from '../data/persistence.js';
 
@@ -61,6 +62,11 @@ function classCard(c, { chosen = false, selectable = false, showProgress = false
       </div>
       <div class="class-blurb">${c.blurb}</div>
       <div class="class-sig">${c.signature.icon} <b>${c.signature.name}</b> — ${c.signature.desc}</div>
+      ${c.specialty ? `
+        <div class="class-specialty">
+          ${SKILLS[c.specialty.skill]?.icon || '✦'} <b>+${c.specialty.levels} ${SKILLS[c.specialty.skill]?.name || c.specialty.skill}</b>,
+          simply for walking this path. <span class="muted">${c.specialty.note}</span>
+        </div>` : ''}
       <ul class="class-effects">${c.effects.map(e => `<li>${e}</li>`).join('')}</ul>
       <div class="class-penalty">⚠ ${c.penalty}</div>
       ${selectable
