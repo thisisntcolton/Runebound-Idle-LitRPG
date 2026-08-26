@@ -23,8 +23,23 @@ Production build: `npm run build` (output in `dist/`, servable from any static h
 Fishing, Smithing, Cooking, Alchemy, plus **Farming** (crops that feed the kitchens, the cauldrons
 and the town), **Thieving** (pure gold, and the one place LUK is the whole discipline) and
 **Runecrafting** (grind shards into essence and bind essence into runes, so enchanting and ability
-tomes stop being drop-only). Each has 5+ actions gated by level, on a RuneScape-style XP curve to 99.
-One active pursuit at a time: pick your grind.
+tomes stop being drop-only). Each has 5+ actions gated by level, on the RuneScape XP curve — and
+then keeps going: see **the second hundred**, below. One active pursuit at a time: pick your grind.
+
+**Thieving can go wrong.** Every steal prints its odds of being noticed, and being noticed drops
+you straight into a fight with whoever noticed. Picking a pocket is nearly safe; lifting a Root
+Token from whatever administers this place is the most dangerous thing in the game. Win and you
+keep the haul and take their purse, and go straight back to work; lose and you drop what you
+lifted and walk away wounded — no gold lost, no XP lost. The expected value of a risky steal is
+*higher* than a safe one, if you can win the argument.
+
+**Adventure** — the third thing to be doing, and the only one that is not a treadmill. Set out and
+the road carries you; every half-minute or so something happens and you answer it. **24 chains, 100
+distinct endings, 110 distinct paths**, all of them three beats deep and none of them with a right
+answer — the kind thing and the hard thing both cost and both pay. Nine of the chains only find you
+because of something you already did, and what you did is remembered across every cycle you will
+ever live. The road waits while you decide, and if you are away it takes the quiet option rather
+than the cruel one.
 
 **Combat** — 5 zones, 15 monsters, one boss (Aurelion, the Last Flame). Auto-battle with Attack /
 Strength / Defense training styles, Hitpoints trained passively, auto-eat food slot, hit splats,
@@ -91,20 +106,29 @@ class plays: the Rogue executes anything a crit leaves under 20% health, the Ran
 entirely, the Mage's burn stacks and never expires, the Priest ignores zone level requirements
 outright, and the Artisan's town keeps working while they are away.
 
-**Classes** — at character level 10 you choose a path, and it holds for the rest of the cycle:
-**Rogue** (attack speed and 20% crits), **Ranger** (accuracy, loot and a guaranteed opening
-swing), **Mage** (damage that scales off INT, hits that burn, and paper-thin defences),
+**Classes** — at character level 10 you choose one of **eight** paths, and it holds for the rest of
+the cycle: **Rogue** (attack speed and 20% crits), **Ranger** (accuracy, loot and a guaranteed
+opening swing), **Mage** (damage that scales off INT, hits that burn, and paper-thin defences),
 **Priest** (the over-level specialist: huge health, heavy mitigation, heals on every kill, and up to
-+150% damage and +100% loot scaled by how far the monster outranks you) or **Artisan** — which gets
++150% damage and +100% loot scaled by how far the monster outranks you), **Warden** (the first class
+that *wants* to be hit — 25% of every blow goes straight back, and nothing gets to walk away from a
+long fight), **Beastmaster** (your companion's bonus is doubled and it fights beside you for a share
+of your damage — the whole fifteen-species roster becomes the build), **Wanderer** (encounters find
+you sooner, pay better and go your way more often; the road is the kit) or **Artisan** — which gets
 *no combat bonus at all* and in exchange runs the strongest economy in the game: +30% gathering,
 +50% town revenue, cheaper construction and an extra staff slot on every building. Ascend and you
 choose again, so a class is a commitment for one run rather than for the save.
+
+**What Ascension takes, and what it cannot**, is now one list rendered in both places the question
+gets asked — and a test cross-checks it against what `prestige.js` actually keeps, so the game can
+no longer be wrong about it. The short version: **you keep every talent point and every rank in
+every tree, forever.** What you lose is the class itself.
 
 **Appearance** — a Mii-style character builder: face shape, skin, ten hairstyles, eyes, brows,
 mouth, facial hair, scars and war paint and rune brands, build and colours, all hand-drawn SVG.
 Your hero appears on the character sheet and in every fight, and survives Ascension.
 
-**The Codex** — 35 discoverable entries across six categories, every one unlocked by something
+**The Codex** — 47 discoverable entries across six categories, every one unlocked by something
 you actually did: fifty slimes killed, mining 45, a town grown, a cycle survived. Seventeen of
 them **deepen when you Ascend** — re-read an entry in a later cycle and it has more to say,
 because you know more than you did. Ambient world-facts drip into the system log while you play,
@@ -120,13 +144,23 @@ Apothecaries, Smithies and Inns, hire staff with traits and wages, and stock the
 materials your skills produce. Buildings run shifts on a timer, turning raw output into gold and
 town buffs. Buildings pay a flat wage for the labour plus a markup on the *value* of the goods they move, so
 routing mythril through a Market Stall earns vastly more than routing logs. Hearthwick is **razed
-every Ascension** — only the people you have met carry over — because a town that survived intact
-let a returning player rebuy their whole hireling roster in ten minutes and skip the early cycle.
-NPCs move in as it grows, notable residents show up with their own business, and travelling
-visitors bring offers worth accepting or refusing.
+every Ascension while the loop still owns it** — only the people you have met carry over — because
+a town that survived intact let a returning player rebuy their whole hireling roster in ten minutes
+and skip the early cycle. Break the loop and it stops being razed; it carries the next cycle for
+about half an hour and then starves, because restocking needs the gathering skills you just reset
+(`npm run sim:prestige` shows the arithmetic).
 
-**The Menagerie (pets)** — hatch, raise, feed, play with and breed five species: Cat and Dog
-(common), Frog (rare), Poro (epic) and Wyrmling (legendary). Eggs incubate on a real clock. Pets
+The town is **inhabited**, not decorated: every resident is a stable person with a name, a trade,
+a face generated from the same appearance system your own character uses, and an errand route with
+places they stop and stand for a while. Notable residents show up with their own business, and
+travelling visitors bring offers worth accepting or refusing.
+
+**The Menagerie (pets)** — hatch, raise, feed, play with and breed **fifteen species** across four
+rarities, from the Hearth Sparrow and the Coin Beetle up through the Ledger Owl and the Lanternmoth
+to the Seam Serpent and the Orphaned Familiar. Between them they touch nine different multipliers,
+so a pet is a build decision rather than a bigger number. Eggs drop far more freely than they used
+to and roll their rarity on a fixed ladder — 75% common, 20% rare, 4.5% epic, and a half-percent
+sliver of legendary — with Luck bending the ladder upward rather than simply dropping more eggs. Eggs incubate on a real clock. Pets
 grow through Egg → Hatchling → Juvenile → Adult → Elder by earning **bond XP** — passively while
 you're away, and much faster from kills and skill actions when one walks at your side. Hunger and
 happiness decay in real time; the **one active pet** grants a passive bonus that scales with its
@@ -138,9 +172,12 @@ from one parent and has a shot at climbing a rarity tier. Pets persist through A
 minutes to answer it. Hold ten escalating waves to seal it for heavy rewards (and a real shot at
 an ability tome or a rare egg); fail, and the raid damages Hearthwick and halts its buildings.
 
-**Abilities, Dungeons, Enchanting & Alchemy** — learn ability tomes and slot three actives
-(a strike, a guard, a utility), delve multi-wave dungeons, enchant gear up to +5, and brew
-timed potion buffs.
+**Abilities, Dungeons, Enchanting & Alchemy** — **nineteen** ability tomes across three loadout
+slots (a strike, a guard, a utility), delve multi-wave dungeons, enchant gear up to +5, and brew
+timed potion buffs. The newer abilities deliberately scale off the *target* rather than off you —
+The Unmaking removes 12% of anything's maximum health however large it is, Unyielding caps any
+single blow at a quarter of yours — which is what finally makes the loadout a real decision against
+a Descent floor or the Vigil.
 
 **Achievements & titles** — unlockable deeds, each granting a title you can wear on the leaderboard.
 
@@ -153,6 +190,67 @@ devices and rank on five global boards (total level, shards, lifetime gold, boss
 Cyclebreakers). Conflicting saves prompt you to choose a timeline rather than silently clobbering
 one. With no backend attached the game is fully playable and simply says cloud sync is unavailable.
 See [DEPLOY.md](./DEPLOY.md).
+
+### The second hundred
+
+The level cap is **199**, and levels 1–99 are byte-for-byte the numbers they always were — every
+existing save keeps its levels, and the server's anti-cheat derives from the same file. The second
+band has a different shape on purpose: the RuneScape curve doubles every seven levels, so extending
+it to 199 would have put the last level at about a trillion times the cost of 99. Levels 100–199
+grow *linearly* instead, which makes the whole band roughly ten times the climb to 99 — a long haul
+rather than a wall. `npm run sim:levels` prints it in hours.
+
+**But 99 is a containment parameter.** Inside the sandbox the ceiling is 99 and it always was; the
+XP past it accumulates anyway, against a number you are not permitted to have, and the skill panel
+says so rather than pretending it is lost. Break the loop and all of it is released at once. You did
+not earn those levels out here. You earned them in there, and they were being held.
+
+Past the ceiling every skill gets three new things to work — Heartwood and Worldroot, Adamant and
+Starfall, Glass Eel and Kraken, Frostgrain and Dawnmelon, a Root Token stolen from something that
+notices — plus two more forgeable gear tiers and an Ascendant tier on every class tree.
+
+### Beyond the box — Era II
+
+Breaking the loop does not end the game; it changes what the game is. Everything below is inert
+until you are out.
+
+**The Descent** — the Wastes are discarded places stacked on discarded places, so there is a
+*down*. Hold a floor by putting down eight of what lives on it (every fifth floor is held by a
+single Warden instead) and the next one opens. It is a ladder with exactly one next rung, it needs
+no skill and no permission, and **how deep you have ever been is permanent** — a standing bonus to
+damage, gold and drop rate that Ascension cannot touch. How deep you may *go* is capped by your
+cycle count, which is what gives Ascension a reason once it stops burning your town.
+
+**The Vigil (world boss, beta)** — something enormous stands up out of the strata every few hours
+of play and stays up for a day and a half. Its health pool is measured in sessions and **persists
+in your save**: you will not kill one today, and nothing you land is ever wasted. It is also the
+only fight in the game where *preparation is a stat* — a brewed potion, town buffs running, a pet
+at your side, a class walked, food in the bag, ground behind you, whole when you start. Each is a
+printed line with a number on it; cold you engage at ×1.00, ready at ×2.20. And you cannot stand
+in it: an aura compounds for as long as you hold contact, so an engagement is a round rather than
+an idle bar. Solo, offline, no backend.
+
+**The Ledger** — the System bills you for four lifetimes of containment, at 20% of gross income,
+collected at source. The bill does not land the moment you get out: the reveal gets ninety minutes
+of play to breathe first, with the System audibly doing arithmetic near you the whole time.
+Clearing it is a genuine Era II goal and nobody has ever done it.
+
+**The Syndicate** — repo men with paperwork. They take something real — a building level, an
+enchantment, a pet — and everything they take goes into a crate in a camp that you can go and
+clear. Nothing is ever destroyed. If you own nothing they are authorised to crate, they will take
+a stack of materials, or a levy on your coin, or failing that drive a numbered stake into the
+ground and take a cut of everything you earn until you pull it out. An antagonist that no-ops is
+worse than no antagonist.
+
+**Salvage** — dig sites with no level of their own. Every one is locked by a skill you *already*
+have: buried needs Mining, sealed needs Thieving, encoded needs Runecrafting, fused needs
+Smithing. The Wastes screen carries a keyring that names, per skill, exactly which level opens
+what next.
+
+**Masteries and the Ascendant tier** — capping a class's tier-5 capstone earns that class's
+**Mastery**, one distilled permanent bonus that applies whatever you are playing afterwards,
+including nothing. And out in the Wastes every tree grows a sixth tier that does not exist inside
+the sandbox and cannot be bought there.
 
 ## Project layout
 
@@ -189,8 +287,13 @@ src/
 │   ├── npcs.js        # residents, wanderers, visiting notables
 │   ├── pets.js        # species, growth stages, care rates, traits, breeding
 │   ├── classes.js     # the five paths, their bonuses and signatures
-│   ├── talents.js     # five-tier tree per class, curve, capstones
+│   ├── talents.js     # six-tier tree per class, curve, capstones, Masteries
+│   ├── adventure.js   # 24 chains, 100 endings, and what the road remembers
+│   ├── thieving.js    # who turns up when a steal goes wrong, and the odds
+│   ├── persistence.js # the one list of what Ascension takes and what it cannot
 │   ├── salvage.js     # Era II dig sites, skill locks, haul tables
+│   ├── deep.js        # the Descent: strata, denizens, Wardens, floor scaling
+│   ├── worldboss.js   # the Vigil: preparation lines, the aura, the pool
 │   ├── codex.js       # discoverable lore, cycle-deepening passes, tidbits
 │   ├── encounters.js  # village events and their branching outcomes
 │   ├── appearance.js  # hero option lists and palettes
@@ -209,8 +312,11 @@ src/
 │   ├── classes.js     # class choice, bonus hook, crit/quarry/burn/mend
 │   ├── codex.js       # discovery engine, ambient tidbits, cycle memory
 │   ├── salvage.js     # excavation loop, site rotation, instability
-│   ├── repo.js        # Syndicate notices, seizure, camps, recovery
-│   ├── ledger.js      # back-taxes, the garnish, settling up
+│   ├── deep.js        # the floor ladder, the cycle cap, the permanent depth
+│   ├── worldboss.js   # surfacing, preparation, contact, the long kill
+│   ├── adventure.js   # the road loop, chain state, flags that outlive cycles
+│   ├── repo.js        # Syndicate notices, seizure, fallbacks, camps, recovery
+│   ├── ledger.js      # back-taxes, the grace period, the garnish, settling up
 │   ├── encounters.js  # scheduling, resolution, consequence effects
 │   ├── abilities.js   # cooldowns, triggers, tome learning
 │   ├── unstable.js    # timed rift events and their consequences
@@ -223,12 +329,15 @@ src/
     ├── panels.js      # HTML builders per view
     ├── journal.js     # quest journal + lore archive
     ├── town.js        # Hearthwick map + management panels
-    ├── townart.js     # hand-drawn SVG buildings, townsfolk, scenery
+    ├── townart.js     # hand-drawn SVG buildings, scenery, and a stable cast
+    │                  #   of villagers walking errand routes with stops
     ├── pets.js        # Menagerie: incubator, roster, care, breeding, shop
     ├── petart.js      # hand-drawn SVG creatures, mood-responsive
     ├── classes.js     # the Path panel
     ├── codex.js       # the Codex panel
-    ├── wastes.js      # Era II: the Ledger, the Syndicate, the dig board
+    ├── adventure.js   # the road, and the vignette that takes the screen
+    ├── wastes.js      # Era II: the Vigil, the Ledger, the Syndicate, the
+    │                  #   Descent, the keyring and the dig board
     ├── appearance.js  # the Mii-style editor
     ├── heroart.js     # hand-drawn SVG hero, assembled from option indices
     ├── abilities.js   # ability bar + tome panel
@@ -251,8 +360,17 @@ npm run test:pets      # 35 tests: hatch -> feed -> level -> breed, offline, mul
 npm run test:classes   # 17 tests: the choice, the lock-in, Artisan's zero combat power, talents
 npm run test:ascension # 22 tests: the town is razed; pets, talents and your look survive
 npm run test:era1      # 24 tests: the four-beat reveal, the Wastes, the town surviving after
-npm run test:era2      # 24 tests: salvage, the Ledger's garnish, seizure and recovery
+npm run test:era2      # 29 tests: salvage, the keyring, the Ledger's grace and garnish, seizure
+npm run test:deep      # 28 tests: the Descent ladder, Masteries, the Ascendant tier, fallbacks
+npm run test:boss      # 23 tests: preparation as a stat, a pool that outlives the session
+npm run test:road      # 26 tests: the ceiling coming off, thieving caught, and the road
+npm run test:townlife  #  9 tests: the villagers are people, and their walk survives a re-render
 npm run balance        # sims: town profit by material tier, class power at 0/20/50 talent points
+npm run sim:deep       # sim: is the Descent climbable, and does it stay worth climbing?
+npm run sim:boss       # sim: is the Vigil a several-session fight, and does preparation matter?
+npm run sim:prestige   # sim: does a surviving town delete the early cycle? (it does not)
+npm run sim:levels     # sim: 1-99 is frozen, and what the second hundred costs in hours
+npm run preview:pets   # contact sheet of all 15 species, every stage, every mood
 npm run preview:heroes # contact sheet of every appearance option, as a PNG
 ```
 
@@ -282,9 +400,21 @@ npm run test:pets
 - **New hairstyle or feature**: append to the list in `data/appearance.js` and draw it in
   `ui/heroart.js`. Existing saves are unaffected — a look is just a bag of indices.
 - **New pet species**: one entry in `data/pets.js` (rarity, bonus key, favourite foods, hatch
-  time, palette) plus a drawing function in `ui/petart.js`. The egg item, the shop or drop entry
-  and the whole care/breeding loop follow automatically.
+  time, palette) plus either a drawing function in `ui/petart.js` or — far easier — a `build`
+  naming one of the five body plans. The egg item, the drop table entry and the whole
+  care/breeding loop follow automatically; the rarity ladder picks it up with no code at all.
+- **New adventure chain**: one entry in `data/adventure.js`. Beats, options, outcomes and effects
+  are all data, rewards are declared as multiples and scaled to the player, and
+  `npm run test:content` proves every `next` resolves and every beat is reachable.
+- **New ability**: `data/abilities.js`. If it only changes numbers, give it a `passive` bag and it
+  needs no code at all — the multiplier chain reads it through one hook.
 - **New building**: `data/town.js` — inputs, outputs, staff slots and the town buff are all data.
+- **New Descent floor flavour**: `data/deep.js` — denizens, Wardens and strata are lists; the
+  scaling exponents are four numbers with a comment explaining why each is what it is.
+- **New preparation line for the Vigil**: one entry in `PREP` in `data/worldboss.js` plus one
+  boolean in `prepCheck()`. The checklist UI and the multiplier follow automatically.
+- **New villager**: nothing to do — names, trades, errands and faces are generated from
+  `data/npcs.js` and `data/appearance.js`. Add a name or a trade and the town uses it.
 - **New quest**: add an entry in `data/quests.js` (goal kinds: kill, killZone, loot, craft,
   skill, hire, goldLifetime) and, if it carries story, a fragment in `data/lore.js`.
 - Balance levers live in `core/state.js` (multipliers) and `data/upgrades.js` (cost curves).

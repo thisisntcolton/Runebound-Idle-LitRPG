@@ -171,6 +171,10 @@ function currentContext() {
   // An excavation is not an `activity` in the state machine sense, so it
   // has to be checked before the idle fallbacks or it never surfaces.
   if ((state.era || 1) >= 2 && state.salvage?.active) return 'wastes';
+  // The two Era II fights have their own voice and have to be tested
+  // before the generic combat case, which would otherwise swallow them.
+  if (act?.type === 'combat' && state.combat?.worldBoss) return 'vigil';
+  if (act?.type === 'combat' && state.combat?.deep) return 'descent';
   if (act?.type === 'combat') return 'combat';
   if (act?.type === 'skill') return act.skillId;
   if (state.town?.unlocked) return 'town';
@@ -303,6 +307,11 @@ export function initCodex() {
   for (const id of Object.values(state.equipment || {})) if (id) codex().items[id] = true;
 
   on('hireling-hired', () => setFlag('first_hireling'));
+  // Era II's new verbs each earn their own entry, once you have actually
+  // done the thing rather than merely been told about it.
+  on('deep-record', ({ depth }) => { if (depth >= 3) setFlag('descended'); });
+  on('boss-surfaced', () => setFlag('vigil_seen'));
+  on('boss-felled', () => setFlag('vigil_felled'));
   on('ascended', ({ razed }) => { if (razed?.buildings > 0) setFlag('town_razed'); });
   on('pet-hatched', () => checkDiscoveries());
 

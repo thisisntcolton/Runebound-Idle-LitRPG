@@ -111,18 +111,33 @@ function profile(cls, { talentPoints = 0, overLevel = 0 } = {}) {
   const critted = avgHit * (1 + crit*(critMult-1));
   const burn = critted * (cls?.id==='mage' ? SIG.BURN_FRACTION*(1+b('burn')) : 0);
   const interval = BAL.ATTACK_INTERVAL_MS / (1 + CH.AGI*0.005 + b('attack_speed'));
-  const dps = (critted + burn) * hitChance / (interval/1000);
+  // The Beastmaster's companion swings with you for a share of the blow.
+  // Modelled at full strength: the class's own penalty line already says
+  // it is worth nothing without a pet, and the interesting question is
+  // whether it is competitive WITH one.
+  const pet = 1 + b('pet_damage');
+  const dps = (critted + burn) * pet * hitChance / (interval/1000);
 
   const maxHp = Math.floor((10*CH.hp + CH.gearHp) * (1 + CH.VIT*0.01) * (1 + b('maxhp')));
   const drRating = CH.def*2 + CH.gearDef;
   const flat = Math.min(BAL.DR_FLAT_CAP, drRating/(drRating+BAL.DR_SOFTCAP_CONSTANT));
   const dr = Math.max(0, Math.min(BAL.DR_TOTAL_CAP, flat * (1 + b('dr'))));
-  const killSecs = monHp / dps;
+  // The Warden reflects a share of every blow, which is both damage it
+  // does not take and damage the monster does. Both halves matter and
+  // leaving them out made the class look like it had no kit at all.
+  const thorns = b('thorns');
+  const incoming = monAtk*(1-dr)/2.6;
+  const thornDps = incoming * thorns;
+  const dpsTotal = dps + thornDps;
+
+  const killSecs = monHp / dpsTotal;
   const mend = cls?.id==='priest' ? maxHp*(SIG.MEND_FRACTION + b('mend')) : 0;
-  const net = (monAtk*(1-dr)/2.6)*killSecs - mend;
+  const net = incoming*killSecs - mend;
   const ehp = net > 0 ? maxHp/net : Infinity;
 
-  return { dps, killSecs, ehp, maxHp,
+  return { dps: dpsTotal, killSecs, ehp, maxHp, thornDps,
+    // The two classes whose power sits outside the combat model at all.
+    petAmp: 1 + b('pet_amp'), adventure: (1 + b('adventure_speed')) * (1 + b('adventure_reward')),
     gold:(1+b('gold'))*overLoot, xp:1+b('xp'), drop:(1+b('drop_rate'))*overLoot,
     gather:1+b('gather_speed'), town:1+b('town_revenue'), sell:1+b('sell_price') };
 }
@@ -152,3 +167,26 @@ table('AT YOUR LEVEL, no talents (the fair fight)', { talentPoints: 0, overLevel
 table('10 LEVELS ABOVE YOU, no talents (the unfair fight)', { talentPoints: 0, overLevel: 10 });
 table('AT YOUR LEVEL, 20 talent points invested', { talentPoints: 20, overLevel: 0 });
 table('10 LEVELS ABOVE YOU, 50 talent points (a maxed class)', { talentPoints: 50, overLevel: 10 });
+
+// ------------------------------------------------------------
+// Two classes keep their power somewhere the combat and economy indices
+// cannot see it, and reporting them at 0.9x without saying so would be a
+// lie by omission — it reads as "these are weak" when it means "this
+// model does not measure what they do".
+console.log('POWER THE INDICES ABOVE CANNOT SEE\n');
+console.log('  class          companion  adventure   what the index is missing');
+for (const c of Object.values(CLS)) {
+  const p = profile(c, { talentPoints: 50, overLevel: 0 });
+  if (p.petAmp <= 1.001 && p.adventure <= 1.001) continue;
+  const note = p.petAmp > 1.001 && p.adventure > 1.001 ? 'both'
+    : p.petAmp > 1.001
+      ? 'every pet bonus in the game, multiplied'
+      : 'the whole Adventure loop: sooner, richer, kinder';
+  console.log('  ' + c.name.padEnd(14) +
+    (p.petAmp.toFixed(2) + 'x').padStart(9) + '  ' +
+    (p.adventure.toFixed(2) + 'x').padStart(9) + '   ' + note);
+}
+console.log('\n  A maxed Beastmaster with an Elder legendary is multiplying a bonus');
+console.log('  that is already the largest single number a pet can produce.');
+console.log('  A maxed Wanderer sees roughly twice as many encounters, each worth');
+console.log('  roughly twice as much. Neither shows up as DPS and neither should.\n');

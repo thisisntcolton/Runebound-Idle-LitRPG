@@ -13,6 +13,9 @@ import { tickCodex } from '../systems/codex.js';
 import { tickEncounters } from '../systems/encounters.js';
 import { tickSalvage } from '../systems/salvage.js';
 import { tickRepo } from '../systems/repo.js';
+import { tickLedger } from '../systems/ledger.js';
+import { tickBoss } from '../systems/worldboss.js';
+import { tickAdventure } from '../systems/adventure.js';
 import { emit } from './events.js';
 
 let buffSweep = 0;
@@ -41,6 +44,9 @@ export function startLoop() {
     tickPets(dt);
     tickCodex(dt);
     tickSalvage(dt);
+    tickLedger(dt);
+    tickBoss(dt);
+    tickAdventure(dt);
     npcSweep += dt;
     if (npcSweep > 4000) { npcSweep = 0; tickNpcs(); tickEncounters(); tickRepo(); }
     buffSweep += dt;

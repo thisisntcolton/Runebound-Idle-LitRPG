@@ -4,7 +4,8 @@
 import { state, charLevel, maxHp, combatLevel } from '../core/state.js';
 import { CLASSES, CLASS_LIST, getClass, CLASS_UNLOCK_LEVEL, SIGNATURE } from '../data/classes.js';
 import { TREES, treeFor, nodeById, CLASS_LEVEL_CURVE, MAX_CLASS_LEVEL,
-         POINTS_PER_LEVEL, TIERS, tierInfo } from '../data/talents.js';
+         POINTS_PER_LEVEL, TIERS, tierInfo, MASTERIES, masteryFor,
+         capstoneNode } from '../data/talents.js';
 import { emit, on } from '../core/events.js';
 
 let hooks = { queueModal: () => {}, popup: () => {} };
@@ -58,17 +59,32 @@ export function rankOf(nodeId, id = state.classId) {
   return classProgress(id)?.spent?.[nodeId] || 0;
 }
 
-export function tierUnlocked(tier, id = state.classId) {
+/**
+ * Why a tier is or is not open. Two independent gates: class level, and —
+ * for the Ascendant tier — the era. Returned as a reason rather than a
+ * bare boolean so the panel can say which wall you are standing at.
+ */
+export function tierGate(tier, id = state.classId) {
   const t = tierInfo(tier);
-  return !!t && classLevel(id) >= t.atClassLevel;
+  if (!t) return { open: false, why: 'No such tier.' };
+  if (t.era && (state.era || 1) < t.era) {
+    return { open: false, era: true, why: 'Sealed. Nothing in the sandbox opens this.' };
+  }
+  if (classLevel(id) < t.atClassLevel) {
+    return { open: false, why: `Unlocks at class level ${t.atClassLevel}.` };
+  }
+  return { open: true, why: '' };
+}
+
+export function tierUnlocked(tier, id = state.classId) {
+  return tierGate(tier, id).open;
 }
 
 export function canBuy(nodeId, id = state.classId) {
   const node = nodeById(id, nodeId);
   if (!node) return { ok: false, why: 'No such talent.' };
-  if (!tierUnlocked(node.tier, id)) {
-    return { ok: false, why: `Unlocks at class level ${tierInfo(node.tier).atClassLevel}.` };
-  }
+  const gate = tierGate(node.tier, id);
+  if (!gate.open) return { ok: false, why: gate.why };
   const rank = rankOf(nodeId, id);
   if (rank >= node.max) return { ok: false, why: 'Already maxed.' };
   if (talentPoints(id).free < node.cost) return { ok: false, why: `Costs ${node.cost} point${node.cost === 1 ? '' : 's'}.` };
@@ -84,8 +100,72 @@ export function buyTalent(nodeId, id = state.classId) {
   p.pointsUsed = (p.pointsUsed || 0) + node.cost;
   emit('notify', { type: 'sys', text: `${node.icon} ${node.name} ${p.spent[nodeId]}/${node.max}` });
   emit('talent-bought', { classId: id, nodeId });
+  // Capping the tree earns the Mastery. Announced loudly, because it is the
+  // only thing in the game that is genuinely yours no matter what happens next.
+  if (node.tier === 5) awardMastery(id);
   emit('state-changed');
   return true;
+}
+
+// ---------------- Masteries ----------------
+//
+// Earned by owning a class's tier-5 capstone. Derived from classProgress
+// rather than stored separately, so there is exactly one source of truth
+// and no way for a save migration to lose it.
+
+export function hasMastery(id) {
+  const node = capstoneNode(id);
+  if (!node) return false;
+  return (state.classProgress?.[id]?.spent?.[node.id] || 0) > 0;
+}
+
+export function masteredClasses() {
+  return Object.keys(MASTERIES).filter(hasMastery);
+}
+
+/**
+ * Sum of every earned Mastery's contribution to one bonus key.
+ *
+ * A Mastery does NOT stack with the class it came from. While you are
+ * actually walking that path you have the whole tree, which is strictly
+ * more; the Mastery is the floor underneath it, not a bonus on top. Left
+ * stacking, a capped Artisan would have had three extra staff slots and
+ * every card describing the class would have been wrong.
+ */
+export function masteryBonus(key) {
+  let total = 0;
+  for (const id of masteredClasses()) {
+    if (id === state.classId) continue;
+    const m = MASTERIES[id];
+    if (m?.bonus?.[key]) total += m.bonus[key];
+  }
+  return total;
+}
+
+function awardMastery(id) {
+  const m = masteryFor(id);
+  if (!m) return;
+  const p = classProgress(id);
+  if (p.masteredAt) return;      // announce once, ever
+  p.masteredAt = Date.now();
+  emit('notify', { type: 'loot', text: `${m.icon} MASTERY: ${m.name} — ${m.desc}` });
+  hooks.popup('MASTERY EARNED',
+    `${m.icon} <b>${m.name}</b><br>${m.desc}` +
+    `<br><span style="font-size:12px;color:var(--text-dim);font-style:italic">${m.flavour}</span>`,
+    { gold: true, ttl: 10 });
+  emit('mastery-earned', { classId: id, mastery: m });
+}
+
+/**
+ * Retro-grant for saves made before Masteries existed, and a safety net
+ * for any path that writes classProgress without going through buyTalent.
+ * Silent: nobody wants five popups on load.
+ */
+export function syncMasteries() {
+  for (const id of masteredClasses()) {
+    const p = classProgress(id);
+    if (!p.masteredAt) p.masteredAt = 1;
+  }
 }
 
 /** Sum of every talent's contribution to one bonus key. */
@@ -146,11 +226,16 @@ export function classPending() {
  * The one hook the multiplier chain reads.
  * Returns 0 for anything the current class does not touch, which is how
  * the Artisan ends up with literally no combat presence.
+ *
+ * Note the order: Masteries are added even when there is NO current class.
+ * The old version short-circuited to 0 on a null classId, and since
+ * Ascension is precisely the thing that nulls it, every permanent bonus
+ * silently stopped applying the moment it was supposed to matter most.
  */
 export function classBonus(key) {
   const cls = currentClass();
-  if (!cls) return 0;
-  return (cls.passive[key] || 0) + talentBonus(key);
+  const active = cls ? (cls.passive[key] || 0) + talentBonus(key) : 0;
+  return active + masteryBonus(key);
 }
 
 export function chooseClass(id, { silent = false } = {}) {
@@ -226,18 +311,29 @@ export function overLevelGap(monster) {
   return Math.max(0, Math.min(SIGNATURE.OVERLEVEL_CAP, theirs - mine));
 }
 
+/**
+ * The Ascendant node raises the ceiling rather than removing it. An
+ * uncapped per-level rate is exactly the bug that made a maxed Priest
+ * 572x a classless one; a bigger number is fine, an unbounded one is not.
+ */
+function overLevelCaps() {
+  return hasTalentFlag('past_ceiling')
+    ? { dmg: SIGNATURE.OVERLEVEL_ASCENDANT_DAMAGE, loot: SIGNATURE.OVERLEVEL_ASCENDANT_LOOT }
+    : { dmg: SIGNATURE.OVERLEVEL_MAX_DAMAGE, loot: SIGNATURE.OVERLEVEL_MAX_LOOT };
+}
+
 /** Damage multiplier from punching above your weight. 1 when it isn't. */
 export function overLevelDamageMult(monster) {
   const per = classBonus('overlevel_damage');
   if (per <= 0) return 1;
-  return Math.min(SIGNATURE.OVERLEVEL_MAX_DAMAGE, 1 + per * overLevelGap(monster));
+  return Math.min(overLevelCaps().dmg, 1 + per * overLevelGap(monster));
 }
 
 /** Loot/gold multiplier for the same. */
 export function overLevelLootMult(monster) {
   const per = classBonus('overlevel_loot');
   if (per <= 0) return 1;
-  return Math.min(SIGNATURE.OVERLEVEL_MAX_LOOT, 1 + per * overLevelGap(monster));
+  return Math.min(overLevelCaps().loot, 1 + per * overLevelGap(monster));
 }
 
 // ---------------- Signatures ----------------
@@ -331,15 +427,24 @@ export function mendOnKill() {
 /** Priest capstone: zone combat-level requirements stop applying. */
 export function ignoresZoneGate() { return hasTalentFlag('no_ceiling'); }
 
-/** Artisan capstone: a second extra staff slot. */
+/**
+ * Every source of extra staff slots, in one number.
+ *
+ * This used to add the Whole Valley slot on top of classBonus, and then
+ * nothing called it — the town read classBonus('staff_slots') directly and
+ * the capstone slot never existed. The capstone node now carries the slot
+ * as an ordinary bonus, so there is one path and it is the one the town
+ * already uses.
+ */
 export function extraStaffSlots() {
-  return classBonus('staff_slots') + (hasTalentFlag('whole_valley') ? 1 : 0);
+  return classBonus('staff_slots');
 }
 
 /** Artisan capstone: the town keeps working at half rate while you're away. */
 export function offlineTownRate() { return hasTalentFlag('whole_valley') ? 0.5 : 0; }
 
 export function initClasses() {
+  syncMasteries();
   // A fresh cycle clears the choice so it can be made again.
   on('ascended', () => {
     state.classId = null;

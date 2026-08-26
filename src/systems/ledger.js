@@ -15,7 +15,7 @@
 // clearing it is a genuine Era II goal with a real reward.
 // ============================================================
 import { state } from '../core/state.js';
-import { emit, on } from '../core/events.js';
+import { emit } from '../core/events.js';
 import { fmt } from '../core/format.js';
 
 let hooks = { queueModal: () => {}, popup: () => {} };
@@ -33,6 +33,20 @@ export const LEDGER = {
   OF_LIFETIME_GOLD: 0.02,
   GARNISH: 0.20,          // share of gold income diverted to the balance
   SETTLED_BONUS: 0.10,    // permanent gold bonus once cleared
+
+  // How long the reveal gets before the bill lands.
+  //
+  // The Ledger used to open the instant you set foot outside, which put
+  // the punchline on top of the reveal and flattened both: you had roughly
+  // ninety seconds to feel like you had escaped before the System started
+  // charging you for the escape. Ninety MINUTES of actual play out here is
+  // enough to see the sky, meet the Wastes, dig something up and start
+  // believing you got away with it — which is the feeling the bill is
+  // supposed to interrupt.
+  //
+  // Counted in ticked time, not wall clock: closing the game for a week
+  // should not pay off your grace period.
+  GRACE_MS: 90 * 60 * 1000,
 };
 
 /** What the System says you owe. Split out so the sim can call it too. */
@@ -43,13 +57,23 @@ export function assessmentFor(cycles, lifetimeGold) {
 
 export function ledger() {
   if (!state.ledger) {
-    state.ledger = { assessed: 0, balance: 0, paid: 0, settled: false, openedAt: 0 };
+    state.ledger = { assessed: 0, balance: 0, paid: 0, settled: false, openedAt: 0, graceMs: 0 };
   }
+  if (state.ledger.graceMs === undefined) state.ledger.graceMs = 0;
   return state.ledger;
 }
 
 export function unlocked() { return (state.era || 1) >= 2; }
 export function isOpen() { return unlocked() && !ledger().settled && ledger().balance > 0; }
+
+/** Out in the Wastes, unbilled, and counting down to being billed. */
+export function inGrace() {
+  return unlocked() && !ledger().openedAt;
+}
+
+export function graceRemaining() {
+  return Math.max(0, LEDGER.GRACE_MS - (ledger().graceMs || 0));
+}
 
 /** Raise the assessment the first time you set foot in the Wastes. */
 export function openLedger() {
@@ -151,26 +175,52 @@ export function ledgerBonus(key) {
   return ledger().settled ? LEDGER.SETTLED_BONUS : 0;
 }
 
+// ---------------- The grace period ----------------
+//
+// Three lines, at a quarter, three-fifths and nine-tenths of the way
+// through. The System is not warning you. It is doing arithmetic near
+// you, which is worse.
+
+const FORESHADOW = [
+  { at: 0.25, text: '[ SYSTEM ] Reconciling unit HEARTHWICK_SANDBOX_04 against operator record. Stand by.' },
+  { at: 0.60, text: '[ SYSTEM ] Query returned 4 lifetimes. Cost centre unresolved. Escalating.' },
+  { at: 0.90, text: '[ SYSTEM ] Cost centre resolved. Preparing statement of account.' },
+];
+
 /**
- * Assess on boot if we are in the Wastes and never have been.
+ * Advance the grace period and open the Ledger when it runs out.
  *
- * The transition calls openLedger too, but that only covers the single
- * moment of breaking out. Anyone loading a save already in Era II — which
- * is every session after the first — would otherwise never be billed.
+ * The transition into the Wastes no longer opens it directly, and neither
+ * does boot; both simply start the clock. Anyone loading a save already in
+ * Era II picks up wherever they left off, which is the behaviour that was
+ * missing when this only fired on the single moment of breaking out.
  */
+export function tickLedger(dt) {
+  if (!inGrace()) return;
+  const l = ledger();
+  l.graceMs = (l.graceMs || 0) + dt;
+
+  const frac = l.graceMs / LEDGER.GRACE_MS;
+  for (let i = 0; i < FORESHADOW.length; i++) {
+    if (frac >= FORESHADOW[i].at && !(l.foreshadowed >= i + 1)) {
+      l.foreshadowed = i + 1;
+      emit('notify', { type: 'sys', text: FORESHADOW[i].text });
+    }
+  }
+  if (l.graceMs >= LEDGER.GRACE_MS) openLedger();
+}
+
 export function initLedger() {
   ledger();
-  if (unlocked() && !ledger().openedAt) openLedger();
-  // Also catch the moment of breaking out, which happens long after boot.
-  on('era-changed', () => {
-    if (unlocked() && !ledger().openedAt) openLedger();
-  });
 }
 
 export function ledgerView() {
   const l = ledger();
   return {
     open: isOpen(),
+    pending: inGrace(),
+    graceLeft: graceRemaining(),
+    graceProgress: Math.min(1, (l.graceMs || 0) / LEDGER.GRACE_MS),
     settled: !!l.settled,
     assessed: l.assessed || 0,
     balance: Math.max(0, l.balance || 0),

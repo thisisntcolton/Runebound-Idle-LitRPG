@@ -129,6 +129,155 @@ export const SPECIES = {
     palette: { body: '#b8543f', belly: '#e8b45a', accent: '#7a2f24', eye: '#ffd97a' },
     idleLines: ['is hoarding your buttons. All of them.', 'set a small, apologetic fire.', 'attempted a roar. It came out as a hiccup.'],
   },
+
+  // ============================================================
+  // THE WIDER MENAGERIE
+  //
+  // Five species meant five bonuses, and three of those were "a
+  // percentage of something you already had a percentage of". Ten more
+  // fixes the roster in two ways: there is now a pet for every way of
+  // playing — a gatherer's bird, a crafter's beetle, a tank's axolotl —
+  // and the rarity ladder has enough rungs that a common egg is a
+  // genuine roll rather than a coin flip between a cat and a dog.
+  //
+  // Each of these declares a `build` instead of bespoke artwork. The five
+  // originals are hand-drawn; these are assembled from body plans in
+  // ui/petart.js, which is the difference between ten species and ten
+  // afternoons. A plan plus a palette plus three feature flags reads as a
+  // distinct animal at portrait size, which is the only size they are
+  // ever seen at.
+  // ============================================================
+
+  // ---- common ----
+  sparrow: {
+    id: 'sparrow', name: 'Hearth Sparrow', rarity: 'common', icon: '🐦',
+    eggName: 'Thatch Egg', eggIcon: '🥚',
+    blurb: 'Nests in the eaves of whatever you have most recently built. Supervises.',
+    desc: 'Follows you to the treeline and back and somehow the work goes quicker.',
+    bonus: { key: 'gather_speed', perLevel: 0.003, label: 'gathering speed' },
+    likes: ['wheat', 'root_veg', 'bread', 'herb_sagewort'],
+    hatchMs: 18 * 60 * 1000,
+    palette: { body: '#a9764a', belly: '#e8d6b4', accent: '#5e3e26', eye: '#2a2a33' },
+    build: { plan: 'bird', crest: false, tailFan: true },
+    idleLines: ['has taken a piece of your roof for its nest.', 'is shouting at nothing in particular.', 'landed on your head and stayed there.'],
+  },
+  mouse: {
+    id: 'mouse', name: 'Pocket Mouse', rarity: 'common', icon: '🐁',
+    eggName: 'Pebble Egg', eggIcon: '🥚',
+    blurb: 'Lives in a pocket. Not always the same pocket, and not always yours.',
+    desc: 'Comes back with more than it left with. Nobody has established how.',
+    bonus: { key: 'double_chance', perLevel: 0.0025, label: 'double yield chance' },
+    likes: ['wheat', 'bread', 'root_veg', 'shrimp'],
+    hatchMs: 18 * 60 * 1000,
+    palette: { body: '#9c9aa4', belly: '#e2dfe8', accent: '#f0a8b8', eye: '#2a2a33' },
+    build: { plan: 'quadruped', ears: 'round', tail: 'thin', small: true },
+    idleLines: ['has hoarded eleven identical pebbles.', 'is asleep in a boot.', 'stole a crumb it did not need and looked at you while doing it.'],
+  },
+  beetle: {
+    id: 'beetle', name: 'Coin Beetle', rarity: 'common', icon: '🪲',
+    eggName: 'Lacquered Case', eggIcon: '🟤',
+    blurb: 'Its shell is the exact colour of a coin that has been in circulation too long.',
+    desc: 'Merchants find it hard to argue with something that is watching them like that.',
+    bonus: { key: 'sell_price', perLevel: 0.003, label: 'sell price' },
+    likes: ['oak_log', 'willow_log', 'herb_mooncap', 'root_veg'],
+    hatchMs: 22 * 60 * 1000,
+    palette: { body: '#8a6b2f', belly: '#c9a24a', accent: '#5a4520', eye: '#f2d68a' },
+    build: { plan: 'insect', shell: true, antennae: true },
+    idleLines: ['has rolled a coin into a corner and is sitting on it.', 'clicks twice whenever you are being overcharged.', 'is upside down again.'],
+  },
+
+  // ---- rare ----
+  owl: {
+    id: 'owl', name: 'Ledger Owl', rarity: 'rare', icon: '🦉',
+    eggName: 'Vellum Egg', eggIcon: '🫧',
+    blurb: 'Ferrin swears it reads over his shoulder. Ferrin is correct.',
+    desc: 'Watches you work and, somehow, you notice more of what you are doing.',
+    bonus: { key: 'xp', perLevel: 0.0045, label: 'all XP' },
+    likes: ['raw_trout', 'raw_salmon', 'herb_mooncap', 'herb_voidbloom'],
+    hatchMs: 50 * 60 * 1000,
+    palette: { body: '#7a6a58', belly: '#ddd0bc', accent: '#4a3f34', eye: '#f5c542' },
+    build: { plan: 'bird', crest: true, tailFan: false, bigEyes: true },
+    idleLines: ['has rotated its head further than seems structurally advisable.', 'is judging your inventory management.', 'brought back a page from something. It is numbered 4,412.'],
+  },
+  fox: {
+    id: 'fox', name: 'Ashfox', rarity: 'rare', icon: '🦊',
+    eggName: 'Cinder Egg', eggIcon: '🔥',
+    blurb: 'Turns up after a fire, sits in the warm part, and will not be moved.',
+    desc: 'Finds the good thing in the wreckage before anybody else has stopped coughing.',
+    bonus: { key: 'drop_rate', perLevel: 0.0055, label: 'rare drop rate' },
+    likes: ['raw_lobster', 'lobster', 'leviathan_steak', 'ember_stew'],
+    hatchMs: 55 * 60 * 1000,
+    palette: { body: '#c2673a', belly: '#efdcc4', accent: '#7a3a22', eye: '#8fdb6a' },
+    build: { plan: 'quadruped', ears: 'pointed', tail: 'bushy' },
+    idleLines: ['has buried something and forgotten where.', 'is sitting exactly where the fire was.', 'stared at the treeline for four minutes without blinking.'],
+  },
+  axolotl: {
+    id: 'axolotl', name: 'Sump Axolotl', rarity: 'rare', icon: '🦎',
+    eggName: 'Gelid Cluster', eggIcon: '🫧',
+    blurb: 'Came up out of the standing water under the old builds. Perpetually delighted.',
+    desc: 'Regrows things. Being near one, so do you, a bit.',
+    bonus: { key: 'maxhp', perLevel: 0.005, label: 'maximum health' },
+    likes: ['raw_shrimp', 'raw_glasseel', 'herb_nullbud', 'silkleaf'],
+    hatchMs: 55 * 60 * 1000,
+    palette: { body: '#e8a0b4', belly: '#f8dde4', accent: '#c96f88', eye: '#2a2a33' },
+    build: { plan: 'serpent', frills: true, legs: true },
+    idleLines: ['is smiling. It is always smiling. It has no choice.', 'regrew a limb overnight and seems unbothered.', 'is standing on the bottom of the bucket, thinking.'],
+  },
+
+  // ---- epic ----
+  moth: {
+    id: 'moth', name: 'Lanternmoth', rarity: 'epic', icon: '🦋',
+    eggName: 'Silk Bundle', eggIcon: '🕸️',
+    blurb: 'Its wings hold a light that does not come from anywhere. Vera has checked.',
+    desc: 'Things swing at where the light is. The light is not quite where you are.',
+    bonus: { key: 'dr', perLevel: 0.0035, label: 'damage reduction' },
+    likes: ['herb_emberpetal', 'herb_voidbloom', 'herb_dawnthistle', 'silkleaf'],
+    hatchMs: 100 * 60 * 1000,
+    palette: { body: '#8f7fc4', belly: '#ded4f5', accent: '#5b4d8a', eye: '#ffd97a' },
+    build: { plan: 'insect', wings: true, antennae: true, glow: true },
+    idleLines: ['is throwing a shadow in the wrong direction.', 'has settled on the lamp and dimmed it.', 'left dust on everything. The dust is faintly warm.'],
+  },
+  stag: {
+    id: 'stag', name: 'Worldroot Stag', rarity: 'epic', icon: '🦌',
+    eggName: 'Bark-Wrapped Egg', eggIcon: '🌰',
+    blurb: 'Its antlers are growing. Not the way antlers grow — the way roots do.',
+    desc: 'Walks the ground ahead of you and the ground is better for it.',
+    bonus: { key: 'gather_speed', perLevel: 0.004, label: 'gathering speed',
+             second: { key: 'xp', perLevel: 0.004, label: 'all XP' } },
+    likes: ['maple_log', 'yew_log', 'heartwood_log', 'moon_gourd'],
+    hatchMs: 110 * 60 * 1000,
+    palette: { body: '#6b5a3c', belly: '#c8b995', accent: '#3f7a4a', eye: '#f2d68a' },
+    build: { plan: 'quadruped', ears: 'pointed', tail: 'thin', horns: 'branching', tall: true },
+    idleLines: ['has put down roots. Literally. You will need a spade.', 'is standing perfectly still where a tree used to be.', 'shed an antler. It sprouted.'],
+  },
+
+  // ---- legendary ----
+  serpent: {
+    id: 'serpent', name: 'Seam Serpent', rarity: 'legendary', icon: '🐍',
+    eggName: 'Hairline Egg', eggIcon: '⚡',
+    blurb: 'Found coiled in the join where two identical skies were fitted together.',
+    desc: 'It goes into the seam and comes out somewhere else with something in its mouth.',
+    bonus: { key: 'damage', perLevel: 0.006, label: 'damage',
+             second: { key: 'drop_rate', perLevel: 0.005, label: 'rare drop rate' } },
+    likes: ['raw_kraken', 'kraken_platter', 'null_rune', 'void_rune'],
+    hatchMs: 3.5 * 60 * 60 * 1000,
+    palette: { body: '#3f6b8a', belly: '#a8d4e8', accent: '#7ee0ff', eye: '#ffd97a' },
+    build: { plan: 'serpent', frills: false, legs: false, spark: true },
+    idleLines: ['went into the wall. It has not come out of the wall.', 'is eating something that is not from here.', 'shed a skin with somebody else\'s markings on it.'],
+  },
+  familiar: {
+    id: 'familiar', name: 'Orphaned Familiar', rarity: 'legendary', icon: '👁️',
+    eggName: 'Unindexed Object', eggIcon: '⬛',
+    blurb: 'It was somebody\'s. The record of whose is one of the things that was thrown away.',
+    desc: 'It knows the work. It does not know who taught it, and neither do you.',
+    bonus: { key: 'xp', perLevel: 0.0055, label: 'all XP',
+             second: { key: 'gold', perLevel: 0.0055, label: 'gold' } },
+    likes: ['scrap_code', 'orphaned_shard', 'deprecated_asset', 'prime_essence'],
+    hatchMs: 4 * 60 * 60 * 1000,
+    palette: { body: '#2f3a52', belly: '#5a6a8f', accent: '#7ee0ff', eye: '#ffffff' },
+    build: { plan: 'blob', eyes: 3, drift: true, glow: true },
+    idleLines: ['performed a trick nobody taught it and looked for praise from a direction you are not standing in.', 'is doing a task. There is no task.', 'answered to a name you have not used.'],
+  },
 };
 
 export const SPECIES_LIST = Object.values(SPECIES);

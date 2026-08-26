@@ -161,6 +161,108 @@ export const CLASSES = {
     ],
     penalty: 'Nothing at all for combat. Not damage, not accuracy, not health. Nothing.',
   },
+
+  // ============================================================
+  // THE SECOND THREE
+  //
+  // Five classes covered two ways of hitting things, one way of not
+  // dying, and one way of not fighting at all. Three obvious identities
+  // were missing, and each of them is a system the game already has that
+  // no class had ever looked at:
+  //
+  //   Nothing was built around TAKING a hit. Every class either avoided
+  //   damage or out-raced it. The Warden is the first one that wants to
+  //   be hit, which is a real strategy against anything with a health
+  //   pool measured in minutes.
+  //
+  //   Nothing looked at the MENAGERIE. Fifteen species, a whole care and
+  //   breeding loop, and not one class that cared whether you had a pet.
+  //
+  //   Nothing looked at the ROAD. The Wanderer exists because Adventure
+  //   does, and a system with no class attached to it reads as a side
+  //   feature rather than a third way to play.
+  // ============================================================
+
+  warden: {
+    id: 'warden', name: 'Warden', icon: '🛡️', school: 'physical',
+    tagline: 'Stand in front of it. Keep standing in front of it.',
+    blurb: `Holt trained you, in the sense that Holt stood next to you for a year and
+            occasionally said "no". You have never won a fight quickly. You have
+            never lost one either.<br><br>
+            The trick, as far as anyone can tell, is that you simply do not move.`,
+    passive: {
+      maxhp: 0.55,
+      dr: 0.30,
+      thorns: 0.25,           // signature: a share of every blow goes back
+      damage: -0.10,
+      attack_speed: -0.10,
+    },
+    signature: {
+      name: 'Hold the Line', icon: '⛨',
+      desc: 'A quarter of every blow that lands on you is returned to whatever threw it.',
+    },
+    effects: [
+      '+55% maximum health',
+      '+30% damage reduction',
+      '25% of all damage you take is reflected back',
+      'Nothing you fight gets to walk away from a long fight',
+    ],
+    penalty: '-10% damage and -10% attack speed. You will be here a while. That is the plan.',
+  },
+
+  beastmaster: {
+    id: 'beastmaster', name: 'Beastmaster', icon: '🐾', school: 'wild',
+    tagline: 'You are not the dangerous one in this arrangement.',
+    blurb: `You have never been the strongest thing in a fight you were in, and you
+            have stopped finding that troubling.<br><br>
+            Whatever is walking with you today learned its job from you, and has
+            improved on it.`,
+    passive: {
+      pet_amp: 1.00,          // signature: your companion is twice the pet
+      pet_damage: 0.35,       // and it fights
+      drop_rate: 0.20,
+      xp: 0.10,
+      dr: -0.10,
+    },
+    signature: {
+      name: 'The Pack', icon: '🐺',
+      desc: 'Your companion helps twice as much as it would for anyone else, and fights beside you for a share of your damage.',
+    },
+    effects: [
+      'Your active pet\'s bonus is DOUBLED',
+      'Your pet adds 35% of your damage on every swing',
+      '+20% rare drop rate, +10% all XP',
+      'Every species is worth playing; the roster is the build',
+    ],
+    penalty: '-10% damage reduction, and every one of these numbers is zero if you have no pet with you or it is miserable.',
+  },
+
+  wanderer: {
+    id: 'wanderer', name: 'Wanderer', icon: '🧭', school: 'wild',
+    tagline: 'The road is the point. The destination keeps moving anyway.',
+    blurb: `Quill has nine roads mapped and all nine come back. You have walked all
+            nine and you disagree, and you cannot say why, and you keep going out.<br><br>
+            Things happen to you that do not happen to people who stay in.`,
+    passive: {
+      adventure_speed: 0.40,   // signature: the road moves under you
+      adventure_reward: 0.35,
+      drop_rate: 0.25,
+      gold: 0.20,
+      gather_speed: 0.15,
+      maxhp: -0.10,
+    },
+    signature: {
+      name: 'Far Roads', icon: '🌄',
+      desc: 'Encounters find you 40% sooner and pay 35% better. What the road gives you, it gives you more of.',
+    },
+    effects: [
+      '+40% faster Adventure encounters',
+      '+35% from every Adventure outcome',
+      '+25% rare drop rate, +20% gold',
+      '+15% gathering speed — you pick things up on the way',
+    ],
+    penalty: '-10% maximum health. Nothing about this build wants a long fight.',
+  },
 };
 
 export const CLASS_LIST = Object.values(CLASSES);
@@ -170,6 +272,7 @@ export const SCHOOLS = {
   physical: { id: 'physical', name: 'Physical', icon: '⚔️', desc: 'Weapon damage, speed and spoils.' },
   magical:  { id: 'magical',  name: 'Magical',  icon: '🔯', desc: 'Scaling power and staying power, bought with fragility or patience.' },
   craft:    { id: 'craft',    name: 'Craft',    icon: '⚒️', desc: 'No combat power whatsoever, and the best economy in the game.' },
+  wild:     { id: 'wild',     name: 'Wild',     icon: '🌿', desc: 'Company kept and roads walked. Power that comes from somewhere other than you.' },
 };
 
 // Signature tuning, kept out of the prose above so it is tweakable in one place.
@@ -191,5 +294,8 @@ export const SIGNATURE = {
   // number: at most +150% damage and +100% loot, however deep you go.
   OVERLEVEL_MAX_DAMAGE: 2.5,
   OVERLEVEL_MAX_LOOT: 2.0,
+  // Raised, not removed, by the Priest's Ascendant node.
+  OVERLEVEL_ASCENDANT_DAMAGE: 4.0,
+  OVERLEVEL_ASCENDANT_LOOT: 3.0,
   EXECUTE_THRESHOLD: 0.20,   // Rogue capstone
 };

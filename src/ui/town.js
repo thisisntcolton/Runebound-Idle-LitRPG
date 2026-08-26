@@ -11,12 +11,28 @@ import { townLevel, plotsAvailable, buildingUnlocked, plotReport, plotStaff,
          staffSlotsFor, discounted } from '../systems/town.js';
 import { grassBackdrop, paths, tree, lamp, signpost, emptyPlot, lockedPlot,
          forSalePlot, buildingArt, staffFigures, townsfolk, notableFigure } from './townart.js';
-import { WANDERER_LOOKS, NOTABLES } from '../data/npcs.js';
+import { WANDERER_LOOKS, NOTABLES, VILLAGER_NAMES, VILLAGER_TRADES,
+         VILLAGER_ERRANDS } from '../data/npcs.js';
+import { SKIN, HAIR_COLOR, CLOTH_COLOR, HAIR_STYLES, BUILDS,
+         randomLook } from '../data/appearance.js';
 import { population, residents, pendingVisitor, getVisitorDef, buildingCount } from '../systems/npcs.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 import { encounterView } from '../systems/encounters.js';
 
 export const townUI = { selectedPlot: null, tab: 'build' };
+
+/**
+ * Everything the villager renderer needs to build a stable cast.
+ *
+ * The residents are drawn from the SAME palettes and the same randomLook()
+ * the player's own character uses, which is the point: a townsperson is a
+ * person made the way you were made, not a differently-coloured rectangle.
+ */
+const VILLAGE_PALETTES = {
+  SKIN, HAIR_COLOR, CLOTH_COLOR, HAIR_STYLES, BUILDS,
+  NAMES: VILLAGER_NAMES, TRADES: VILLAGER_TRADES, ERRANDS: VILLAGER_ERRANDS,
+  look: randomLook,
+};
 
 /**
  * The encounter banner. Sits above the map because it is time-limited and
@@ -122,7 +138,7 @@ function townMap() {
       ${lamp(322, 236)} ${lamp(622, 236)} ${lamp(322, 420)} ${lamp(622, 420)}
       ${signpost(480, 34, esc(state.town.name || 'Hearthwick'))}
       ${state.town.plots.map((_, i) => plotSvg(i)).join('')}
-      ${townsfolk(population(), WANDERER_LOOKS)}
+      ${townsfolk(population(), VILLAGE_PALETTES, state.town.name || 'Hearthwick')}
       ${residents().map((n, i) => {
         // stand them along the two vertical roads, clear of the parcels
         const spots = [[322,140],[622,200],[322,330],[622,380],[322,545],[622,545]];

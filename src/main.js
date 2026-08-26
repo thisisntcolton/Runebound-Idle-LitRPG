@@ -16,10 +16,29 @@ import { initCodex } from './systems/codex.js';
 import { initClasses, classBonus, setClassUIHooks } from './systems/classes.js';
 import { initEncounters } from './systems/encounters.js';
 import { initSalvage, setSalvageUIHooks } from './systems/salvage.js';
-import { initRepo, setRepoUIHooks } from './systems/repo.js';
+import { initRepo, setRepoUIHooks, repoPenalty } from './systems/repo.js';
+import { initDeep, setDeepUIHooks, deepBonus } from './systems/deep.js';
+import { initSkills, setSkillUIHooks } from './systems/skills.js';
+import { initCombat } from './systems/combat.js';
+import { initAdventure, setAdventureUIHooks } from './systems/adventure.js';
+import { initBoss, setBossUIHooks, bossBonus } from './systems/worldboss.js';
+import { abilityBonus } from './systems/abilities.js';
 import { setLedgerUIHooks, ledgerBonus, initLedger } from './systems/ledger.js';
-import { registerTownBuff, registerPetBonus, registerClassBonus, registerLedgerBonus } from './core/state.js';
+import { registerTownBuff, registerPetBonus, registerClassBonus, registerLedgerBonus,
+         registerRepoPenalty, registerDeepBonus, registerBossBonus,
+         registerAbilityBonus } from './core/state.js';
 import { emit } from './core/events.js';
+import { buildLabel, buildInfo } from './core/build.js';
+
+// Before anything else, say what this page is. If a deploy ever goes
+// sideways again, the answer is on screen and in the console rather than
+// inferred from a dashboard.
+{
+  const stamp = document.getElementById('build-stamp');
+  if (stamp) stamp.textContent = buildLabel();
+  window.__RUNEBOUND_BUILD__ = buildInfo();
+  console.info('[Runebound] build', buildLabel(), buildInfo());
+}
 
 const hadSave = load();
 
@@ -37,6 +56,10 @@ registerPetBonus(petBonus);
 // panel reads a derived stat off it.
 registerClassBonus(classBonus);
 registerLedgerBonus(ledgerBonus);
+registerRepoPenalty(repoPenalty);
+registerDeepBonus(deepBonus);
+registerBossBonus(bossBonus);
+registerAbilityBonus(abilityBonus);
 
 initNotifications();
 initRenderer();
@@ -48,12 +71,21 @@ setClassUIHooks({ queueModal: showOfflineModalQueue, popup });
 setSalvageUIHooks({ queueModal: showOfflineModalQueue, popup });
 setRepoUIHooks({ queueModal: showOfflineModalQueue, popup });
 setLedgerUIHooks({ queueModal: showOfflineModalQueue, popup });
+setDeepUIHooks({ queueModal: showOfflineModalQueue, popup });
+setBossUIHooks({ queueModal: showOfflineModalQueue, popup });
+setSkillUIHooks({ queueModal: showOfflineModalQueue });
+setAdventureUIHooks({ queueModal: showOfflineModalQueue, popup });
 initAchievements();
 initCodex();
 initClasses();
 initEncounters();
 initSalvage();
 initRepo();
+initDeep();
+initBoss();
+initSkills();
+initCombat();
+initAdventure();
 initLedger();
 
 // Offline progress (counts toward quests via events)

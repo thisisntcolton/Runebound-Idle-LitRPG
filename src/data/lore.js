@@ -244,6 +244,14 @@ export const ENDING = {
     with no soil under it.<br><br>
     Hearthwick came with you. All of it, on a slab of whatever the world was standing on.
     Marrow is already outside with a stone in his hands, looking for somewhere to lay it.<br><br>
+    The ground here is full of things. Not ore — <i>things</i>, other people's, buried,
+    sealed, written shut, welded closed. Pell gets a bar under the first one within the hour
+    and finds that it comes up exactly the way a seam of mythril comes up, because it is the
+    same job, because it was always the same job.<br><br>
+    <span style="color:var(--sys-blue)"><b>Nothing out here is opened by fighting, and nothing
+    out here needs a new skill.</b> Buried ground answers to Mining. Locks answer to Thieving.
+    The written shapes answer to Runecrafting. Welded metal answers to Smithing. Every hour you
+    ever put into a skill you thought was finished is a key, and this is what it was for.</span><br><br>
     [ SYSTEM ] Location: unindexed. Designation pending.<br>
     [ SYSTEM ] Operator, I have some difficult news about your employment status.<br><br>
     <span style="color:var(--gold)"><b>The cycle is broken. Nothing resets any more —

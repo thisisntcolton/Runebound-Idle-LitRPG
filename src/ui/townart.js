@@ -4,6 +4,18 @@
 // in a light 3/4 view: a face, a pitched roof, and some character.
 // ============================================================
 
+// A wall clock every looping animation in this file phases against.
+//
+// The town map lives inside #main-panel, which renderView() rebuilds from
+// innerHTML on every 'state-changed' — several times a second while a
+// business is running. Each rebuild restarts every SVG animation at zero,
+// which is what made the whole town twitch and snap. Giving every loop a
+// negative `begin` derived from this clock makes the restart invisible:
+// the DOM starts over, the animation resumes mid-stride.
+const CLOCK = Date.now();
+export const elapsed = () => (Date.now() - CLOCK) / 1000;
+export const phaseOf = period => elapsed() % period;
+
 // Shared palette — warm and storybook, but sitting comfortably inside
 // the game's dark UI.
 export const ART = {
@@ -148,15 +160,19 @@ function windowPane(x, y, w = 16, h = 16, lit = true) {
 }
 
 function smoke(x, y) {
+  // Phased against the wall clock like everything else here, so a panel
+  // rebuild does not snap every chimney back to its first puff in unison.
+  const b = -(phaseOf(4));
+  const b2 = -((phaseOf(4) + 2.6) % 4);
   return `
     <g opacity="0.5">
       <circle cx="${x}" cy="${y}" r="5" fill="#cfd6dd">
-        <animate attributeName="cy" values="${y};${y - 24}" dur="4s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="0.55;0" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="${y};${y - 24}" dur="4s" begin="${b.toFixed(2)}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.55;0" dur="4s" begin="${b.toFixed(2)}s" repeatCount="indefinite"/>
       </circle>
       <circle cx="${x + 5}" cy="${y + 4}" r="4" fill="#cfd6dd">
-        <animate attributeName="cy" values="${y + 4};${y - 18}" dur="4s" begin="1.4s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="0.5;0" dur="4s" begin="1.4s" repeatCount="indefinite"/>
+        <animate attributeName="cy" values="${y + 4};${y - 18}" dur="4s" begin="${b2.toFixed(2)}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.5;0" dur="4s" begin="${b2.toFixed(2)}s" repeatCount="indefinite"/>
       </circle>
     </g>`;
 }
@@ -187,7 +203,7 @@ const BUILDING_ART = {
         <circle cx="0" cy="0" r="15" fill="${ART.stone}" stroke="${ART.stoneDark}" stroke-width="2"/>
         <circle cx="0" cy="0" r="4" fill="${ART.stoneDark}"/>
         <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0"
-                          dur="3s" repeatCount="indefinite" additive="sum"/>
+                          dur="3s" begin="${(-phaseOf(3)).toFixed(2)}s" repeatCount="indefinite" additive="sum"/>
       </g>
     </g>`; },
 
@@ -260,7 +276,7 @@ const BUILDING_ART = {
       ${smoke(W - 28, -10)}
       <rect x="14" y="60" width="34" height="${H - 20}" rx="3" fill="#2a1c14"/>
       <ellipse cx="31" cy="${H + 26}" rx="14" ry="9" fill="#ff8a3c" opacity="0.85">
-        <animate attributeName="opacity" values="0.55;0.95;0.55" dur="2.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.55;0.95;0.55" dur="2.2s" begin="${(-phaseOf(2.2)).toFixed(2)}s" repeatCount="indefinite"/>
       </ellipse>
       ${windowPane(W - 40, 58, 18, 18)}
       <rect x="${W / 2 - 14}" y="62" width="28" height="${H - 22}" rx="3" fill="${ART.woodDark}"/>
@@ -438,56 +454,266 @@ export function staffFigures(count, w, h) {
   for (let i = 0; i < Math.min(count, 3); i++) {
     const x = w / 2 - 30 + i * 30;
     const y = h - 26;
-    const delay = (i * 0.7).toFixed(1);
+    // Phased off the wall clock, not off `i`, so a panel rebuild leaves
+    // them where they were instead of shunting all three back to the mark.
+    const begin = -((phaseOf(5) + i * 1.6) % 5);
+    const shirt = ['#5c7fb5', '#8a5a3c', '#4b7a52'][i % 3];
+    const skin = ['#e8c39b', '#c9976b', '#f0d4b0'][i % 3];
     out.push(`
       <g transform="translate(${x},${y})">
         <ellipse cx="0" cy="6" rx="7" ry="3" fill="#000" opacity="0.3"/>
-        <rect x="-4" y="-10" width="8" height="12" rx="3" fill="#5c7fb5"/>
-        <circle cx="0" cy="-14" r="5" fill="#e8c39b"/>
+        <rect x="-4" y="-10" width="8" height="12" rx="3" fill="${shirt}"/>
+        <circle cx="0" cy="-14" r="5" fill="${skin}"/>
         <animateTransform attributeName="transform" type="translate"
-          values="${x},${y}; ${x + 6},${y - 2}; ${x},${y}" dur="5s" begin="${delay}s" repeatCount="indefinite"/>
+          values="${x},${y}; ${x + 6},${y - 2}; ${x},${y}" dur="5s" begin="${begin.toFixed(2)}s" repeatCount="indefinite"/>
       </g>`);
   }
   return out.join('');
 }
 
-// ---------- townsfolk ----------
-// Anonymous residents walking the paths. Purely atmosphere — but they're
-// what makes a raid feel like it took something.
+// ============================================================
+// TOWNSFOLK — the people, and the reason they stopped looking like a
+// screensaver
+//
+// Two separate problems were making Hearthwick feel dead, and they had
+// nothing to do with each other.
+//
+// 1. THE RESET. The town map is inside #main-panel, and renderView()
+//    rebuilds that panel's innerHTML on every 'state-changed' — which
+//    fires whenever gold moves, so several times a second while a
+//    business is running. Every rebuild restarted every SVG animation
+//    from zero, and the whole population teleported back to the top of
+//    their walk. It read as a broken loop because it WAS a loop being
+//    broken, constantly.
+//
+//    The fix is not to stop re-rendering — that is a much larger change
+//    and the panel genuinely needs to update. It is to make the restart
+//    invisible: every animation now begins at a NEGATIVE offset computed
+//    from a wall clock, so a rebuilt figure resumes at the phase it
+//    should already be at. The DOM restarts; the walk does not.
+//
+// 2. THE SAMENESS. Fourteen figures drawn from eight colour pairs, on six
+//    straight lines, walking end to end forever. Now each resident is a
+//    stable person: a face generated from the same appearance system the
+//    player's own character uses, a name, a trade, and an errand route
+//    with places they stop at and stand for a while.
+// ============================================================
 
-const WALK_ROUTES = [
-  { x1: 322, y1: 60,  x2: 322, y2: 560 },
-  { x1: 622, y1: 560, x2: 622, y2: 60 },
-  { x1: 40,  y1: 268, x2: 900, y2: 268 },
-  { x1: 900, y1: 452, x2: 40,  y2: 452 },
-  { x1: 322, y1: 268, x2: 622, y2: 268 },
-  { x1: 622, y1: 452, x2: 322, y2: 452 },
+function mulberryOf(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return mulberry(h);
+}
+
+// ---------------- Where people go ----------------
+//
+// The roads are a grid (verticals at 322 and 622, horizontals at 268 and
+// 452), so routes are built as orthogonal legs between named places. That
+// keeps everybody on the paths rather than walking through the buildings,
+// which is the thing that most reads as "these are not real people".
+
+const XS = [322, 622];
+const YS = [268, 452];
+
+const DESTINATIONS = [
+  { name: 'the well',        x: 322, y: 268 },
+  { name: 'the crossroads',  x: 622, y: 268 },
+  { name: 'the south corner',x: 322, y: 452 },
+  { name: 'the east corner', x: 622, y: 452 },
+  { name: 'the north gate',  x: 322, y: 60  },
+  { name: 'the south gate',  x: 622, y: 570 },
+  { name: 'the west road',   x: 46,  y: 268 },
+  { name: 'the east road',   x: 906, y: 452 },
+  { name: 'the notice board',x: 622, y: 150 },
+  { name: 'the long fence',  x: 322, y: 545 },
 ];
 
-export function townsfolk(count, looks) {
-  if (!count) return '';
-  const n = Math.min(count, 14);
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const r = WALK_ROUTES[i % WALK_ROUTES.length];
-    const look = looks[i % looks.length];
-    const dur = 22 + (i % 7) * 4;
-    const delay = -(i * 3.1);
-    out.push(`
-      <g>
-        <g>
-          <ellipse cx="0" cy="7" rx="6" ry="2.5" fill="#000" opacity="0.28"/>
-          <rect x="-3.5" y="-9" width="7" height="11" rx="3" fill="${look.body}"/>
-          <circle cx="0" cy="-13" r="4.5" fill="${look.skin}"/>
-          ${look.hat ? `<path d="M-6 -15 q6 -5 12 0 z" fill="${look.hat}"/>` : ''}
-          <animateTransform attributeName="transform" type="translate"
-            values="0,0; 0,-1.5; 0,0" dur="0.7s" repeatCount="indefinite"/>
-        </g>
-        <animateMotion dur="${dur}s" repeatCount="indefinite" begin="${delay}s"
-          path="M${r.x1} ${r.y1} L${r.x2} ${r.y2} L${r.x1} ${r.y1}"/>
-      </g>`);
+/** An L-shaped leg from a to b, snapped to the road grid. */
+function legPoints(a, b) {
+  // Travel along whichever axis already shares a road, then turn.
+  const corner = XS.includes(a.x) || a.x === b.x ? { x: a.x, y: b.y } : { x: b.x, y: a.y };
+  return [corner, { x: b.x, y: b.y }];
+}
+
+function dist(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+
+/**
+ * Build an errand: three or four stops, with a pause at each.
+ *
+ * Returned as an SVG path plus matched keyPoints/keyTimes, which is how
+ * SMIL is told to HOLD at a position: repeat a keyPoint across two
+ * keyTimes and the figure stands there for that slice of the duration.
+ * Without this everybody moves at a constant speed forever, which is the
+ * other half of why the old version looked mechanical.
+ */
+function errandRoute(rand) {
+  // A few pixels of lateral drift per person. Without it everyone walks
+  // the exact centre line of the road and stacks into a single column at
+  // every stop, which looks like one sprite with a rendering bug.
+  const jx = Math.round((rand() - 0.5) * 22);
+  const jy = Math.round((rand() - 0.5) * 22);
+  const stops = [];
+  const pool = [...DESTINATIONS];
+  const nStops = 3 + Math.floor(rand() * 2);
+  for (let i = 0; i < nStops; i++) {
+    stops.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
   }
-  return out.join('');
+  stops.push(stops[0]);            // come home, so the loop never jumps
+
+  const pts = [{ x: stops[0].x, y: stops[0].y }];
+  const stopAt = [0];              // indices into pts where they linger
+  for (let i = 1; i < stops.length; i++) {
+    pts.push(...legPoints(pts[pts.length - 1], stops[i]));
+    stopAt.push(pts.length - 1);
+  }
+
+  // Cumulative length, so keyPoints can be expressed as path fractions.
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + dist(pts[i - 1], pts[i]));
+  const total = cum[cum.length - 1] || 1;
+
+  // Time budget: walking is proportional to distance, and each stop eats
+  // a fixed slice. Pauses are 8-20% of the loop each.
+  const pauses = stopAt.slice(1, -1).map(() => 0.06 + rand() * 0.07);
+  const pauseTotal = pauses.reduce((s, p) => s + p, 0);
+  const walkShare = 1 - pauseTotal;
+
+  const keyPoints = [], keyTimes = [];
+  let t = 0, pauseIdx = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const f = cum[i] / total;
+    if (i > 0) t += (cum[i] - cum[i - 1]) / total * walkShare;
+    keyPoints.push(f.toFixed(4));
+    keyTimes.push(Math.min(1, t).toFixed(4));
+    // Linger here?
+    if (i > 0 && i < pts.length - 1 && stopAt.includes(i)) {
+      t += pauses[pauseIdx++] ?? 0;
+      keyPoints.push(f.toFixed(4));
+      keyTimes.push(Math.min(1, t).toFixed(4));
+    }
+  }
+  // SMIL requires the last keyTime to be exactly 1.
+  keyTimes[keyTimes.length - 1] = '1';
+
+  const path = 'M' + pts.map(p => `${Math.round(p.x) + jx} ${Math.round(p.y) + jy}`).join(' L');
+  return { path, keyPoints: keyPoints.join(';'), keyTimes: keyTimes.join(';'), stops, total };
+}
+
+// ---------------- Who they are ----------------
+
+/**
+ * A stable cast for this town. Seeded off the town's name and the
+ * resident's index, so the same person is in the same coat every session
+ * and the population growing does not reshuffle everyone who was already
+ * there.
+ */
+export function villagerRoster(count, seedKey, { NAMES, TRADES, ERRANDS, look }) {
+  const out = [];
+  // Names are dealt from a deterministically shuffled deck rather than
+  // rolled per person, so a village of sixteen does not contain three
+  // Kesters — which it did, and which read as generated rather than real.
+  const deck = [...NAMES];
+  const shuffleRand = mulberryOf(`${seedKey}:names`);
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(shuffleRand() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+
+  for (let i = 0; i < count; i++) {
+    const rand = mulberryOf(`${seedKey}#${i}`);
+    out.push({
+      i,
+      name: deck[i % deck.length] + (i >= deck.length ? ' the Younger' : ''),
+      trade: TRADES[Math.floor(rand() * TRADES.length)],
+      errand: ERRANDS[Math.floor(rand() * ERRANDS.length)],
+      look: look(rand),
+      // Everything below is cosmetic drawing state.
+      hat: rand() < 0.28,
+      pack: rand() < 0.22,
+      apron: rand() < 0.30,
+      scale: 1.05 + rand() * 0.4,
+      speed: 46 + rand() * 46,       // seconds for a whole errand loop
+      phase: rand() * 60,
+      route: errandRoute(rand),
+    });
+  }
+  return out;
+}
+
+/**
+ * One resident, drawn small. Deliberately not the full hero renderer —
+ * at fourteen pixels tall the only things that read are silhouette and
+ * colour, so this takes the three colours and the build from the look and
+ * spends its detail on hair shape and carried objects instead.
+ */
+function villagerFigure(v, palettes) {
+  const skin = palettes.SKIN[v.look.skin];
+  const hairC = palettes.HAIR_COLOR[v.look.hairCol];
+  const cloth = palettes.CLOTH_COLOR[v.look.cloth];
+  const hairId = palettes.HAIR_STYLES[v.look.hair]?.id || 'crop';
+  const shoulder = palettes.BUILDS[v.look.build]?.shoulder ?? 1;
+  const w = 7 * shoulder;
+
+  // Hair silhouettes, chosen to be distinguishable at this size.
+  const hair = {
+    bald:    '',
+    crop:    `<path d="M-4.6 -14.6 q4.6 -4.4 9.2 0 q-4.6 -2 -9.2 0 z" fill="${hairC}"/>`,
+    swept:   `<path d="M-4.8 -14.4 q5 -5 9.6 -0.6 l-2 -3.4 q-5 -1.6 -7.6 4 z" fill="${hairC}"/>`,
+    long:    `<path d="M-5 -15 q5 -5 10 0 l0.6 8 q-5.6 -2.4 -11.2 0 z" fill="${hairC}"/>`,
+    ponytail:`<path d="M-4.6 -14.6 q4.6 -4.4 9.2 0 z" fill="${hairC}"/><path d="M4 -13 q4 2 2.6 7 q-2 -3.4 -3.6 -4.4 z" fill="${hairC}"/>`,
+    braids:  `<path d="M-4.6 -14.6 q4.6 -4.4 9.2 0 z" fill="${hairC}"/><circle cx="-5.4" cy="-9" r="1.7" fill="${hairC}"/><circle cx="5.4" cy="-9" r="1.7" fill="${hairC}"/>`,
+    curls:   `<circle cx="-3" cy="-15" r="2.6" fill="${hairC}"/><circle cx="0.4" cy="-16.4" r="2.8" fill="${hairC}"/><circle cx="3.6" cy="-15" r="2.6" fill="${hairC}"/>`,
+    topknot: `<path d="M-4.6 -14.6 q4.6 -4.4 9.2 0 z" fill="${hairC}"/><circle cx="0" cy="-18" r="2.4" fill="${hairC}"/>`,
+    mohawk:  `<path d="M-1.4 -18.6 l2.8 0 l0 5 l-2.8 0 z" fill="${hairC}"/>`,
+    hooded:  `<path d="M-6 -9 q0 -9 6 -9 q6 0 6 9 q-6 -3 -12 0 z" fill="${hairC}"/>`,
+  }[hairId] ?? '';
+
+  return `
+    <ellipse cx="0" cy="7" rx="${5.4 * shoulder}" ry="2.4" fill="#000" opacity="0.28"/>
+    <rect x="${-w / 2}" y="-9" width="${w}" height="11" rx="3" fill="${cloth}"/>
+    ${v.apron ? `<rect x="${-w / 2 + 0.8}" y="-4" width="${w - 1.6}" height="6" rx="1.5" fill="#e8dcc0" opacity="0.75"/>` : ''}
+    ${v.pack ? `<rect x="${w / 2 - 1}" y="-7" width="4.5" height="6" rx="1.5" fill="#7a5233"/>` : ''}
+    <circle cx="0" cy="-13" r="4.6" fill="${skin}"/>
+    ${hair}
+    ${v.hat ? `<path d="M-6.4 -15.4 q6.4 -5.2 12.8 0 z" fill="#6b4a2a"/><rect x="-3.4" y="-19.4" width="6.8" height="4.4" rx="1.4" fill="#6b4a2a"/>` : ''}`;
+}
+
+/**
+ * The whole population, walking their errands.
+ *
+ * `seedKey` should be something stable about the town (its name) so the
+ * cast does not change identity on every render.
+ */
+export function townsfolk(count, palettes, seedKey = 'hearthwick') {
+  if (!count) return '';
+  const n = Math.min(count, 16);
+  const roster = villagerRoster(n, seedKey, palettes);
+  const t = elapsed();
+
+  return roster.map(v => {
+    const r = v.route;
+    // Negative begin: the figure resumes at the phase it would already be
+    // at, so rebuilding the panel does not teleport anybody.
+    const begin = -((t + v.phase) % v.speed);
+    // The bob is a separate, much shorter cycle, phased the same way.
+    const bobBegin = -((t + v.phase) % 0.72);
+    return `
+      <g class="villager">
+        <title>${v.name} the ${v.trade} — ${v.errand}</title>
+        <g transform="scale(${v.scale.toFixed(2)})">
+          <g>
+            ${villagerFigure(v, palettes)}
+            <animateTransform attributeName="transform" type="translate"
+              values="0,0; 0,-1.4; 0,0" dur="0.72s" begin="${bobBegin.toFixed(2)}s"
+              repeatCount="indefinite"/>
+          </g>
+        </g>
+        <animateMotion dur="${v.speed.toFixed(1)}s" repeatCount="indefinite"
+          begin="${begin.toFixed(2)}s" calcMode="linear"
+          keyPoints="${r.keyPoints}" keyTimes="${r.keyTimes}"
+          path="${r.path}"/>
+      </g>`;
+  }).join('');
 }
 
 /** A notable standing at a fixed spot, with a hover title. */

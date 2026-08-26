@@ -16,6 +16,10 @@ export const SKILLS = {
       { id: 'maple',  name: 'Maple Tree',     icon: '🍁', level: 25, baseTime: 5000, xp: 48,  output: { maple_log: 1 } },
       { id: 'yew',    name: 'Yew Tree',       icon: '🌲', level: 45, baseTime: 7000, xp: 110, output: { yew_log: 1 } },
       { id: 'elder',  name: 'Elderwood Tree', icon: '🌳', level: 65, baseTime: 9000, xp: 250, output: { elder_log: 1 } },
+      // --- past the ceiling ---
+      { id: 'heartwood', name: 'Heartwood Bole',  icon: '🌳', level: 105, baseTime: 11000, xp: 900,  output: { heartwood_log: 1 } },
+      { id: 'ghostwood', name: 'Ghostwood Stand', icon: '🌲', level: 130, baseTime: 13000, xp: 2100, output: { ghostwood_log: 1 } },
+      { id: 'worldroot', name: 'The Worldroot',   icon: '🌴', level: 165, baseTime: 16000, xp: 5200, output: { worldroot_log: 1 } },
     ],
   },
   mining: {
@@ -27,6 +31,10 @@ export const SKILLS = {
       { id: 'coal',    name: 'Coal Seam',     icon: '⚫', level: 20, baseTime: 4800, xp: 40,  output: { coal: 1 } },
       { id: 'mythril', name: 'Mythril Vein',  icon: '💎', level: 40, baseTime: 7500, xp: 105, output: { mythril_ore: 1 } },
       { id: 'runite',  name: 'Runite Deposit', icon: '🔷', level: 60, baseTime: 10000, xp: 240, output: { runite_ore: 1 } },
+      // --- past the ceiling ---
+      { id: 'adamant',  name: 'Adamant Lode',   icon: '🟩', level: 105, baseTime: 11500, xp: 940,  output: { adamant_ore: 1 } },
+      { id: 'voidiron', name: 'Voidiron Shelf', icon: '⬛', level: 132, baseTime: 13500, xp: 2200, output: { voidiron_ore: 1 } },
+      { id: 'starfall', name: 'Starfall Crater',icon: '🌟', level: 166, baseTime: 16500, xp: 5400, output: { starfall_ore: 1 } },
     ],
   },
   fishing: {
@@ -38,6 +46,10 @@ export const SKILLS = {
       { id: 'salmon',   name: 'Salmon Run',      icon: '🐟', level: 28, baseTime: 5200, xp: 52,  output: { raw_salmon: 1 } },
       { id: 'lobster',  name: 'Lobster Pots',    icon: '🦞', level: 42, baseTime: 6800, xp: 100, output: { raw_lobster: 1 } },
       { id: 'leviathan', name: 'Leviathan Deep', icon: '🐋', level: 62, baseTime: 9500, xp: 230, output: { raw_leviathan: 1 } },
+      // --- past the ceiling ---
+      { id: 'glasseel', name: 'Glass Eel Runs',  icon: '🐍', level: 106, baseTime: 11000, xp: 880,  output: { raw_glasseel: 1 } },
+      { id: 'sunfish',  name: 'Sunfish Shoal',   icon: '🐠', level: 133, baseTime: 13200, xp: 2150, output: { raw_sunfish: 1 } },
+      { id: 'kraken',   name: 'The Kraken Shelf',icon: '🦑', level: 167, baseTime: 16200, xp: 5300, output: { raw_kraken: 1 } },
     ],
   },
   smithing: {
@@ -50,6 +62,13 @@ export const SKILLS = {
       { id: 'steel_bar',   name: 'Smelt Steel',   icon: '🔩', level: 25, baseTime: 4600, xp: 55,  input: { iron_ore: 1, coal: 2 }, output: { steel_bar: 1 } },
       { id: 'mythril_bar', name: 'Smelt Mythril', icon: '🟦', level: 45, baseTime: 6500, xp: 120, input: { mythril_ore: 2, coal: 2 }, output: { mythril_bar: 1 } },
       { id: 'runite_bar',  name: 'Smelt Runite',  icon: '🟪', level: 65, baseTime: 9000, xp: 260, input: { runite_ore: 2, coal: 4 }, output: { runite_bar: 1 } },
+      // --- past the ceiling ---
+      { id: 'adamant_bar',  name: 'Smelt Adamant',  icon: '🟢', level: 110, baseTime: 11500, xp: 1000,
+        input: { adamant_ore: 2, coal: 6 }, output: { adamant_bar: 1 } },
+      { id: 'voidiron_bar', name: 'Smelt Voidiron', icon: '⬜', level: 138, baseTime: 13800, xp: 2400,
+        input: { voidiron_ore: 2, adamant_bar: 1 }, output: { voidiron_bar: 1 } },
+      { id: 'starfall_bar', name: 'Smelt Starfall', icon: '✨', level: 172, baseTime: 17000, xp: 5900,
+        input: { starfall_ore: 2, voidiron_bar: 1 }, output: { starfall_bar: 1 } },
       // Forging — generated below (one per smithed gear piece)
     ],
   },
@@ -76,6 +95,13 @@ export const SKILLS = {
         input: { silkleaf: 2, moon_gourd: 1 }, output: { silk_broth: 1 } },
       { id: 'sunfruit_tart', name: 'Sunfruit Tart', icon: '🥮', level: 76, baseTime: 8800, xp: 330,
         input: { sunfruit: 2, silkleaf: 1 }, output: { sunfruit_tart: 1 } },
+      // --- past the ceiling ---
+      { id: 'glasseel_fillet', name: 'Fillet Glass Eel', icon: '🍥', level: 108, baseTime: 11000, xp: 950,
+        input: { raw_glasseel: 1, frostgrain: 1 }, output: { glasseel_fillet: 1 } },
+      { id: 'sunfish_roast',   name: 'Roast Sunfish',    icon: '🍛', level: 136, baseTime: 13200, xp: 2250,
+        input: { raw_sunfish: 1, nullfruit: 1 }, output: { sunfish_roast: 1 } },
+      { id: 'kraken_platter',  name: 'Kraken Platter',   icon: '🍱', level: 170, baseTime: 16500, xp: 5600,
+        input: { raw_kraken: 1, dawnmelon: 1 }, output: { kraken_platter: 1 } },
     ],
   },
   alchemy: {
@@ -105,6 +131,16 @@ export const SKILLS = {
         input: { herb_emberpetal: 1, herb_voidbloom: 1 }, output: { lucky_brew: 1 } },
       { id: 'void_draught', name: 'Distill Void Draught', icon: '🌌', level: 66, baseTime: 9000, xp: 280,
         input: { herb_voidbloom: 2, herb_kingsleaf: 1 }, output: { void_draught: 1 } },
+      // --- past the ceiling: three more herbs, three more brews ---
+      { id: 'glasswort',   name: 'Forage Glasswort',   icon: '🌾', level: 105, baseTime: 11000, xp: 900,  output: { herb_glasswort: 1 } },
+      { id: 'nullbud',     name: 'Forage Nullbud',     icon: '🖤', level: 135, baseTime: 13500, xp: 2250, output: { herb_nullbud: 1 } },
+      { id: 'dawnthistle', name: 'Forage Dawnthistle', icon: '🌼', level: 168, baseTime: 16500, xp: 5500, output: { herb_dawnthistle: 1 } },
+      { id: 'greater_strength_potion', name: 'Brew Greater Strength', icon: '🧪', level: 115, baseTime: 11500, xp: 1150,
+        input: { herb_glasswort: 2, herb_kingsleaf: 1 }, output: { greater_strength_potion: 1 } },
+      { id: 'warding_philtre', name: 'Brew Warding Philtre', icon: '🛡️', level: 145, baseTime: 14000, xp: 2700,
+        input: { herb_nullbud: 2, herb_glasswort: 2 }, output: { warding_philtre: 1 } },
+      { id: 'ascendant_draught', name: 'Distil Ascendant Draught', icon: '🌠', level: 176, baseTime: 17500, xp: 6200,
+        input: { herb_dawnthistle: 2, herb_nullbud: 1 }, output: { ascendant_draught: 1 } },
     ],
   },
 
@@ -122,6 +158,10 @@ export const SKILLS = {
       { id: 'gourd',    name: 'Moon Gourds',     icon: '🎃', level: 35, baseTime: 6600, xp: 95,  output: { moon_gourd: 1 } },
       { id: 'silkleaf', name: 'Silkleaf Vines',  icon: '🍃', level: 52, baseTime: 8200, xp: 175, output: { silkleaf: 1 } },
       { id: 'sunfruit', name: 'Sunfruit Orchard',icon: '🍑', level: 70, baseTime: 10000, xp: 300, output: { sunfruit: 1 } },
+      // --- past the ceiling ---
+      { id: 'frostgrain', name: 'Frostgrain Terrace', icon: '❄️', level: 105, baseTime: 11000, xp: 880,  output: { frostgrain: 1 } },
+      { id: 'nullfruit',  name: 'Nullfruit Rows',     icon: '🫐', level: 132, baseTime: 13000, xp: 2100, output: { nullfruit: 1 } },
+      { id: 'dawnmelon',  name: 'Dawnmelon Field',    icon: '🍈', level: 166, baseTime: 16000, xp: 5200, output: { dawnmelon: 1 } },
     ],
   },
 
@@ -139,6 +179,10 @@ export const SKILLS = {
       { id: 'caravan',  name: 'Waylay a Caravan',  icon: '🐎', level: 40, baseTime: 6800, xp: 120, output: { caravan_spoils: 1 } },
       { id: 'vault',    name: 'The Sealed Vault',  icon: '🔐', level: 58, baseTime: 8600, xp: 215, output: { vault_prize: 1 } },
       { id: 'system',   name: 'Pickpocket the System', icon: '⬛', level: 75, baseTime: 11000, xp: 380, output: { stolen_fragment: 1 } },
+      // --- past the ceiling. The marks stop being people. ---
+      { id: 'ledger',   name: "Lift the Syndicate's Ledger", icon: '📕', level: 107, baseTime: 12000, xp: 950,  output: { syndicate_ledger: 1 } },
+      { id: 'keycard',  name: 'Palm an Admin Keycard',       icon: '💳', level: 138, baseTime: 14500, xp: 2350, output: { admin_keycard: 1 } },
+      { id: 'root',     name: 'Steal a Root Token',          icon: '🔑', level: 172, baseTime: 18000, xp: 5900, output: { root_token: 1 } },
     ],
   },
 
@@ -171,6 +215,15 @@ export const SKILLS = {
       // Ollun says unpicking one is like reading a stranger's handwriting.
       { id: 'decode',   name: 'Unpick a Corrupt Sigil', icon: '🕳️', level: 50, baseTime: 7000, xp: 300,
         input: { corrupt_sigil: 1 }, output: { greater_rune: 4, rune_essence: 10 } },
+      // --- past the ceiling ---
+      { id: 'prime',    name: 'Refine Prime Essence',  icon: '🔆', level: 105, baseTime: 11000, xp: 900,
+        input: { rune_essence: 12, orphaned_shard: 1 }, output: { prime_essence: 4 } },
+      { id: 'lattice',  name: 'Weave a Binding Lattice', icon: '🕸️', level: 135, baseTime: 14000, xp: 2400,
+        input: { prime_essence: 6, binding_sigil: 1 }, output: { binding_lattice: 1 } },
+      { id: 'null',     name: 'Bind a Null Rune',      icon: '⚫', level: 168, baseTime: 16800, xp: 5600,
+        input: { binding_lattice: 2, void_rune: 2 }, output: { null_rune: 1 } },
+      { id: 'sealed',   name: 'Seal a Tome',           icon: '📗', level: 182, baseTime: 19000, xp: 7400,
+        input: { null_rune: 2, blank_tome: 1 }, output: { sealed_tome: 1 } },
     ],
   },
   // Combat skills — no actions; trained through combat
@@ -187,6 +240,10 @@ const FORGE_RECIPES = [
   { tier: 'steel',   bar: 'steel_bar',   level: 30, xpBase: 90,  timeBase: 6000 },
   { tier: 'mythril', bar: 'mythril_bar', level: 50, xpBase: 190, timeBase: 8000 },
   { tier: 'runite',  bar: 'runite_bar',  level: 70, xpBase: 400, timeBase: 11000 },
+  // The second hundred. Forging is deliberately gated a good way above
+  // the smelt that feeds it, so a new bar is a milestone twice.
+  { tier: 'adamant', bar: 'adamant_bar', level: 118, xpBase: 1400, timeBase: 13000 },
+  { tier: 'starfall',bar: 'starfall_bar',level: 178, xpBase: 7000, timeBase: 18000 },
 ];
 const SLOT_BARS = { weapon: 3, helmet: 2, chest: 5, legs: 3, boots: 1 };
 const SLOT_ICONS = { weapon: '⚔️', helmet: '🪖', chest: '🦺', legs: '👖', boots: '🥾' };

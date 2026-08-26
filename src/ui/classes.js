@@ -3,11 +3,43 @@
 // ============================================================
 import { state, charLevel } from '../core/state.js';
 import { CLASS_LIST, SCHOOLS, CLASS_UNLOCK_LEVEL } from '../data/classes.js';
-import { TIERS, treeFor, tierInfo, MAX_CLASS_LEVEL, MAX_POINTS, totalCost } from '../data/talents.js';
+import { TIERS, treeFor, tierInfo, MAX_CLASS_LEVEL, MAX_POINTS, totalCost,
+         MASTERIES, ASCENDANT_TIER } from '../data/talents.js';
 import { currentClass, classUnlocked, classPending, classLevel,
-         classLevelProgress, talentPoints, rankOf, tierUnlocked,
-         canBuy, classProgress } from '../systems/classes.js';
+         classLevelProgress, talentPoints, rankOf, tierUnlocked, tierGate,
+         canBuy, classProgress, hasMastery, masteredClasses } from '../systems/classes.js';
 import { fmtInt } from '../core/format.js';
+import { KEPT, LOST } from '../data/persistence.js';
+
+/**
+ * The one place the game answers "what do I actually lose".
+ *
+ * Rendered on both the Path panel and the Ascension panel from a single
+ * list, because when this was prose in two places the two places
+ * disagreed and the player had no way to know which was lying.
+ */
+export function persistenceBlock({ compact = false } = {}) {
+  const row = (e, kept) => `
+    <div class="persist-row ${kept ? 'kept' : 'lost'}">
+      <span class="persist-mark">${kept ? '✓' : '✕'}</span>
+      <span class="persist-icon">${e.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="persist-label">${e.label}</div>
+        ${e.detail && !compact ? `<div class="muted">${e.detail}</div>` : ''}
+      </div>
+    </div>`;
+  return `
+    <div class="persist-grid">
+      <div>
+        <div class="persist-head kept">✓ Survives Ascension</div>
+        ${KEPT.map(e => row(e, true)).join('')}
+      </div>
+      <div>
+        <div class="persist-head lost">✕ Does not</div>
+        ${LOST.map(e => row(e, false)).join('')}
+      </div>
+    </div>`;
+}
 
 function classCard(c, { chosen = false, selectable = false, showProgress = false } = {}) {
   const prog = showProgress ? classProgress(c.id) : null;
@@ -46,9 +78,10 @@ function talentNode(classId, node, spendable) {
   const check = canBuy(node.id, classId);
   const buyable = spendable && check.ok;
   const isCapstone = node.tier === 5;
+  const isAscendant = node.tier === ASCENDANT_TIER;
 
   return `
-    <div class="talent-node ${maxed ? 'maxed' : ''} ${unlocked ? '' : 'locked'} ${isCapstone ? 'capstone' : ''}">
+    <div class="talent-node ${maxed ? 'maxed' : ''} ${unlocked ? '' : 'locked'} ${isCapstone ? 'capstone' : ''} ${isAscendant ? 'ascendant' : ''}">
       <div class="talent-head">
         <span class="talent-icon">${node.icon}</span>
         <div style="flex:1;min-width:0">
@@ -68,7 +101,48 @@ function talentNode(classId, node, spendable) {
           ? `<button class="btn btn-sm btn-primary btn-block" data-act="buy-talent" data-node="${node.id}">
                Learn (${node.cost}pt${node.cost === 1 ? '' : 's'})</button>`
           : `<div class="talent-note">${check.why}</div>`}
+      ${isCapstone && MASTERIES[classId] ? `
+        <div class="talent-mastery ${maxed ? 'earned' : ''}">
+          ${MASTERIES[classId].icon} <b>Mastery: ${MASTERIES[classId].name}</b> —
+          ${MASTERIES[classId].desc}
+          <div class="muted" style="margin-top:3px">${maxed
+            ? 'Earned. It is yours through every Ascension, whatever you play next.'
+            : 'Learning this capstone earns it, once, forever.'}</div>
+        </div>` : ''}
     </div>`;
+}
+
+// ---------------- Masteries ----------------
+
+function masteryBlock() {
+  const earned = masteredClasses();
+  const rows = Object.values(MASTERIES).map(m => {
+    const got = hasMastery(m.id);
+    return `
+      <div class="mastery-row ${got ? 'earned' : ''}">
+        <span class="mastery-icon">${m.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div class="mastery-name">${m.name} ${got
+            ? '<span class="pill" style="border-color:var(--gold);color:var(--gold)">active</span>'
+            : '<span class="pill">not yet</span>'}</div>
+          <div class="muted">${m.desc}</div>
+          ${got ? `<div class="muted" style="font-style:italic;margin-top:2px">${m.flavour}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="section-title">🏅 Masteries
+      <span class="pill">${earned.length} of ${Object.keys(MASTERIES).length}</span></div>
+    <div class="muted" style="margin-bottom:10px">
+      Cap a class's tree — its tier-5 capstone — and you keep one distilled piece of it
+      <b>forever</b>, applied whatever you happen to be playing, including nothing.
+      Not the whole tree; the rest of those ranks still only work while you walk that path.
+      This is the part Ascension cannot take back.<br>
+      <span style="font-size:12px">A Mastery is a floor, not a stack: while you are actually
+      playing that class you have the entire tree instead, which is more.</span>
+    </div>
+    <div class="mastery-list">${rows}</div>`;
 }
 
 function talentTree(classId) {
@@ -80,13 +154,25 @@ function talentTree(classId) {
   const tiers = TIERS.map(t => {
     const nodes = tree.filter(n => n.tier === t.tier);
     if (!nodes.length) return '';
-    const open = lvl >= t.atClassLevel;
+    const gate = tierGate(t.tier, classId);
+    const sealed = !gate.open && gate.era;
+    const label = gate.open
+      ? `Class level ${t.atClassLevel}`
+      : sealed
+        ? `🔒 ${t.note || gate.why}`
+        : `🔒 Unlocks at class level ${t.atClassLevel}`;
     return `
-      <div class="talent-tier ${open ? '' : 'locked'}">
+      <div class="talent-tier ${gate.open ? '' : 'locked'} ${t.tier === ASCENDANT_TIER ? 'ascendant-tier' : ''}">
         <div class="talent-tier-head">
           <span class="talent-tier-label">${t.label}</span>
-          <span class="muted">${open ? `Class level ${t.atClassLevel}` : `🔒 Unlocks at class level ${t.atClassLevel}`}</span>
+          <span class="muted">${label}</span>
         </div>
+        ${t.tier === ASCENDANT_TIER ? `
+          <div class="muted" style="margin:-2px 0 8px;font-style:italic">
+            ${sealed
+              ? 'There is a sixth tier. It does not resolve from in here.'
+              : `Class level ${t.atClassLevel}, and only out in the Wastes. The strongest single node any class has.`}
+          </div>` : ''}
         <div class="talent-row">${nodes.map(n => talentNode(classId, n, spendable)).join('')}</div>
       </div>`;
   }).join('');
@@ -147,7 +233,8 @@ export function classPanel() {
         This holds for the rest of the cycle and cannot be changed. Ascend, and you choose again —
         the world will not remember what you were, and neither will your stats.
       </div>
-      <div class="class-grid">${CLASS_LIST.map(c => classCard(c, { selectable: true })).join('')}</div>`;
+      <div class="class-grid">${CLASS_LIST.map(c => classCard(c, { selectable: true })).join('')}</div>
+      ${masteredClasses().length ? masteryBlock() : ''}`;
   }
 
   const others = CLASS_LIST.filter(c => c.id !== cls.id);
@@ -163,6 +250,16 @@ export function classPanel() {
     <div class="class-grid">${classCard(cls, { chosen: true })}</div>
 
     ${talentTree(cls.id)}
+
+    ${masteryBlock()}
+
+    <div class="section-title">💠 What Ascension takes, and what it cannot</div>
+    <div class="muted" style="margin-bottom:10px">
+      The short answer to the question everybody asks: <b>you keep every talent point and
+      every rank you have ever bought, in every tree.</b> What you lose is the class itself —
+      next cycle you choose again, and the tree you left is exactly where you left it.
+    </div>
+    ${persistenceBlock()}
 
     <div class="section-title">Not this time</div>
     <div class="muted" style="margin-bottom:10px">

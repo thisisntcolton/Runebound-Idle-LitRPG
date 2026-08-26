@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { CLASS_LIST } from '../src/data/classes.js';
 const now = Date.now();
 const skills = {}; for (const k of ['attack','strength','defense','hitpoints','woodcutting','mining','fishing','smithing','cooking','alchemy']) skills[k]={xp:0};
 skills.hitpoints.xp = 1154;
@@ -17,7 +18,10 @@ let pass=0,fail=0; const ok=(n,c,x='')=>{c?(pass++,console.log('  ✓',n)):(fail
 
 const modal = await page.textContent('#modal-window').catch(()=> '');
 ok('class choice is offered on reaching the threshold', /Choose a Path/i.test(modal), modal.slice(0,140));
-ok('all five classes are presented', (await page.locator('[data-act="choose-class"]').count()) === 5);
+// Counted against the data rather than hard-coded, so adding a class is
+// a one-line change rather than a red test somebody has to go and find.
+ok('every class is presented', (await page.locator('[data-act="choose-class"]').count()) === CLASS_LIST.length,
+   `${await page.locator('[data-act="choose-class"]').count()} of ${CLASS_LIST.length}`);
 
 const maxHitOf = async () => {
   await page.evaluate(()=>document.querySelector('[data-act="nav"][data-view="character"]')?.click());

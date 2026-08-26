@@ -8,7 +8,7 @@
 import { state, dropRateMultiplier } from '../core/state.js';
 import { SPECIES, getSpecies, stageFor, STAGES, CARE, PET_TRAITS, TRAIT_LIST,
          getTrait, BREEDING, MAX_PET_LEVEL, RARITY_RANK, RARITIES,
-         randomPetName, eggItemId, BREEDABLE_STAGE, EGG_SHOP } from '../data/pets.js';
+         randomPetName, eggItemId, BREEDABLE_STAGE, EGG_SHOP, SPECIES_LIST } from '../data/pets.js';
 import { getItem } from '../data/items.js';
 import { addItem, removeItem, itemCount, spendGold } from './inventory.js';
 import { emit, on } from '../core/events.js';
@@ -357,6 +357,19 @@ export function release(petId) {
 
 // ---------------- Active-pet bonus ----------------
 
+/**
+ * Is there a companion in a fit state to help in a fight?
+ *
+ * The Beastmaster's entire kit is conditional on this, and it is checked
+ * rather than assumed for the same reason its penalty line says so out
+ * loud: a class whose numbers quietly become zero is a class that reads
+ * as broken.
+ */
+export function petFighting() {
+  const pet = activePet();
+  return !!pet && pet.stage !== 'egg' && mood(pet).id !== 'miserable';
+}
+
 export function activePet() {
   const id = state.pets?.active;
   return id ? state.pets.owned[id] || null : null;
@@ -482,33 +495,81 @@ export function buyEgg(speciesId) {
 }
 
 // ---------------- Egg drops ----------------
-// The two rarest species can't be bought. They fall out of the hardest
-// content you can reach, at rates that make finding one an event.
-const EGG_DROP_TABLE = {
-  boss:        [{ species: 'poro', chance: 0.020 }, { species: 'wyrmling', chance: 0.005 }],
-  'rift-seal': [{ species: 'poro', chance: 0.060 }, { species: 'wyrmling', chance: 0.020 }],
+//
+// Rewritten for fifteen species. The old table named two of them by hand,
+// which stopped scaling the moment the roster grew and meant every new
+// species was unobtainable until someone remembered to add a line.
+//
+// Two rolls now, in this order:
+//
+//  1. DOES AN EGG DROP AT ALL? Per source, and deliberately much more
+//     generous than before — the old rate meant most players never saw
+//     the Menagerie's back half at all, which is a strange thing to build
+//     and then hide.
+//
+//  2. WHAT RARITY? A fixed ladder: mostly common, sometimes rare, rarely
+//     epic, and a legendary as the sliver that is left. The species is
+//     then picked uniformly from that tier, so adding a new one to the
+//     data file is genuinely all that is required to put it in the world.
+
+const EGG_CHANCE = {
+  boss:        0.075,
+  'rift-seal': 0.20,
+  descent:     0.045,   // per Warden felled
+  vigil:       1.00,    // a Vigil always leaves one. It kept something.
 };
 
 /**
- * Roll for a rare egg. Returns the itemId awarded, or null.
- * Rarest first, and only one egg per roll — no double jackpots.
+ * The rarity ladder. 75 / 20 / 4.5 / 0.5 — the legendary sliver is what
+ * remains of the epic five percent, which is what makes one an event
+ * rather than a Tuesday.
  */
+export const EGG_RARITY_WEIGHTS = [
+  { rarity: 'common',    weight: 75 },
+  { rarity: 'rare',      weight: 20 },
+  { rarity: 'epic',      weight: 4.5 },
+  { rarity: 'legendary', weight: 0.5 },
+];
+
+function rollRarity(luck = 1) {
+  // Luck bends the ladder rather than multiplying the drop chance twice:
+  // it moves weight from common toward the top, so a lucky player sees
+  // better eggs rather than simply more of them.
+  const bend = Math.max(0, Math.min(2, luck - 1));
+  const weights = EGG_RARITY_WEIGHTS.map(w => ({
+    rarity: w.rarity,
+    weight: w.rarity === 'common' ? w.weight : w.weight * (1 + bend),
+  }));
+  const total = weights.reduce((s, w) => s + w.weight, 0);
+  let r = Math.random() * total;
+  for (const w of weights) { r -= w.weight; if (r <= 0) return w.rarity; }
+  return 'common';
+}
+
+function speciesOfRarity(rarity) {
+  const pool = SPECIES_LIST.filter(s => s.rarity === rarity);
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** Roll for an egg. Returns the itemId awarded, or null. */
 export function rollEggDrop(source) {
-  const table = EGG_DROP_TABLE[source];
-  if (!table) return null;
+  const chance = EGG_CHANCE[source];
+  if (!chance) return null;
   const luck = Math.min(3, dropRateMultiplier());
-  for (const entry of table.slice().reverse()) {
-    if (Math.random() < entry.chance * luck) {
-      const sp = getSpecies(entry.species);
-      const itemId = eggItemId(entry.species);
-      addItem(itemId, 1);
-      emit('notify', { type: 'loot', text: `✦✦ ${sp.eggName} — something in there is moving.` });
-      emit('rare-drop', { itemId, rarity: sp.rarity });
-      emit('loot', { itemId, qty: 1, source: 'combat', rarity: sp.rarity, tier: sp.rarity });
-      return itemId;
-    }
-  }
-  return null;
+  if (Math.random() >= Math.min(1, chance * luck)) return null;
+
+  let sp = speciesOfRarity(rollRarity(luck));
+  if (!sp) sp = speciesOfRarity('common');
+  if (!sp) return null;
+
+  const itemId = eggItemId(sp.id);
+  addItem(itemId, 1);
+  const fanfare = sp.rarity === 'legendary' ? '✦✦✦' : sp.rarity === 'epic' ? '✦✦' : '✦';
+  emit('notify', { type: 'loot', text: `${fanfare} ${sp.eggName} — something in there is moving.` });
+  emit('rare-drop', { itemId, rarity: sp.rarity });
+  emit('loot', { itemId, qty: 1, source: 'combat', rarity: sp.rarity, tier: sp.rarity });
+  return itemId;
 }
 
 // ---------------- Tick ----------------

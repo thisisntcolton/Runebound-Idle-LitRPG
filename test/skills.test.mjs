@@ -2,6 +2,7 @@
 import { SKILLS, TRAINABLE_SKILLS } from '../src/data/skills.js';
 import { ITEMS, getItem } from '../src/data/items.js';
 import { HIRELINGS } from '../src/data/upgrades.js';
+import { MAX_LEVEL, SOFT_CAP } from '../src/core/xp.js';
 
 let bad = 0;
 const fail = m => { console.log('  ✗', m); bad++; };
@@ -13,7 +14,7 @@ for (const id of TRAINABLE_SKILLS) {
   for (const a of sk.actions) {
     for (const k of Object.keys(a.output || {})) if (!ITEMS[k]) fail(`${id}/${a.id} outputs unknown item "${k}"`);
     for (const k of Object.keys(a.input || {}))  if (!ITEMS[k]) fail(`${id}/${a.id} inputs unknown item "${k}"`);
-    if (a.level > 99) fail(`${id}/${a.id} needs level ${a.level}`);
+    if (a.level > MAX_LEVEL) fail(`${id}/${a.id} needs level ${a.level}, above the cap`);
   }
 }
 

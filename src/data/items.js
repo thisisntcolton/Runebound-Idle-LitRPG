@@ -57,6 +57,12 @@ const TIERS = [
   { key: 'steel',   name: 'Steel',   rarity: 'uncommon', mult: 4,  sellBase: 120,  icon: { weapon: '⚔️', helmet: '🪖', chest: '🦺', legs: '👖', boots: '🥾' } },
   { key: 'mythril', name: 'Mythril', rarity: 'rare',     mult: 8,  sellBase: 400,  icon: { weapon: '⚔️', helmet: '🪖', chest: '🦺', legs: '👖', boots: '🥾' } },
   { key: 'runite',  name: 'Runic',   rarity: 'epic',     mult: 16, sellBase: 1400, icon: { weapon: '🔱', helmet: '🪖', chest: '🦺', legs: '👖', boots: '🥾' } },
+  // The second hundred. Two more tiers, forged from bars that only exist
+  // once the ceiling comes off. The multiplier jump is large on purpose:
+  // Runic gear carried a player from level 70 to the end of Era I, and
+  // the Descent's fortieth floor needs something Runic cannot do.
+  { key: 'adamant', name: 'Adamant', rarity: 'epic',     mult: 30, sellBase: 9000, icon: { weapon: '⚔️', helmet: '🪖', chest: '🦺', legs: '👖', boots: '🥾' } },
+  { key: 'starfall',name: 'Starfall',rarity: 'legendary',mult: 58, sellBase: 130000, icon: { weapon: '🗡️', helmet: '👑', chest: '🦺', legs: '👖', boots: '🥾' } },
 ];
 
 const SLOT_STATS = {
@@ -197,6 +203,77 @@ def({ id: 'rune_essence',  name: 'Rune Essence',  icon: '⚱️', type: 'resourc
 def({ id: 'minor_rune',    name: 'Minor Rune',    icon: '🔹', type: 'resource', rarity: 'uncommon', sell: 55 });
 def({ id: 'binding_sigil', name: 'Binding Sigil', icon: '🌀', type: 'resource', rarity: 'epic',     sell: 640 });
 def({ id: 'blank_tome',    name: 'Blank Tome',    icon: '📕', type: 'resource', rarity: 'legendary', sell: 2400 });
+
+// ============================================================
+// THE SECOND HUNDRED
+//
+// Everything below is gathered or made above level 99, which means it only
+// exists after the ceiling comes off — so it is all, one way or another,
+// material that was always there and that you were not previously
+// permitted to notice. Heartwood was in the same forest. The eel was in
+// the same river. You were the thing that was capped.
+//
+// Priced on a ladder above the Era I top end (runite bar 480, blank tome
+// 2400): roughly 3x at the first tier, 10x at the second, 30x at the
+// third. That gap is what makes the long band worth climbing at all — a
+// hundred levels for a 20% better log would be an insult.
+// ============================================================
+
+// ---------- Woodcutting ----------
+def({ id: 'heartwood_log',  name: 'Heartwood Log',  icon: '🪵', type: 'resource', rarity: 'rare',      sell: 620 });
+def({ id: 'ghostwood_log',  name: 'Ghostwood Log',  icon: '🪵', type: 'resource', rarity: 'epic',      sell: 1850 });
+def({ id: 'worldroot_log',  name: 'Worldroot Log',  icon: '🪵', type: 'resource', rarity: 'legendary', sell: 5400 });
+
+// ---------- Mining ----------
+def({ id: 'adamant_ore',    name: 'Adamant Ore',    icon: '🟩', type: 'resource', rarity: 'rare',      sell: 660 });
+def({ id: 'voidiron_ore',   name: 'Voidiron Ore',   icon: '⬛', type: 'resource', rarity: 'epic',      sell: 1950 });
+def({ id: 'starfall_ore',   name: 'Starfall Ore',   icon: '🌟', type: 'resource', rarity: 'legendary', sell: 5800 });
+
+// ---------- Smithing ----------
+def({ id: 'adamant_bar',    name: 'Adamant Bar',    icon: '🟢', type: 'resource', rarity: 'rare',      sell: 1500 });
+def({ id: 'voidiron_bar',   name: 'Voidiron Bar',   icon: '⬜', type: 'resource', rarity: 'epic',      sell: 6200 });
+def({ id: 'starfall_bar',   name: 'Starfall Bar',   icon: '✨', type: 'resource', rarity: 'legendary', sell: 22000 });
+
+// ---------- Fishing ----------
+def({ id: 'raw_glasseel',   name: 'Glass Eel',      icon: '🐍', type: 'resource', rarity: 'rare',      sell: 580 });
+def({ id: 'raw_sunfish',    name: 'Sunfish',        icon: '🐠', type: 'resource', rarity: 'epic',      sell: 1750 });
+def({ id: 'raw_kraken',     name: 'Kraken Cut',     icon: '🦑', type: 'resource', rarity: 'legendary', sell: 5100 });
+
+// ---------- Cooking ----------
+// Heals scale with the ladder: the top plate is worth carrying into the
+// Descent's fortieth floor, which nothing in Era I was.
+def({ id: 'glasseel_fillet',name: 'Glass Eel Fillet', icon: '🍥', type: 'food', rarity: 'rare',      sell: 1250, heal: 520 });
+def({ id: 'sunfish_roast',  name: 'Sunfish Roast',    icon: '🍛', type: 'food', rarity: 'epic',      sell: 3700, heal: 1150 });
+def({ id: 'kraken_platter', name: 'Kraken Platter',   icon: '🍱', type: 'food', rarity: 'legendary', sell: 11000, heal: 2600 });
+
+// ---------- Farming ----------
+def({ id: 'frostgrain',     name: 'Frostgrain',     icon: '❄️', type: 'resource', rarity: 'rare',      sell: 540 });
+def({ id: 'nullfruit',      name: 'Nullfruit',      icon: '🫐', type: 'resource', rarity: 'epic',      sell: 1620 });
+def({ id: 'dawnmelon',      name: 'Dawnmelon',      icon: '🍈', type: 'resource', rarity: 'legendary', sell: 4900 });
+
+// ---------- Alchemy ----------
+def({ id: 'herb_glasswort',   name: 'Glasswort',    icon: '🌾', type: 'resource', rarity: 'rare',      sell: 600 });
+def({ id: 'herb_nullbud',     name: 'Nullbud',      icon: '🖤', type: 'resource', rarity: 'epic',      sell: 1800 });
+def({ id: 'herb_dawnthistle', name: 'Dawnthistle',  icon: '🌼', type: 'resource', rarity: 'legendary', sell: 5200 });
+def({ id: 'greater_strength_potion', name: 'Greater Strength Potion', icon: '🧪', type: 'potion',
+      rarity: 'rare', sell: 1600, duration: 900, effects: { damage: 0.30 } });
+def({ id: 'warding_philtre', name: 'Warding Philtre', icon: '🛡️', type: 'potion',
+      rarity: 'epic', sell: 6000, duration: 900, effects: { reduction: 0.22, damage: 0.10 } });
+def({ id: 'ascendant_draught', name: 'Ascendant Draught', icon: '🌠', type: 'potion',
+      rarity: 'legendary', sell: 14000, duration: 1200, effects: { damage: 0.35, xp: 0.30, gold: 0.30 } });
+
+// ---------- Thieving ----------
+// Terminal goods, same as the Era I spoils: nothing crafts with them.
+// What changes is who you are stealing from.
+def({ id: 'syndicate_ledger', name: 'Syndicate Ledger', icon: '📕', type: 'valuable', rarity: 'rare',      sell: 2400 });
+def({ id: 'admin_keycard',    name: 'Admin Keycard',    icon: '💳', type: 'valuable', rarity: 'epic',      sell: 7200 });
+def({ id: 'root_token',       name: 'Root Token',       icon: '🔑', type: 'valuable', rarity: 'legendary', sell: 22000 });
+
+// ---------- Runecrafting ----------
+def({ id: 'prime_essence',  name: 'Prime Essence',  icon: '🔆', type: 'resource', rarity: 'rare',      sell: 320 });
+def({ id: 'binding_lattice',name: 'Binding Lattice',icon: '🕸️', type: 'resource', rarity: 'epic',      sell: 3400 });
+def({ id: 'null_rune',      name: 'Null Rune',      icon: '⚫', type: 'resource', rarity: 'legendary', sell: 9800 });
+def({ id: 'sealed_tome',    name: 'Sealed Tome',    icon: '📗', type: 'resource', rarity: 'legendary', sell: 26000 });
 
 import { SPECIES_LIST, eggItemId } from './pets.js';
 

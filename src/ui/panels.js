@@ -9,23 +9,26 @@ import { state, skillLevel, actionTime, doubleChance, hirelingRate,
          hitChanceVs, expectedDps, timeToKill, attackInterval, BALANCE } from '../core/state.js';
 import { SKILLS, TRAINABLE_SKILLS, COMBAT_SKILLS, getAction } from '../data/skills.js';
 import { ZONES, getZone, getMonster } from '../data/monsters.js';
+import { deepView } from '../systems/deep.js';
+import { bossView } from '../systems/worldboss.js';
 import { getDungeon, totalWaves } from '../data/dungeons.js';
 import { displayOdds, ROLLS_PER_PROFILE } from '../data/loot.js';
-import { dropRateMultiplier } from '../core/state.js';
+import { dropRateMultiplier, levelCap } from '../core/state.js';
 import { abilityStatus } from '../systems/abilities.js';
 import { currentMonster } from '../systems/combat.js';
 import { activeRun as unstableRun, UNSTABLE } from '../systems/unstable.js';
 import { heroBust } from './heroart.js';
 import { currentClass } from '../systems/classes.js';
+import { persistenceBlock } from './classes.js';
 import { activeCamp } from '../systems/repo.js';
 import { enchantCost, canEnchant, MAX_ENCHANT } from '../systems/enchant.js';
 import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
 import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost } from '../data/upgrades.js';
 import { STAT_INFO } from '../systems/character.js';
-import { hirelingProgress, hirelingTask } from '../systems/skills.js';
+import { hirelingProgress, hirelingTask, stealRisk } from '../systems/skills.js';
 import { cloud } from '../core/cloud.js';
-import { levelForXp, xpForLevel, levelProgress, MAX_LEVEL } from '../core/xp.js';
+import { levelForXp, xpForLevel, levelProgress, MAX_LEVEL, SOFT_CAP } from '../core/xp.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
 const rarityCls = item => `rarity-${item.rarity}`;
@@ -33,13 +36,21 @@ const borderCls = item => `border-${item.rarity}`;
 
 function xpBarBlock(skillId) {
   const xp = state.skills[skillId].xp;
-  const lvl = levelForXp(xp);
-  const pct = levelProgress(xp) * 100;
-  const label = lvl >= MAX_LEVEL
-    ? `MAX LEVEL — ${fmtInt(xp)} XP`
-    : `${fmtInt(xp - xpForLevel(lvl))} / ${fmtInt(xpForLevel(lvl + 1) - xpForLevel(lvl))} XP to Lv. ${lvl + 1}`;
+  const trueLvl = levelForXp(xp);
+  const cap = levelCap();
+  const lvl = Math.min(trueLvl, cap);
+  // Held at the sandbox ceiling: the XP is still going in, it is simply
+  // not being allowed to become levels yet. Say so — silent loss is the
+  // one thing this must not look like.
+  const held = trueLvl > cap;
+  const pct = held ? 100 : levelProgress(xp) * 100;
+  const label = held
+    ? `CEILING — ${fmtInt(xp - xpForLevel(cap))} XP banked past Lv. ${cap}. It is being counted. It is not being applied.`
+    : lvl >= MAX_LEVEL
+      ? `MAX LEVEL — ${fmtInt(xp)} XP`
+      : `${fmtInt(xp - xpForLevel(lvl))} / ${fmtInt(xpForLevel(lvl + 1) - xpForLevel(lvl))} XP to Lv. ${lvl + 1}`;
   return `
-    <div class="xp-bar-outer"><div class="xp-bar-inner" id="panel-xp-bar" style="width:${pct}%"></div></div>
+    <div class="xp-bar-outer ${held ? 'held' : ''}"><div class="xp-bar-inner" id="panel-xp-bar" style="width:${pct}%"></div></div>
     <div class="xp-bar-label" id="panel-xp-label">${label}</div>`;
 }
 
@@ -49,7 +60,11 @@ export function skillPanel(skillId) {
   const lvl = skillLevel(skillId);
   const act = state.activity;
 
-  const cards = skill.actions.map(a => {
+  // Actions past the sandbox ceiling do not exist in there. Showing them
+  // greyed out with "Requires Lv. 105" would answer the question the
+  // whole second band is built to ask, months before it is asked.
+  const visibleActions = skill.actions.filter(a => a.level <= levelCap());
+  const cards = visibleActions.map(a => {
     const unlocked = lvl >= a.level;
     const isActive = act?.type === 'skill' && act.skillId === skillId && act.actionId === a.id;
     const time = actionTime(skillId, a);
@@ -65,12 +80,27 @@ export function skillPanel(skillId) {
       return `<span style="color:${ok ? 'var(--text-dim)' : 'var(--danger)'}">${item.icon} ${q} ${item.name} (${fmt(have)})</span>`;
     }).join(' · ') : '';
 
+    // Thieving prints its odds. A hidden risk that occasionally eats your
+    // session reads as the game cheating; the same risk on the card reads
+    // as a decision you made.
+    const risk = skillId === 'thieving' ? stealRisk(a.id) : null;
+    const riskLine = risk ? `
+      <div class="card-sub risk-line">
+        <span class="${risk.chance > 0.12 ? 'risk-high' : risk.chance > 0.06 ? 'risk-mid' : 'risk-low'}">
+          ⚠ ${(risk.chance * 100).toFixed(1)}% caught</span>
+        <span class="muted">— ${risk.guard.icon} ${risk.guard.name}${
+          risk.chance > risk.floor + 0.0005
+            ? `, easing to ${(risk.floor * 100).toFixed(1)}% as you improve`
+            : ', and this is as quiet as you will ever be'}</span>
+      </div>` : '';
+
     return `
       <div class="card clickable ${unlocked ? '' : 'locked'} ${isActive ? 'active-card' : ''}"
            ${unlocked ? `data-act="${isActive ? 'stop-activity' : 'start-action'}" data-skill="${skillId}" data-action="${a.id}"` : ''}>
         <div class="card-title"><span class="card-icon">${a.icon}</span> ${a.name}</div>
         <div class="card-sub">${unlocked ? `${(time / 1000).toFixed(1)}s per action` : `<span class="lock-req">Requires Lv. ${a.level}</span>`}</div>
         ${inputs ? `<div class="card-sub">${inputs}</div>` : ''}
+        ${riskLine}
         <div class="action-bar-outer"><div class="action-bar-inner" ${isActive ? 'id="active-action-bar"' : ''} style="width:${isActive ? (act.progress / time * 100) : 0}%"></div></div>
         <div class="card-yield">
           <span>${outputs}</span>
@@ -92,7 +122,8 @@ export function skillPanel(skillId) {
     <div class="panel-desc">${skill.desc}</div>
     <div class="skill-header">
       <div class="skill-header-top">
-        <div class="skill-level-big">Lv. ${lvl} / ${MAX_LEVEL}</div>
+        <div class="skill-level-big">Lv. ${lvl} / ${levelCap()}${
+          lvl > SOFT_CAP ? ' <span class="pill" style="border-color:var(--shard);color:var(--shard)">past the ceiling</span>' : ''}</div>
         <div class="muted">${dbl > 0 ? `${Math.round(dbl * 100)}% double yield · ` : ''}XP ×${xpMultiplier().toFixed(2)}</div>
       </div>
       ${xpBarBlock(skillId)}
@@ -133,7 +164,7 @@ function shopRowHireling(h) {
   const currentTask = hirelingTask(h.skill);
 
   // Task picker — only actions the skill level allows
-  const taskOptions = skill.actions.map(a => {
+  const taskOptions = skill.actions.filter(a => a.level <= levelCap()).map(a => {
     const locked = skillLevel(h.skill) < a.level;
     return `<option value="${a.id}" ${a.id === currentTask ? 'selected' : ''} ${locked ? 'disabled' : ''}>
       ${a.icon} ${a.name}${locked ? ` (Lv.${a.level})` : ''}</option>`;
@@ -179,7 +210,7 @@ export function combatPanel(ui) {
   const rift = c.dungeonId ? getDungeon(c.dungeonId) : null;
 
   let arena = '';
-  if (inCombat && (rift || c.unstable || (c.zoneId && c.monsterId))) {
+  if (inCombat && (rift || c.unstable || c.deep || c.worldBoss || c.guard || (c.zoneId && c.monsterId))) {
     const monster = currentMonster();
     const mhp = Math.max(0, c.monsterHp);
     const php = Math.max(0, c.playerHp);
@@ -202,6 +233,42 @@ export function combatPanel(ui) {
         <div class="muted" style="margin-top:6px">Seal it by clearing ${UNSTABLE.SEAL_WAVES} waves before the clock runs out.
           Flee or fail and Hearthwick takes the raid.</div>
       </div>` : '';
+    const guardBanner = c.guard ? `
+      <div class="stat-points-banner" style="display:block;border-color:var(--gold)">
+        <div><b>🗝️ CAUGHT IN THE ACT</b> — ${c.guard.icon} ${c.guard.name}</div>
+        <div class="muted" style="margin-top:6px;font-style:italic">${c.guard.line || ''}</div>
+        <div class="muted" style="margin-top:4px">Win and you keep what you lifted and take their purse.
+          Lose and you drop the haul and walk away wounded — no gold, no XP, nothing else.
+          ${c.guardResume ? 'Either way you go straight back to work.' : ''}</div>
+      </div>` : '';
+    const bv = c.worldBoss ? bossView() : null;
+    const bossBanner = bv ? `
+      <div class="stat-points-banner" style="display:block;border-color:var(--hp)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <span>${bv.def.icon} ${bv.def.name.toUpperCase()} — PREPARATION LOCKED AT ×${(1 + bv.prep.locked).toFixed(2)}</span>
+          <span style="font-family:var(--font-mono)">in contact ${Math.round(bv.contact)}s · ${fmt(Math.ceil(bv.hp))} left</span>
+        </div>
+        <div class="action-bar-outer" style="margin-top:8px">
+          <div class="action-bar-inner" style="width:${bv.pct * 100}%;background:var(--hp)"></div>
+        </div>
+        <div class="muted" style="margin-top:6px">The aura compounds for as long as you hold contact and
+          it wins eventually. Back out when it starts to bite — every point you have landed is banked
+          in the save and will still be off it when you come back.</div>
+      </div>` : '';
+    const dv = c.deep ? deepView() : null;
+    const deepBanner = dv ? `
+      <div class="stat-points-banner" style="display:block;border-color:var(--danger)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <span>⬇️ THE DESCENT — FLOOR ${dv.depth}${dv.warden ? ' · WARDEN' : ''} · ${dv.stratum.name}</span>
+          <span style="font-family:var(--font-mono)">${dv.clears} / ${dv.need} held</span>
+        </div>
+        <div class="action-bar-outer" style="margin-top:8px">
+          <div class="action-bar-inner" style="width:${(dv.clears / dv.need) * 100}%;background:var(--danger)"></div>
+        </div>
+        <div class="muted" style="margin-top:6px">${dv.depth > dv.best
+          ? 'Hold this floor and the next one opens. Deepest reach so far: ' + dv.best + '.'
+          : 'This floor is already held. You are here for the pay.'}</div>
+      </div>` : '';
     const riftBanner = rift ? `
       <div class="stat-points-banner" style="display:flex;justify-content:space-between;align-items:center">
         <span>🌀 ${rift.name} — WAVE ${(c.wave || 0) + 1} / ${totalWaves(rift)}</span>
@@ -210,6 +277,9 @@ export function combatPanel(ui) {
       </div>` : '';
     arena = monster ? `
       ${unstableBanner}
+      ${guardBanner}
+      ${bossBanner}
+      ${deepBanner}
       ${riftBanner}
       <div class="combat-arena">
         <div class="combatant player-side" id="player-box">
@@ -471,7 +541,7 @@ export function characterPanel() {
 
   const skillRows = [...TRAINABLE_SKILLS, ...COMBAT_SKILLS].map(id => {
     const s = SKILLS[id];
-    const pct = levelProgress(state.skills[id].xp) * 100;
+    const pct = levelForXp(state.skills[id].xp) > levelCap() ? 100 : levelProgress(state.skills[id].xp) * 100;
     return `
       <div class="stat-row">
         <span style="width:24px">${s.icon}</span>
@@ -580,6 +650,13 @@ export function ascensionPanel() {
       </div>
       ${state.ascensions > 0 ? `<div class="muted" style="margin-top:10px">Ascensions so far: ${state.ascensions} · Shards held: 💠 ${state.shards}</div>` : ''}
     </div>
+    <div class="section-title">💠 What you keep</div>
+    <div class="muted" style="margin-bottom:12px">
+      Ascension is a reset, not a deletion. Everything on the left comes with you — including,
+      in full, every talent point and rank in every class tree you have ever touched.
+    </div>
+    ${persistenceBlock({ compact: true })}
+
     <div class="section-title">◈ Fate Perks</div>
     ${perkRows}
   `;

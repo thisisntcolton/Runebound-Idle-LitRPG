@@ -1,8 +1,8 @@
 {
   "name": "runebound-idle",
   "private": true,
-  "version": "1.3.0",
-  "description": "Runebound — an idle LitRPG. Skills, combat, gear, classes, a town to build, pets to raise, a codex that remembers, and a loop that does not.",
+  "version": "1.5.1",
+  "description": "Runebound — an idle LitRPG. Skills, combat, gear, classes, a town to build, pets to raise, a codex that remembers, and a loop that does not. Beyond it: the Wastes, a descent, a bill, and something very large that was never switched off.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -21,9 +21,18 @@
     "test:ascension": "node test/ascension.browser.mjs",
     "balance": "node test/balance.mjs",
     "preview:heroes": "node test/heroart.preview.mjs",
+    "preview:pets": "node test/petart.preview.mjs",
+    "sim:levels": "node test/levels.sim.mjs",
     "test:skills": "node test/skills.test.mjs",
     "test:era1": "node test/era1.browser.mjs",
-    "test:era2": "node test/era2.browser.mjs"
+    "test:era2": "node test/era2.browser.mjs",
+    "test:deep": "node test/deep.browser.mjs",
+    "test:townlife": "node test/townlife.browser.mjs",
+    "test:boss": "node test/boss.browser.mjs",
+    "test:road": "node test/road.browser.mjs",
+    "sim:boss": "node test/boss.sim.mjs",
+    "sim:prestige": "node test/prestige.sim.mjs",
+    "sim:deep": "node test/deep.sim.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4"

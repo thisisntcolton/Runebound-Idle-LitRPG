@@ -87,7 +87,14 @@ const wastes = await page.textContent('#main-panel');
 ok('the Wastes panel renders', /Scrap Wastes/.test(wastes));
 ok('dig sites are on offer', (await page.locator('.dig-card').count()) > 0,
    String(await page.locator('.dig-card').count()));
-ok('sites show their skill locks', (await page.locator('.dig-req').count()) > 0);
+// The keyring is the guarantee, not the dig-req chips: which sites happen
+// to be on offer is a roll, and an all-`drift` rotation has no locks to
+// show at all. What must ALWAYS be legible is which old skill opens what.
+ok('the keyring names all four skill locks', (await page.locator('.key-row').count()) === 4,
+   String(await page.locator('.key-row').count()));
+const keyText = await page.textContent('.key-list');
+ok('the keyring says what the next level opens',
+   /opens/.test(keyText) || /open to you/.test(keyText), keyText.slice(0, 120));
 ok('some sites are diggable with these skills', (await page.locator('[data-act="start-dig"]').count()) > 0);
 const invBefore = (await read()).inventory;
 await page.locator('[data-act="start-dig"]').first().click();
@@ -96,8 +103,31 @@ ok('a dig starts', (await page.locator('.dig-active').count()) === 1);
 ok('the dig can be abandoned', (await page.locator('[data-act="cancel-dig"]').count()) === 1);
 
 console.log('\n[the ledger]');
-const st1 = await read();
-ok('the Ledger was assessed on arrival', st1.ledger.assessed > 0, String(st1.ledger.assessed));
+// The bill no longer lands the moment you arrive; the reveal gets ninety
+// minutes of play first. So the panel should be showing the grace period,
+// and the assessment should NOT exist yet.
+const st0 = await read();
+ok('the Ledger has not been assessed yet', !st0.ledger.openedAt, String(st0.ledger.openedAt));
+await go('wastes');
+ok('the grace period is visible instead', (await page.locator('.ledger-card.pending').count()) === 1);
+ok('and it is not asking for money yet', (await page.locator('[data-act="ledger-pay"]').count()) === 0);
+
+// Run the grace clock down to its last half-second and let the ordinary
+// 10Hz tick carry it over the line, which also proves the tick is wired.
+await mutateSave(() => {
+  const s = JSON.parse(localStorage.getItem('runebound-save-v1'));
+  s.ledger.graceMs = 90 * 60 * 1000 - 400;
+  const real = Storage.prototype.setItem.bind(localStorage);
+  real('runebound-save-v1', JSON.stringify(s));
+  Storage.prototype.setItem = function(k,v){ if(k==='runebound-save-v1') return; return real(k,v); };
+});
+await page.waitForTimeout(2500);
+let st1 = await read();
+ok('the tick is what opens it', st1.ledger.openedAt > 0, String(st1.ledger.openedAt));
+await dismiss();
+await go('wastes');
+st1 = await read();
+ok('the Ledger is assessed once the grace period runs out', st1.ledger.assessed > 0, String(st1.ledger.assessed));
 ok('the bill scales with what you took out', st1.ledger.assessed > 1000000, String(st1.ledger.assessed));
 const goldBefore = st1.gold;
 const balBefore = st1.ledger.balance;
@@ -172,10 +202,17 @@ if (served) {
     await page.locator('[data-act="raid-camp"]').click();
     await page.waitForTimeout(400);
     await page.evaluate(()=>document.querySelector('[data-act="fight"]')?.click());
-    await page.waitForTimeout(9000);
-    const st4 = await read();
-    const camp = (st4.repo?.camps || [])[0];
-    ok('killing Repo Men credits the camp', !camp || camp.cleared > 0,
+    // Poll rather than sleeping a fixed 9s: one Clerk is ~900 HP and a
+    // slow roll of misses (or an auto-eat pause) can push the first kill
+    // past any single arbitrary wait. This was intermittently red.
+    let credited = false, camp = null;
+    for (let i = 0; i < 12 && !credited; i++) {
+      await page.waitForTimeout(2500);
+      const st4 = await read();
+      camp = (st4.repo?.camps || [])[0];
+      credited = !camp || camp.cleared > 0;
+    }
+    ok('killing Repo Men credits the camp', credited,
        camp ? `${camp.cleared}/${camp.needed}` : 'camp already cleared');
   }
 }

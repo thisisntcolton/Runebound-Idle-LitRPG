@@ -9,6 +9,9 @@ import { ZONES } from '../src/data/monsters.js';
 import { SKILLS, SKILL_IDS } from '../src/data/skills.js';
 import { BUILDINGS } from '../src/data/town.js';
 import { ENCOUNTERS } from '../src/data/encounters.js';
+import { CHAINS } from '../src/data/adventure.js';
+import { KEPT, LOST } from '../src/data/persistence.js';
+import { readFileSync } from 'node:fs';
 import { TIDBITS } from '../src/data/codex.js';
 import { TRAINABLE_SKILLS } from '../src/data/skills.js';
 
@@ -16,7 +19,7 @@ const monsterIds = new Set();
 for (const z of ZONES) for (const m of z.monsters) monsterIds.add(m.id);
 const statKeys = new Set(['kills','deaths','actions','itemsSold','bossKills','highestDamage',
   'offlineEarnings','aurelionKills','flamesFed','dungeonRuns','potionsDrunk','enchants','riftsSealed']);
-const FLAGS = new Set(['first_hireling','town_razed']);
+const FLAGS = new Set(['first_hireling','town_razed','descended','vigil_seen','vigil_felled']);
 
 let bad = 0, ok = 0;
 const seenIds = new Set();
@@ -72,10 +75,109 @@ for (const id of TRAINABLE_SKILLS) {
   const pool = TIDBITS[id];
   if (!pool || pool.length < 3) { console.log(`  \u2717 ${id}: ${pool ? pool.length : 0} tidbits (need 3+)`); bad++; }
 }
-for (const ctx of ['combat', 'town']) {
+for (const ctx of ['combat', 'town', 'wastes', 'descent', 'vigil']) {
   if (!TIDBITS[ctx] || TIDBITS[ctx].length < 3) { console.log(`  \u2717 ${ctx}: too few tidbits`); bad++; }
 }
-console.log(`  ${TRAINABLE_SKILLS.length} skills + combat + town all covered`);
+console.log(`  ${TRAINABLE_SKILLS.length} skills + combat, town, wastes, descent and vigil all covered`);
+
+// ============================================================
+// ADVENTURE
+//
+// A chain is a small state machine written by hand, which means the two
+// ways it breaks are a `next` that names a beat nobody wrote and a reward
+// that names an item nobody defined. Both are silent at runtime — the
+// player just gets a dead end or nothing — so both are checked here.
+// ============================================================
+// ============================================================
+// WHAT SURVIVES ASCENSION
+//
+// The list the game SHOWS the player is data (data/persistence.js). The
+// list the game ACTUALLY honours is the `keep` object in
+// systems/prestige.js. Those two drifting apart is not a cosmetic bug —
+// it is the game lying to somebody about whether forty hours of talents
+// are about to be deleted. So they are diffed, by parsing the real keep
+// object out of the source.
+// ============================================================
+console.log('\n=== ASCENSION PERSISTENCE ===');
+{
+  const src = readFileSync(new URL('../src/systems/prestige.js', import.meta.url), 'utf8');
+  const block = src.slice(src.indexOf('const keep = {'), src.indexOf('};', src.indexOf('const keep = {')));
+  const actually = new Set([...block.matchAll(/^\s{4}(\w+):/gm)].map(m => m[1]));
+  const claimed = new Set(KEPT.map(e => e.key));
+
+  for (const k of claimed) {
+    if (!actually.has(k)) { console.log(`  \u2717 the game TELLS the player it keeps "${k}", and prestige.js does not`); bad++; }
+  }
+  // A few keep-list entries are plumbing nobody needs told about.
+  const PLUMBING = new Set(['ascensions', 'settings', 'createdAt', 'log', 'perks',
+                            'cycleSeen', 'ending', 'endingOfferedCycle', 'activeTitle', 'eraEnteredAt', 'eraSeen']);
+  for (const k of actually) {
+    if (!claimed.has(k) && !PLUMBING.has(k)) {
+      console.log(`  \u2717 prestige.js keeps "${k}" and nothing tells the player so`); bad++;
+    }
+  }
+  console.log(`  ${claimed.size} things the player is told survive, ${actually.size} kept in fact, ${LOST.length} losses named`);
+}
+
+console.log('\n=== ADVENTURE ===');
+{
+  const advFail = (c, m) => { console.log(`  \u2717 ${c}: ${m}`); bad++; };
+  const settable = new Set();
+  for (const c of CHAINS) for (const b of Object.values(c.beats))
+    for (const o of b.options) {
+      if (o.effects?.flag) settable.add(o.effects.flag);
+      if (o.flag) settable.add(o.flag);
+    }
+
+  let beats = 0, outcomes = 0, endings = 0, paths = 0, risky = 0;
+  const ids = new Set();
+  for (const c of CHAINS) {
+    if (ids.has(c.id)) advFail(c.id, 'duplicate chain id');
+    ids.add(c.id);
+    if (!c.beats?.start) advFail(c.id, 'no `start` beat');
+    if (!c.title || !c.icon) advFail(c.id, 'missing title or icon');
+    if (c.when?.flag && !settable.has(c.when.flag)) {
+      advFail(c.id, `gated on flag "${c.when.flag}" which nothing ever sets`);
+    }
+    for (const [bid, b] of Object.entries(c.beats)) {
+      beats++;
+      if (!b.text) advFail(c.id, `beat ${bid} has no text`);
+      if (!b.options || b.options.length < 2) advFail(c.id, `beat ${bid} needs two real choices`);
+      const oids = (b.options || []).map(o => o.id);
+      if (new Set(oids).size !== oids.length) advFail(c.id, `beat ${bid} has duplicate option ids`);
+      for (const o of b.options || []) {
+        outcomes++;
+        if (!o.label) advFail(c.id, `option ${bid}/${o.id} has no label`);
+        if (!o.outcome && !o.risky) advFail(c.id, `option ${bid}/${o.id} has no outcome`);
+        if (o.risky) {
+          risky++;
+          if (!o.risky.good?.text || !o.risky.bad?.text) advFail(c.id, `risky ${bid}/${o.id} missing a branch`);
+          if (!(o.risky.chance > 0 && o.risky.chance < 1)) advFail(c.id, `risky ${bid}/${o.id} chance out of range`);
+        }
+        if (o.next && !c.beats[o.next]) advFail(c.id, `option ${bid}/${o.id} leads to "${o.next}", which does not exist`);
+        if (!o.next) endings++;
+        const fxs = o.risky ? [o.risky.good.effects, o.risky.bad.effects] : [o.effects];
+        for (const fx of fxs) {
+          for (const id of Object.keys(fx?.items || {})) if (!ITEMS[id]) advFail(c.id, `unknown item "${id}"`);
+          for (const sk of Object.keys(fx?.xp || {})) if (!SKILLS[sk]) advFail(c.id, `unknown skill "${sk}"`);
+        }
+      }
+    }
+    // Unreachable beats are written prose nobody will ever read.
+    const reached = new Set(['start']);
+    const walk = id => {
+      const b = c.beats[id];
+      if (!b) return 1;
+      return b.options.reduce((s, o) => s + (o.next ? (reached.add(o.next), walk(o.next)) : 1), 0);
+    };
+    paths += walk('start');
+    for (const bid of Object.keys(c.beats)) if (!reached.has(bid)) advFail(c.id, `beat "${bid}" is unreachable`);
+  }
+  console.log(`  ${CHAINS.length} chains, ${beats} beats, ${outcomes} written outcomes`);
+  console.log(`  ${endings} distinct endings, ${paths} distinct paths through, ${risky} coin-flips`);
+  const gated = CHAINS.filter(c => c.when).length;
+  console.log(`  ${gated} chains only find you once you have earned them`);
+}
 
 console.log('\n=== ENCOUNTERS ===');
 const encFail = (e,m)=>{ console.log(`  \u2717 ${e.id}: ${m}`); bad++; };
@@ -116,5 +218,29 @@ for (const e of ENCOUNTERS) {
 }
 console.log(`\n${ENCOUNTERS.length} encounters, ${ENCOUNTERS.reduce((s,e)=>s+e.options.length,0)} options, ${bad} problems`);
 
+// ── The build stamp has to be true ──────────────────────────────────────
+// /api/version is a Function and cannot import package.json at runtime on
+// every Vercel runtime, so it carries a literal. A literal that drifts is
+// worse than no version at all: it would confidently report the wrong
+// answer to the exact question it exists to answer.
+console.log('\nBuild stamp:');
+{
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const src = readFileSync(new URL('../api/version.js', import.meta.url), 'utf8');
+  const lit = (src.match(/const VERSION = '([^']+)'/) || [])[1];
+  if (lit !== pkg.version) {
+    console.log(`  ✗ api/version.js says ${lit}, package.json says ${pkg.version}`); bad++;
+  } else console.log(`  ✓ api/version.js and package.json agree on ${pkg.version}`);
+
+  const vite = readFileSync(new URL('../vite.config.js', import.meta.url), 'utf8');
+  if (!/__APP_VERSION__/.test(vite)) { console.log('  ✗ vite.config.js no longer defines __APP_VERSION__'); bad++; }
+  else console.log('  ✓ the client bundle gets its version at build time');
+
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  if (!/id="build-stamp"/.test(html)) { console.log('  ✗ index.html has nowhere to print the build'); bad++; }
+  else console.log('  ✓ the page has somewhere to print it');
+}
+
+console.log(`\n${bad} problems`);
 
 process.exit(bad ? 1 : 0);

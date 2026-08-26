@@ -2,7 +2,7 @@
 // RENDERER — sidebar, view router, event delegation, tick updates
 // ============================================================
 import { state, skillLevel, actionTime, charLevel, combatLevel, maxHp,
-         attackInterval } from '../core/state.js';
+         attackInterval, levelCap } from '../core/state.js';
 import { SKILLS, TRAINABLE_SKILLS, getAction } from '../data/skills.js';
 import { HIRELINGS } from '../data/upgrades.js';
 import { getMonster, ZONES } from '../data/monsters.js';
@@ -20,7 +20,12 @@ import { codexPanel, codexUI } from './codex.js';
 import { classPanel } from './classes.js';
 import { appearancePanel } from './appearance.js';
 import { wastesPanel } from './wastes.js';
+import { adventurePanel } from './adventure.js';
+import { setOut, comeHome, choose as adventureChoose, adventureView } from '../systems/adventure.js';
 import { startDig, cancelDig, salvageView } from '../systems/salvage.js';
+import { setDepth } from '../systems/deep.js';
+import { bossView } from '../systems/worldboss.js';
+import { DEEP } from '../data/deep.js';
 import { contest, settle as repoSettle, pendingNotice as repoNotice, activeCamp } from '../systems/repo.js';
 import { payOff as ledgerPayOff, isOpen as ledgerOpen } from '../systems/ledger.js';
 import { heroBust } from './heroart.js';
@@ -50,7 +55,8 @@ import { enterRift, failRun, pendingRift, activeRun, UNSTABLE } from '../systems
 import { resolveVisitor } from '../systems/npcs.js';
 import { resolveEncounter, pendingEncounter, setEncounterUIHooks } from '../systems/encounters.js';
 import { startSkillAction, stopActivity, setHirelingTask, hirelingProgress } from '../systems/skills.js';
-import { startCombat, stopCombat, setCombatStyle, setFood } from '../systems/combat.js';
+import { startCombat, stopCombat, setCombatStyle, setFood, startDescent,
+         startBossFight } from '../systems/combat.js';
 import { sellItem, sellAllOfType, equipItem, unequipItem } from '../systems/inventory.js';
 import { allocateStat } from '../systems/character.js';
 import { buyUpgrade, buyHireling, buyPerk, ascend, canAscend } from '../systems/prestige.js';
@@ -110,10 +116,16 @@ export function renderSidebar() {
     <div class="nav-section-label">Combat</div>
     ${navItem('combat', '⚔️', 'Fight', { level: 'Lv.' + combatLevel(), working: act?.type === 'combat' && !state.combat.dungeonId })}
     ${navItem('rifts', '🌀', 'Rifts', { working: act?.type === 'combat' && !!state.combat.dungeonId })}
+    ${navItem('road', '🧭', 'Adventure', {
+      level: adventureView().open ? '❗' : null,
+      working: act?.type === 'adventure' })}
     ${navItem('abilities', '✨', 'Abilities')}
     <div class="nav-section-label">Skills</div>
     ${TRAINABLE_SKILLS.map(id => navItem('skill:' + id, SKILLS[id].icon, SKILLS[id].name, {
-      level: skillLevel(id) + '/99',
+      // Show the sandbox ceiling until you are past it; a bar reading
+      // /199 from level one is a discouraging lie about the game you
+      // are currently playing.
+      level: skillLevel(id) + '/' + levelCap(),
       working: (act?.type === 'skill' && act.skillId === id) || hasWorkingHireling(id),
     })).join('')}
     <div class="nav-section-label">Beyond</div>
@@ -122,7 +134,8 @@ export function renderSidebar() {
       working: !!pendingEncounter() })}
     ${(state.era || 1) >= 2 ? navItem('wastes', '🕳️', 'The Wastes', {
       level: ledgerOpen() ? '📒' : null,
-      working: !!repoNotice() || !!activeCamp() || !!salvageView().active }) : ''}
+      working: !!repoNotice() || !!activeCamp() || !!salvageView().active
+               || !!state.combat?.deep || bossView().up }) : ''}
     ${navItem('pets', '🐾', 'Menagerie', { level: petsBadge(), working: eggsReady() })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}
@@ -165,6 +178,7 @@ export function renderView() {
   else if (v === 'class') el.innerHTML = classPanel();
   else if (v === 'look') el.innerHTML = appearancePanel();
   else if (v === 'wastes') el.innerHTML = wastesPanel();
+  else if (v === 'road') el.innerHTML = adventurePanel();
   else if (v === 'achievements') el.innerHTML = achievementsPanel();
   else if (v === 'combat') el.innerHTML = combatPanel(ui);
   else if (v === 'inventory') el.innerHTML = inventoryPanel();
@@ -422,6 +436,12 @@ function showAscendConfirm() {
       ${inWastes
         ? `<p><b style="color:var(--gold)">Hearthwick stays.</b> Every building, worker and crate of stock
              is yours to keep. The loop does not get it back any more.</p>
+           <p class="muted">It will carry you for about half an hour and then stop. The bins are what
+             you leave in them, and the skills that fill them are going back to level one with
+             everything else — so the businesses run until the stock runs out, and then they wait
+             for you. Leave them well stocked.</p>
+           <p style="color:var(--sys-blue)"><b>The Descent goes ${DEEP.CAP_PER_CYCLE} floors deeper
+             after this.</b> That is what a cycle buys you now.</p>
            <p class="muted">[ SYSTEM ] Reset will be logged. Settlement will not be reclaimed. This continues to be noted.</p>`
         : `<p><b style="color:var(--danger)">Hearthwick falls with them</b> — every building, worker and crate of stock.
              The people you have met will still know you.</p>`}
@@ -571,6 +591,13 @@ function handleAction(target) {
     case 'ledger-pay': ledgerPayOff(); renderView(); break;
     case 'repo-contest': contest(); renderView(); break;
     case 'repo-settle': repoSettle(); renderView(); break;
+    case 'set-depth': setDepth(Number(target.dataset.depth)); renderView(); break;
+    case 'start-descent': startDescent(); renderView(); break;
+    // ---- The road ----
+    case 'adventure-out': setOut(); setView('road'); break;
+    case 'adventure-home': comeHome(); renderView(); break;
+    case 'adventure-choose': adventureChoose(target.dataset.option); renderView(); break;
+    case 'fight-boss': if (startBossFight()) setView('combat'); else renderView(); break;
     case 'raid-camp':
       ui.selectedZone = 'repo_camp';
       setView('combat');
@@ -695,6 +722,39 @@ export function initRenderer() {
   on('encounter-offered', () => { if (ui.view === 'town') renderView(); else renderSidebar(); });
   on('salvage-changed', () => { if (ui.view === 'wastes') safeRenderView(); });
   on('salvage-collected', () => { if (ui.view === 'wastes') safeRenderView(); });
+  // Caught mid-steal: throw the player into the fight and tell them why.
+  on('theft-noticed', ({ guard }) => {
+    popup('CAUGHT', `${guard.icon} <b>${guard.name}</b><br>` +
+      `<span style="font-size:12px;color:var(--text-dim)">${guard.line}</span>`, { ttl: 7 });
+    setView('combat');
+  });
+  on('theft-resume', ({ skillId, actionId }) => {
+    startSkillAction(skillId, actionId);
+    renderView();
+  });
+  on('theft-lost', () => renderView());
+  // The road asking you something is the one interruption worth a popup:
+  // it halts the activity until answered, so a player who misses it is
+  // idling for nothing.
+  on('adventure-offer', ({ chainId }) => {
+    const c = adventureView().open?.chain;
+    popup('THE ROAD', `${c?.icon || '🧭'} <b>${c?.title || 'Something happens'}</b><br>` +
+      '<span style="font-size:12px;color:var(--text-dim)">It is waiting for an answer.</span>', { ttl: 8 });
+    if (ui.view !== 'road') renderSidebar();
+  });
+  on('adventure-outcome', ({ chain, text, gained, ended, chosen }) => {
+    queueModal(`
+      <div class="modal-tag">◈ ${chosen ? 'THE ROAD' : 'THE ROAD DECIDED'} ◈</div>
+      <div class="modal-title">${chain.icon} ${chain.title}</div>
+      <div class="modal-body" style="line-height:1.75">
+        ${chosen ? '' : '<p class="muted">You were not there to answer, so it took the quiet option.</p>'}
+        <p>${text}</p>
+        ${gained.length ? `<p style="color:var(--gold)">${gained.join(' · ')}</p>` : ''}
+        ${ended ? '<p class="muted">That is the end of that one. The road goes on.</p>' : ''}
+      </div>
+      <div class="modal-actions"><button class="btn btn-primary" data-act="close-modal">${ended ? 'Walk on' : 'And then?'}</button></div>
+    `);
+  });
   for (const ev of ['repo-notice','repo-seized','repo-recovered','repo-resolved','ledger-opened','ledger-settled']) {
     on(ev, () => { if (ui.view === 'wastes') renderView(); else renderSidebar(); });
   }

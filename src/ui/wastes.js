@@ -8,16 +8,42 @@
 import { state, skillLevel } from '../core/state.js';
 import { SKILLS } from '../data/skills.js';
 import { getItem } from '../data/items.js';
-import { GLITCH_NOTE, LOCKS } from '../data/salvage.js';
+import { GLITCH_NOTE, LOCKS, LOCK_LIST, SITES } from '../data/salvage.js';
 import { salvageView } from '../systems/salvage.js';
 import { ledgerView, LEDGER } from '../systems/ledger.js';
 import { pendingNotice, describeSeizure, bribeCost, camps, REPO } from '../systems/repo.js';
+import { deepView } from '../systems/deep.js';
+import { bossView } from '../systems/worldboss.js';
+import { MAX_PREP } from '../data/worldboss.js';
+import { DEEP } from '../data/deep.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
 // ---------------- The Ledger ----------------
 
 function ledgerBlock() {
   const l = ledgerView();
+
+  // The grace period. Shown, not hidden: a countdown you cannot read the
+  // meaning of is better dread than silence, and it makes the bill land as
+  // a thing that was always coming rather than a thing that came from
+  // nowhere.
+  if (l.pending) {
+    return `
+      <div class="ledger-card pending">
+        <div class="ledger-head">
+          <span class="ledger-icon">📄</span>
+          <div style="flex:1;min-width:220px">
+            <div class="ledger-title">Reconciliation In Progress</div>
+            <div class="muted">Something is counting. It is not finished counting.
+              Nobody in the Wastes will tell you what happens when it is, and Marrow's
+              theory is that they genuinely do not know.</div>
+          </div>
+        </div>
+        <div class="xp-bar-outer neutral"><div class="xp-bar-inner" style="width:${l.graceProgress * 100}%;background:var(--text-faint)"></div></div>
+        <div class="xp-bar-label">query running · ${fmtDuration(l.graceLeft / 1000)} of processing left</div>
+      </div>`;
+  }
+
   if (!l.open && !l.settled) return '';
   if (l.settled) {
     return `
@@ -44,7 +70,7 @@ function ledgerBlock() {
         </div>
         <div class="ledger-figure">🪙 ${fmt(owed)}</div>
       </div>
-      <div class="xp-bar-outer"><div class="xp-bar-inner" style="width:${l.progress * 100}%;background:var(--gold)"></div></div>
+      <div class="xp-bar-outer neutral"><div class="xp-bar-inner" style="width:${l.progress * 100}%;background:var(--gold)"></div></div>
       <div class="xp-bar-label">${fmt(l.paid)} of ${fmt(l.assessed)} repaid</div>
       <button class="btn btn-sm ${canPay ? 'btn-gold' : ''}" data-act="ledger-pay" ${canPay ? '' : 'disabled'}
               style="margin-top:10px">
@@ -99,13 +125,187 @@ function repoBlock() {
       ${held.map(c => `
         <div class="repo-camp">
           <div><b>${describeSeizure(c.held)}</b></div>
-          <div class="xp-bar-outer"><div class="xp-bar-inner" style="width:${(c.cleared / c.needed) * 100}%;background:var(--danger)"></div></div>
+          <div class="xp-bar-outer neutral"><div class="xp-bar-inner" style="width:${(c.cleared / c.needed) * 100}%;background:var(--danger)"></div></div>
           <div class="xp-bar-label">${c.cleared} / ${c.needed} of them cleared</div>
         </div>`).join('')}
       <button class="btn btn-sm btn-danger" data-act="raid-camp" style="margin-top:8px">⚔️ Go to the camp</button>
     </div>` : '';
 
   return noticeHtml + campHtml;
+}
+
+// ---------------- The Vigil ----------------
+//
+// The preparation checklist is the point of this block, so it gets the
+// space. A player who reads nothing else should still be able to look at
+// this and know exactly what to go and do before they come back.
+
+function bossBlock() {
+  const v = bossView();
+  if (!v.unlocked) return '';
+
+  if (!v.up) {
+    if (!v.everSeen) return '';       // the first one should be a surprise
+    return `
+      <div class="boss-card down">
+        <div class="boss-head">
+          <span class="boss-icon">${v.def.icon}</span>
+          <div style="flex:1;min-width:220px">
+            <div class="boss-title">${v.def.name} — below</div>
+            <div class="muted">${v.felled
+              ? `${v.felled} switched off so far. Another will come up; they always do.`
+              : 'It went back down. What you took off it is still off it.'}</div>
+          </div>
+          ${v.hp > 0 && v.maxHp ? `<div class="boss-figure">${Math.round((1 - v.pct) * 100)}% down</div>` : ''}
+        </div>
+        ${v.felled ? `<div class="pill" style="border-color:var(--gold);color:var(--gold)">
+          Trophies: +${Math.round(v.trophy.damage * 100)}% damage ·
+          +${Math.round(v.trophy.maxhp * 100)}% health ·
+          +${Math.round(v.trophy.gold * 100)}% gold, permanently</div>` : ''}
+      </div>`;
+  }
+
+  const inIt = state.combat?.worldBoss && state.activity?.type === 'combat';
+  const p = v.prep;
+  const checklist = p.lines.map(l => `
+    <div class="prep-row ${l.met ? 'met' : ''}">
+      <span class="prep-mark">${l.met ? '✓' : '○'}</span>
+      <span class="prep-icon">${l.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="prep-label">${l.label}</div>
+        <div class="muted">${l.detail}</div>
+      </div>
+      <span class="prep-bonus ${l.met ? 'met' : ''}">+${Math.round(l.bonus * 100)}%</span>
+    </div>`).join('');
+
+  return `
+    <div class="boss-card up ${inIt ? 'engaged' : ''}">
+      <div class="boss-head">
+        <span class="boss-icon">${v.def.icon}</span>
+        <div style="flex:1;min-width:220px">
+          <div class="boss-title">${v.def.name} <span class="pill">${v.def.title}</span></div>
+          <div class="muted">${v.def.blurb}</div>
+        </div>
+        <div class="boss-figure">${fmtDuration(v.timeLeft / 1000)} up</div>
+      </div>
+
+      <div class="hp-bar-outer" style="height:20px">
+        <div class="hp-bar-inner" style="width:${v.pct * 100}%"></div>
+        <div class="hp-bar-text">${fmt(Math.ceil(v.hp))} / ${fmt(v.maxHp)}</div>
+      </div>
+      <div class="xp-bar-label">${v.dealt > 0
+        ? `${fmt(Math.round(v.dealt))} taken off it this time it has been up.`
+        : 'Nothing off it yet.'} <b>Everything you land is kept.</b></div>
+
+      <div class="section-title" style="margin-top:14px">Are you ready</div>
+      <div class="muted" style="margin-bottom:8px">
+        This is the only fight in the game that checks. Preparation is locked in the moment
+        you engage — it multiplies everything you deal and it divides everything the aura
+        does to you. Walk in cold at <b>×1.00</b>; walk in ready at <b>×${(1 + MAX_PREP).toFixed(2)}</b>.
+      </div>
+      <div class="prep-list">${checklist}</div>
+      <div class="prep-total">
+        <div>Right now you would engage at</div>
+        <div class="prep-mult ${p.fraction > 0.7 ? 'good' : p.fraction > 0.35 ? 'ok' : 'bad'}">
+          ×${p.multiplier.toFixed(2)}</div>
+      </div>
+
+      ${inIt ? `
+        <div class="muted" style="margin-top:8px">
+          Locked at <b>×${(1 + p.locked).toFixed(2)}</b> for this round.
+          In contact <b>${Math.round(v.contact)}s</b> — the aura is compounding, and it wins eventually.
+          Back out before it does; the damage stays done.
+        </div>` : `
+        <div class="muted" style="margin-top:8px">
+          ${v.recovered
+            ? 'Rested. The aura starts from nothing on your next round.'
+            : 'Still carrying the last round — the aura resumes where it left off for another few seconds.'}
+        </div>`}
+
+      <button class="btn btn-sm ${inIt ? '' : 'btn-danger'}" style="margin-top:10px"
+              data-act="${inIt ? 'stop-combat' : 'fight-boss'}">
+        ${inIt ? 'Back out of its shadow' : `${v.def.icon} Walk into its shadow`}
+      </button>
+    </div>`;
+}
+
+// ---------------- The Descent ----------------
+
+function deepBlock() {
+  const v = deepView();
+  const inIt = state.combat?.deep && state.activity?.type === 'combat';
+  const m = v.monster;
+
+  const floors = [];
+  // A window of floors around where you are, so the ladder is visible
+  // without printing two hundred buttons.
+  const from = Math.max(1, v.depth - 3);
+  const to = Math.min(v.maxSelectable, Math.max(v.depth + 3, from + 6));
+  for (let i = from; i <= to; i++) {
+    const warden = i % DEEP.WARDEN_EVERY === 0;
+    floors.push(`
+      <button class="floor-pill ${i === v.depth ? 'on' : ''} ${warden ? 'warden' : ''} ${i > v.best ? 'fresh' : ''}"
+              data-act="set-depth" data-depth="${i}">
+        ${warden ? '👑' : ''}${i}
+      </button>`);
+  }
+
+  return `
+    <div class="section-title">⬇️ The Descent
+      <span class="pill">deepest reach ${fmtInt(v.best)} / ${fmtInt(v.cap)}</span></div>
+    <div class="muted" style="margin-bottom:10px">
+      The Wastes are other places stacked on each other, so there is a down. Hold a floor by
+      putting down ${DEEP.CLEARS_PER_DEPTH} of what lives on it — every ${DEEP.WARDEN_EVERY}th floor
+      is held by one thing instead — and the next one opens. <b>Nothing here needs a skill and
+      nothing here needs to be robbed first.</b> It is the fighter's road, and how deep you have
+      ever been is permanent.
+    </div>
+
+    <div class="deep-card ${inIt ? 'active' : ''}">
+      <div class="deep-head">
+        <div>
+          <div class="deep-floor">Floor ${v.depth}${v.warden ? ' — Warden' : ''}</div>
+          <div class="deep-stratum">${v.stratum.name} <span class="muted">· ${v.stratum.desc}</span></div>
+        </div>
+        <div class="deep-bonus">
+          <div class="muted">standing bonus</div>
+          <div>⚔️ +${(v.bonus.damage * 100).toFixed(0)}% · 🪙 +${(v.bonus.gold * 100).toFixed(0)}% ·
+            🎁 +${(v.bonus.drop_rate * 100).toFixed(1)}%</div>
+        </div>
+      </div>
+
+      <div class="deep-monster">
+        <span class="dig-icon">${m.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div class="dig-name">${m.name}${m.boss ? ' 👑' : ''} <span class="pill">Lv. ${m.level}</span></div>
+          <div class="muted" style="font-style:italic">${m.line}</div>
+          <div class="muted" style="font-family:var(--font-mono);font-size:11px">
+            ${fmt(m.hp)} HP · 🛡 ${m.defense} def · hits up to ${m.maxHit} · 🪙 ${fmt(m.gold[0])}–${fmt(m.gold[1])}</div>
+        </div>
+      </div>
+
+      <div class="xp-bar-outer neutral"><div class="xp-bar-inner"
+        style="width:${(v.clears / v.need) * 100}%;background:var(--danger)"></div></div>
+      <div class="xp-bar-label">${v.clears} / ${v.need} held on this floor${
+        v.depth <= v.best ? ' · already open below' : ''}</div>
+
+      <div class="floor-row">${floors.join('')}</div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn btn-sm ${inIt ? '' : 'btn-danger'}" data-act="${inIt ? 'stop-combat' : 'start-descent'}">
+          ${inIt ? 'Climb back out' : '⚔️ Go down'}</button>
+        ${v.best >= v.depth && v.depth < v.maxSelectable
+          ? `<button class="btn btn-sm" data-act="set-depth" data-depth="${v.depth + 1}">Go one deeper ⬇️</button>`
+          : ''}
+      </div>
+
+      ${v.atCap ? `
+        <div class="muted" style="margin-top:8px;border-top:1px dashed rgba(43,58,94,0.7);padding-top:8px">
+          <b style="color:var(--sys-blue)">[ SYSTEM ] Descent authorisation exhausted at floor ${v.cap}.</b>
+          Clearance is issued per completed cycle: <b>Ascend and ${DEEP.CAP_PER_CYCLE} more floors open.</b>
+          The town stays. Only the ceiling moves.
+        </div>` : ''}
+    </div>`;
 }
 
 // ---------------- Salvage ----------------
@@ -119,8 +319,71 @@ function requirementLine(r) {
     </span>`;
 }
 
+// ---------------- The keyring ----------------
+//
+// The single most important block on this screen, and it was missing.
+//
+// Salvage is gated entirely on four OLD skills, which is the good idea at
+// the centre of Era II — but a player who reached the Wastes by fighting
+// had no way to see that, because the only thing a locked site said was
+// "Locked". They read the whole system as closed to them and left. This
+// block answers the one question they were actually asking: which number
+// do I raise, and what opens when I do.
+
+function keyring(v) {
+  const rows = LOCK_LIST.filter(l => l.skill).map(lock => {
+    const sk = SKILLS[lock.skill];
+    const have = skillLevel(lock.skill);
+
+    // Every threshold this lock guards anywhere in the tier list.
+    const gates = SITES
+      .filter(s => s.requires[lock.id] !== undefined)
+      .map(s => ({ level: s.requires[lock.id], site: s }))
+      .sort((a, b) => a.level - b.level);
+
+    const next = gates.find(g => g.level > have);
+    const open = gates.filter(g => g.level <= have).length;
+    const pct = next
+      ? Math.min(100, (have / next.level) * 100)
+      : 100;
+
+    return `
+      <div class="key-row ${next ? '' : 'complete'}">
+        <span class="key-icon">${lock.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div class="key-name">${sk?.name || lock.skill}
+            <span class="pill">${lock.label}</span>
+            <span class="muted">level ${have}</span></div>
+          <div class="key-next">${next
+            ? `<b>${sk?.name} ${next.level} opens ${next.site.icon} ${next.site.name}</b>
+               <span class="muted">— ${next.level - have} level${next.level - have === 1 ? '' : 's'} to go</span>`
+            : `<b>Every ${lock.label.toLowerCase()} door in the Wastes is open to you.</b>`}</div>
+          <div class="xp-bar-outer neutral" style="height:8px;margin-top:5px">
+            <div class="xp-bar-inner" style="width:${pct}%;${next ? '' : 'background:var(--gold)'}"></div>
+          </div>
+        </div>
+        <div class="key-count">${open}<span class="muted">/${gates.length}</span></div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="section-title">🗝️ Your Keys</div>
+    <div class="muted" style="margin-bottom:10px">
+      <b>Nothing out here is opened by fighting, and nothing out here needs a new skill.</b>
+      Every door in the Wastes is locked by a skill you already have, at a level you may
+      already be past. Raising an old number is how you get further in, and it is the only way.
+    </div>
+    <div class="key-list">${rows}</div>`;
+}
+
 function digCard(x) {
   const d = x.def;
+  // The one unmet requirement to put in front of the player. Multi-lock
+  // sites name the furthest-away skill, because that is the real wall.
+  const blocking = x.requirements
+    .filter(r => !r.met)
+    .sort((a, b) => (b.level - b.have) - (a.level - a.have))[0];
+
   return `
     <div class="dig-card tier-${d.tier} ${x.diggable ? '' : 'locked'}">
       <div class="dig-head">
@@ -143,7 +406,19 @@ function digCard(x) {
       </div>
       ${x.diggable
         ? `<button class="btn btn-sm btn-primary btn-block" data-act="start-dig" data-uid="${x.uid}">Dig</button>`
-        : `<div class="lock-req" style="text-align:center;padding:5px 0">Locked</div>`}
+        : blocking
+          ? `<div class="dig-gate">
+               <div class="dig-gate-line">${blocking.lock.icon}
+                 <b>${SKILLS[blocking.lock.skill]?.name || blocking.lock.skill} ${blocking.level}</b> opens this</div>
+               <div class="xp-bar-outer neutral" style="height:8px">
+                 <div class="xp-bar-inner" style="width:${Math.min(100, (blocking.have / blocking.level) * 100)}%;background:var(--danger)"></div>
+               </div>
+               <div class="xp-bar-label">you are ${blocking.have} — ${blocking.level - blocking.have} to go${
+                 x.requirements.filter(r => !r.met).length > 1
+                   ? `, and ${x.requirements.filter(r => !r.met).length - 1} other lock${x.requirements.filter(r => !r.met).length > 2 ? 's' : ''}`
+                   : ''}</div>
+             </div>`
+          : `<div class="lock-req" style="text-align:center;padding:5px 0">Locked</div>`}
     </div>`;
 }
 
@@ -171,11 +446,10 @@ function salvageBlock() {
   }
 
   return `
+    ${keyring(v)}
     <div class="section-title">🕳️ Dig Sites <span class="pill">${fmtInt(v.digs)} dug</span></div>
     <div class="muted" style="margin-bottom:10px">
-      Salvage has no level of its own. Every site is locked, and the keys are the skills you
-      already have — buried needs Mining, sealed needs Thieving, encoded needs Runecrafting,
-      fused needs Smithing. What comes up is a roll, not a wage.
+      Salvage has no level of its own and never will. What comes up is a roll, not a wage.
     </div>
     ${v.sites.length
       ? `<div class="dig-grid">${v.sites.map(digCard).join('')}</div>`
@@ -201,7 +475,9 @@ export function wastesPanel() {
       somebody threw away, the sky scrolls, and everything you own out here is — administratively
       speaking — unlicensed.
     </div>
+    ${bossBlock()}
     ${ledgerBlock()}
     ${repoBlock()}
+    ${deepBlock()}
     ${salvageBlock()}`;
 }

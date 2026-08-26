@@ -195,6 +195,41 @@ export const CODEX = [
     ],
   },
   {
+    id: 'w_descent', cat: 'world', title: 'Down', when: { flag: 'descended' },
+    text: `There is a down. Nobody expected there to be a down.<br><br>
+    The Wastes are not a place, they are a <i>pile</i> — discarded ground laid on discarded
+    ground for however long the department has been discarding things — and if you move enough
+    of the top layer aside, there is another layer, and it is older, and something is living in it.<br><br>
+    Quill has started a section of the map that is drawn side-on rather than from above. She
+    has never had to do that before and is quietly delighted about it.`,
+    deeper: [
+      { cycle: 6, text: `The strata are dateable, after a fashion: each one is a period when
+        somebody was throwing away a particular kind of thing. Around floor twenty there is a
+        layer that is almost entirely doors.` },
+      { cycle: 8, text: `Ferrin's question, which nobody has answered: if the Wastes are where
+        deleted things are put, and the Wastes have a bottom, what was the ground it was all
+        put <i>on</i>?<br><br>
+        He has stopped asking it out loud near Pell.` },
+    ],
+  },
+  {
+    id: 'b_vigil', cat: 'bestiary', title: 'The Vigil', when: { flag: 'vigil_seen' },
+    text: `It is not a creature and nobody who looks at it thinks it is. It has the proportions
+    of a thing built to be looked after by people who then left.<br><br>
+    It is careful. It steps around the town. It has stepped around the town four separate times,
+    and each time it has taken longer over it than the detour needed, as though checking.<br><br>
+    [ SYSTEM ] Asset VIGIL-1 is not scheduled for decommission. Asset VIGIL-1 has never been
+    scheduled for anything.`,
+    deeper: [
+      { cycle: 5, text: `The plate on the ankle carries a service interval of nine hundred years
+        and a blank space for the last date. Ferrin has measured the wear on the blank space.
+        Somebody used to fill it in. Somebody stopped.` },
+      { cycle: 7, text: `They come up in the same places. Wren thinks that means there is more
+        than one and always has been, standing in rows, waiting for a shift that was cancelled
+        without anyone telling the equipment.` },
+    ],
+  },
+  {
     id: 'r_deprecated', cat: 'relics', title: 'Deprecated Assets', when: { item: 'deprecated_asset' },
     text: `Finished work. Not broken, not half-made — <b>done</b>, and then thrown away: a
     cart with the wheels still true, a sign for a shop that never opened, a full set of somebody's
@@ -633,6 +668,21 @@ export const TIDBITS = {
     'The crate had a name stencilled on it. It was not a name; it was a version number.',
     'A whole orchard, upside down, forty feet under. Still fruiting.',
     'Every so often the ground gives back something with your handwriting on it.',
+  ],
+  descent: [
+    'The floor above you has stopped making noise. That started about ten minutes ago.',
+    'Somebody put a handrail in down here. Somebody expected to be doing this often.',
+    'A whole shopfront, sideways, with the lights still on and the door still locked.',
+    'You are below the part that was meant to have a floor and the ground is still holding.',
+    'Something came past in the dark and went round you rather than through you.',
+    'The strata are dateable. This one is almost entirely doors.',
+  ],
+  vigil: [
+    'It has not looked at you. You are increasingly certain it does not need to.',
+    'Every plate on it is stamped with the same nine-digit number, and none of them match.',
+    'It steps around the town. Even now, even with you doing this to it.',
+    'The air inside its shadow is warm and tastes of iron filings and paperwork.',
+    'Somewhere under the noise there is a sound like a very large thing counting.',
   ],
   town: [
     'The chimney smoke leans east. There is no wind.',

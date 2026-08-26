@@ -21,6 +21,54 @@ export const WANDERER_LOOKS = [
   { body: '#4a5a6b', hat: '#333d49', skin: '#c9976b' },
 ];
 
+// ---------------- Ordinary people ----------------
+//
+// Hearthwick used to be populated by fourteen copies of eight coloured
+// rectangles, walking the same six lines in lockstep. The town read as a
+// screensaver, which undercut everything else about it: a settlement you
+// have spent forty hours building should not look like a placeholder, and
+// a raid that "takes" people should take somebody.
+//
+// So the residents are now generated from the same appearance system the
+// player's own character uses, and they are STABLE — seeded off the town's
+// name and the resident's index, so the woman in the green coat by the
+// smithy is the same woman tomorrow. She has a name. If you hover her, the
+// game will tell you what she does.
+//
+// None of this is mechanical. It is entirely the difference between a town
+// and a diagram of one.
+
+export const VILLAGER_NAMES = [
+  'Bram', 'Nessa', 'Corin', 'Vetch', 'Ilse', 'Padrig', 'Yarrow', 'Meg',
+  'Osric', 'Tamsin', 'Dob', 'Hesper', 'Aldous', 'Rilla', 'Gethin', 'Nan',
+  'Sorrel', 'Waldo', 'Beatha', 'Cuth', 'Linnet', 'Ambrose', 'Peg', 'Rook',
+  'Elva', 'Tobin', 'Marisc', 'Hew', 'Dilly', 'Fenwick', 'Ottoline', 'Sim',
+  'Brannoc', 'Wynn', 'Kester', 'Alys', 'Garrow', 'Petronel', 'Odo', 'Silke',
+];
+
+export const VILLAGER_TRADES = [
+  'cooper', 'thatcher', 'carter', 'baker', 'goatherd', 'fletcher',
+  'washerwoman', 'ostler', 'tanner', 'chandler', 'midwife', 'ratcatcher',
+  'stonemason', 'brewer', 'scribe', 'shepherd', 'weaver', 'wheelwright',
+  'gravedigger', 'beekeeper',
+];
+
+/** What somebody is doing when you catch them standing still. */
+export const VILLAGER_ERRANDS = [
+  'on the way to the well',
+  'carrying something heavy and regretting it',
+  'looking for a goat',
+  'avoiding somebody',
+  'delivering a message they have forgotten',
+  'counting the parcels again',
+  'waiting for the forge to be free',
+  'walking a long way round to think',
+  'taking the short way, which is longer',
+  'off to complain about the noise',
+  'coming back to complain again',
+  'not doing anything in particular',
+];
+
 /** Population grows with what you've built — more buildings, more life. */
 export function populationFor(townLevel, buildingCount) {
   if (buildingCount === 0) return 0;

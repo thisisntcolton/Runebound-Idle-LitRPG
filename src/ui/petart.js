@@ -246,13 +246,182 @@ function moodCue(moodId) {
  * @param {object} pet  the pet record
  * @param {string} moodId  from mood(pet).id
  */
+// ============================================================
+// BODY PLANS
+//
+// The five original species are drawn by hand above. The ten that came
+// later are ASSEMBLED: a plan, a palette, and a few feature flags.
+//
+// That is not laziness, it is the only way ten more species was ever
+// going to happen — a bespoke creature is thirty lines of path data and
+// an afternoon of nudging coordinates, and ten of those is a week. At
+// portrait size what actually reads is silhouette, colour and one or two
+// distinguishing features: ears, a tail shape, wings, how many eyes.
+// A plan gives you exactly those and nothing else, which is enough.
+//
+// Every plan takes (p, mood, build) and returns markup in the same
+// 120x120 box on the same floor line, so growth stages, mood cues and the
+// drained filter all keep working without knowing which is which.
+// ============================================================
+
+const TAILS = {
+  thin:   p => `<path d="M84 86 q16 2 18 -12" stroke="${p.accent}" stroke-width="3.5" fill="none" stroke-linecap="round">
+      <animate attributeName="d" values="M84 86 q16 2 18 -12; M84 86 q18 -4 14 -16; M84 86 q16 2 18 -12" dur="2.4s" repeatCount="indefinite"/></path>`,
+  bushy:  p => `<path d="M82 84 q22 -2 16 -24" stroke="${p.body}" stroke-width="13" fill="none" stroke-linecap="round">
+      <animate attributeName="d" values="M82 84 q22 -2 16 -24; M82 84 q26 -8 12 -26; M82 84 q22 -2 16 -24" dur="2.2s" repeatCount="indefinite"/></path>
+    <circle cx="97" cy="61" r="6" fill="${p.belly}"/>`,
+  none:   () => '',
+};
+
+const EARS = {
+  pointed: (p, cy) => `
+    <path d="M44 ${cy - 14} l1 -17 l14 10 z" fill="${p.body}"/>
+    <path d="M76 ${cy - 14} l-1 -17 l-14 10 z" fill="${p.body}"/>
+    <path d="M47 ${cy - 15} l0.8 -9 l7 5 z" fill="${p.accent}"/>
+    <path d="M73 ${cy - 15} l-0.8 -9 l-7 5 z" fill="${p.accent}"/>`,
+  round: (p, cy) => `
+    <circle cx="43" cy="${cy - 17}" r="10" fill="${p.body}"/>
+    <circle cx="77" cy="${cy - 17}" r="10" fill="${p.body}"/>
+    <circle cx="43" cy="${cy - 17}" r="5.5" fill="${p.accent}"/>
+    <circle cx="77" cy="${cy - 17}" r="5.5" fill="${p.accent}"/>`,
+  none: () => '',
+};
+
+const PLANS = {
+  /** Cat/dog frame, re-proportioned by flags. Mice, foxes and stags. */
+  quadruped: (p, m, b) => {
+    const s = b.small ? 0.82 : b.tall ? 1.08 : 1;
+    const headY = b.tall ? 52 : 58;
+    return idleBob(`
+      ${shadow(22 * s)}
+      ${(TAILS[b.tail] || TAILS.none)(p)}
+      <ellipse cx="60" cy="86" rx="${25 * s}" ry="${17 * s}" fill="${p.body}"/>
+      <ellipse cx="60" cy="90" rx="${16 * s}" ry="${11 * s}" fill="${p.belly}"/>
+      ${b.horns === 'branching' ? `
+        <g stroke="${p.accent}" stroke-width="3" fill="none" stroke-linecap="round">
+          <path d="M50 ${headY - 20} l-6 -14 M46 ${headY - 27} l-8 -4 M48 ${headY - 31} l-3 -9"/>
+          <path d="M70 ${headY - 20} l6 -14 M74 ${headY - 27} l8 -4 M72 ${headY - 31} l3 -9"/>
+        </g>` : ''}
+      ${(EARS[b.ears] || EARS.none)(p, headY)}
+      <circle cx="60" cy="${headY}" r="${21 * s}" fill="${p.body}"/>
+      <ellipse cx="60" cy="${headY + 11}" rx="${12 * s}" ry="${8 * s}" fill="${p.belly}"/>
+      ${eyes(p, m, 60, headY - 3, 9 * s, 3.2 * s)}
+      <ellipse cx="60" cy="${headY + 8}" rx="3.6" ry="2.8" fill="#2a2a33"/>
+      <path d="M60 ${headY + 11} q-5 4 -8 1 M60 ${headY + 11} q5 4 8 1"
+            stroke="#2a2a33" stroke-width="1.6" fill="none" stroke-linecap="round"/>`);
+  },
+
+  /** Sparrows and owls: round body, beak, and either a fan or a crest. */
+  bird: (p, m, b) => idleBob(`
+    ${shadow(19)}
+    ${b.tailFan ? `<path d="M76 90 l28 -10 l-2 10 l6 6 l-30 6 z" fill="${p.accent}"/>` : ''}
+    <ellipse cx="60" cy="82" rx="23" ry="22" fill="${p.body}"/>
+    <ellipse cx="60" cy="88" rx="14" ry="14" fill="${p.belly}"/>
+    <path d="M40 78 q-8 10 2 20 q8 -6 8 -18 z" fill="${p.accent}" opacity="0.85"/>
+    <path d="M80 78 q8 10 -2 20 q-8 -6 -8 -18 z" fill="${p.accent}" opacity="0.85"/>
+    ${b.crest ? `<path d="M52 44 l4 -12 l5 9 l5 -11 l4 14 z" fill="${p.accent}"/>` : ''}
+    <circle cx="60" cy="56" r="${b.bigEyes ? 20 : 17}" fill="${p.body}"/>
+    ${b.bigEyes ? `<circle cx="51" cy="55" r="8" fill="${p.belly}"/><circle cx="69" cy="55" r="8" fill="${p.belly}"/>` : ''}
+    ${eyes(p, m, 60, 55, b.bigEyes ? 9 : 7, b.bigEyes ? 4.4 : 3)}
+    <path d="M56 62 l4 8 l4 -8 z" fill="${p.eye === '#2a2a33' ? '#e8b45a' : '#e8b45a'}"/>
+    <g stroke="${p.accent}" stroke-width="2.2" stroke-linecap="round">
+      <line x1="54" y1="101" x2="54" y2="106"/><line x1="66" y1="101" x2="66" y2="106"/>
+    </g>`, 2.6, 2),
+
+  /** Beetles and moths. The shell and the wings do all the work. */
+  insect: (p, m, b) => idleBob(`
+    ${shadow(20)}
+    ${b.wings ? `
+      <g opacity="0.85">
+        <ellipse cx="36" cy="72" rx="20" ry="26" fill="${p.accent}" transform="rotate(-18 36 72)"/>
+        <ellipse cx="84" cy="72" rx="20" ry="26" fill="${p.accent}" transform="rotate(18 84 72)"/>
+        <ellipse cx="36" cy="72" rx="9" ry="13" fill="${p.belly}" transform="rotate(-18 36 72)"/>
+        <ellipse cx="84" cy="72" rx="9" ry="13" fill="${p.belly}" transform="rotate(18 84 72)"/>
+        <animateTransform attributeName="transform" type="scale" values="1 1; 0.94 1; 1 1"
+          dur="1.6s" repeatCount="indefinite" additive="sum"/>
+      </g>` : ''}
+    <ellipse cx="60" cy="82" rx="21" ry="24" fill="${p.body}"/>
+    ${b.shell ? `
+      <ellipse cx="60" cy="82" rx="19" ry="22" fill="${p.belly}" opacity="0.55"/>
+      <line x1="60" y1="60" x2="60" y2="104" stroke="${p.accent}" stroke-width="2.5"/>
+      <ellipse cx="49" cy="78" rx="4" ry="6" fill="${p.accent}" opacity="0.7"/>
+      <ellipse cx="71" cy="78" rx="4" ry="6" fill="${p.accent}" opacity="0.7"/>` : ''}
+    <circle cx="60" cy="54" r="15" fill="${p.body}"/>
+    ${b.antennae ? `
+      <g stroke="${p.accent}" stroke-width="2.2" fill="none" stroke-linecap="round">
+        <path d="M52 43 q-6 -10 -13 -12"/><path d="M68 43 q6 -10 13 -12"/>
+      </g>
+      <circle cx="39" cy="31" r="2.6" fill="${p.accent}"/><circle cx="81" cy="31" r="2.6" fill="${p.accent}"/>` : ''}
+    ${eyes(p, m, 60, 53, 7, 3.2)}
+    ${b.glow ? `<circle cx="60" cy="80" r="30" fill="${p.accent}" opacity="0.13">
+      <animate attributeName="opacity" values="0.08;0.2;0.08" dur="3.4s" repeatCount="indefinite"/></circle>` : ''}`,
+    3.0, 2),
+
+  /** Axolotls and seam serpents. A coil, and how alive it looks. */
+  serpent: (p, m, b) => idleBob(`
+    ${shadow(24)}
+    <path d="M30 96 q10 -18 30 -14 q22 4 30 -14" stroke="${p.body}" stroke-width="16"
+          fill="none" stroke-linecap="round">
+      <animate attributeName="d"
+        values="M30 96 q10 -18 30 -14 q22 4 30 -14; M30 96 q10 -10 30 -18 q22 -8 30 -8; M30 96 q10 -18 30 -14 q22 4 30 -14"
+        dur="3.6s" repeatCount="indefinite"/>
+    </path>
+    <path d="M32 97 q10 -14 28 -11" stroke="${p.belly}" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.8"/>
+    ${b.legs ? `
+      <g fill="${p.body}">
+        <ellipse cx="42" cy="99" rx="6" ry="4"/><ellipse cx="76" cy="93" rx="6" ry="4"/>
+      </g>` : ''}
+    ${b.frills ? `
+      <g fill="${p.accent}" opacity="0.9">
+        <path d="M46 58 q-14 -8 -19 2 q12 2 17 6 z"/>
+        <path d="M74 58 q14 -8 19 2 q-12 2 -17 6 z"/>
+        <path d="M44 66 q-15 2 -17 12 q13 -3 18 -4 z"/>
+        <path d="M76 66 q15 2 17 12 q-13 -3 -18 -4 z"/>
+      </g>` : ''}
+    <circle cx="60" cy="62" r="19" fill="${p.body}"/>
+    <ellipse cx="60" cy="70" rx="11" ry="7" fill="${p.belly}"/>
+    ${eyes(p, m, 60, 58, 8, 3.2)}
+    <path d="M60 70 q-6 4 -10 1 M60 70 q6 4 10 1" stroke="#2a2a33" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    ${b.spark ? `
+      <g stroke="${p.accent}" stroke-width="2" fill="none" opacity="0.9">
+        <path d="M84 44 l6 -8 l-3 8 l7 -4"><animate attributeName="opacity" values="0.2;1;0.2" dur="1.8s" repeatCount="indefinite"/></path>
+      </g>` : ''}`,
+    3.4, 2.5),
+
+  /** The Orphaned Familiar. Not shaped like anything that evolved. */
+  blob: (p, m, b) => idleBob(`
+    ${shadow(18)}
+    ${b.glow ? `<circle cx="60" cy="74" r="34" fill="${p.accent}" opacity="0.12">
+      <animate attributeName="r" values="30;36;30" dur="4.2s" repeatCount="indefinite"/></circle>` : ''}
+    <path d="M60 44 q26 4 26 30 q0 26 -26 30 q-26 -4 -26 -30 q0 -26 26 -30 z" fill="${p.body}">
+      <animate attributeName="d"
+        values="M60 44 q26 4 26 30 q0 26 -26 30 q-26 -4 -26 -30 q0 -26 26 -30 z;
+                M60 42 q28 6 24 32 q-2 24 -24 30 q-24 -6 -24 -32 q0 -24 24 -30 z;
+                M60 44 q26 4 26 30 q0 26 -26 30 q-26 -4 -26 -30 q0 -26 26 -30 z"
+        dur="5s" repeatCount="indefinite"/>
+    </path>
+    <path d="M60 52 q16 4 16 20 q0 16 -16 20 q-16 -4 -16 -20 q0 -16 16 -20 z" fill="${p.belly}" opacity="0.45"/>
+    ${m === 'miserable' || m === 'lonely'
+      ? `<path d="M50 70 q5 5 10 0 M62 70 q5 5 10 0" stroke="${p.eye}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+      : `<circle cx="52" cy="68" r="4.4" fill="${p.eye}"/>
+         <circle cx="70" cy="66" r="3.6" fill="${p.eye}"/>
+         <circle cx="61" cy="80" r="3" fill="${p.eye}"/>
+         <circle cx="53" cy="66.5" r="1.5" fill="#2a2a33"/>
+         <circle cx="71" cy="64.5" r="1.2" fill="#2a2a33"/>
+         <circle cx="62" cy="78.5" r="1" fill="#2a2a33"/>`}`,
+    4.4, 3),
+};
+
 export function petArt(pet, moodId = 'content') {
   const sp = getSpecies(pet.species);
   if (!sp) return '';
   const stage = stageFor(petStageLevel(pet));
+  // Hand-drawn first, then the assembled plans. A species with neither is
+  // a data error, and drawing nothing is the honest way to surface it.
   const fn = ART[sp.id];
-  if (!fn) return '';
-  const body = fn(sp.palette, moodId);
+  const plan = sp.build ? PLANS[sp.build.plan] : null;
+  if (!fn && !plan) return '';
+  const body = fn ? fn(sp.palette, moodId) : plan(sp.palette, moodId, sp.build);
   const s = stage.scale;
 
   // A miserable pet goes grey and slumps; a merely hungry or lonely one

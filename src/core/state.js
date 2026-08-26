@@ -5,7 +5,7 @@ import { SKILL_IDS, TRAINABLE_SKILLS, COMBAT_SKILLS, SKILLS } from '../data/skil
 import { UPGRADES, HIRELINGS, PERKS, SHARD_XP_BONUS, SHARD_GOLD_BONUS,
          HIRELING_BASE_RATE, HIRELING_RATE_PER_RANK } from '../data/upgrades.js';
 import { getItem } from '../data/items.js';
-import { levelForXp, xpForLevel } from './xp.js';
+import { levelForXp, xpForLevel, MAX_LEVEL, SOFT_CAP } from './xp.js';
 
 export const SAVE_VERSION = 1;
 
@@ -160,6 +160,10 @@ export function defaultState() {
       unread: 0,
     },
 
+    // Adventure — the road, and what it remembers about you.
+    adventure: { travelled: 0, encounters: 0, chains: 0, flags: {}, seen: {},
+                 active: null, nextAt: 0, progress: 0 },
+
     // Village encounters — fires, raids, thefts, quakes, and the circus
     encounters: { nextAt: 0, offer: null, history: {}, resolved: 0 },
 
@@ -177,7 +181,10 @@ export function defaultState() {
     // Era II systems. All inert until era >= 2.
     salvage: { sites: [], active: null, nextSiteAt: 0, digs: 0, hauls: {} },
     repo: { nextAt: 0, notice: null, camps: [], seized: 0, recovered: 0, repelled: 0 },
-    ledger: { assessed: 0, balance: 0, paid: 0, settled: false, openedAt: 0 },
+    ledger: { assessed: 0, balance: 0, paid: 0, settled: false, openedAt: 0, graceMs: 0 },
+    deep: { best: 0, depth: 1, clears: 0, kills: 0, wardens: 0 },
+    worldBoss: { nextAt: 0, playMs: 0, up: false, hp: 0, maxHp: 0, surfacedAt: 0,
+                 expiresAt: 0, felled: 0, dealt: 0, contactMs: 0, lastContactAt: 0, prep: 0 },
 
     // Which Era the world is in. 1 = the sandbox (the tutorial, though
     // nobody has told you that). 2 = the Scrap Wastes, after the break.
@@ -197,7 +204,28 @@ export function replaceState(next) { state = next; }
 
 // ---------------- Derived values ----------------
 
+/**
+ * The ceiling on every skill, right now.
+ *
+ * Inside the sandbox it is 99, and it always was. Out in the Wastes it is
+ * 199 — and the XP you banked while capped is still there, so breaking
+ * out does not start the second hundred, it HANDS you however much of it
+ * you had already earned without being allowed to have.
+ *
+ * Deliberately implemented here and not in core/xp.js: that file is
+ * shared verbatim with the server's anti-cheat check and must stay a pure
+ * function of XP. The cap is a rule about the world, not about the curve.
+ */
+export function levelCap() {
+  return (state.era || 1) >= 2 ? MAX_LEVEL : SOFT_CAP;
+}
+
 export function skillLevel(skillId) {
+  return Math.min(levelForXp(state.skills[skillId].xp), levelCap());
+}
+
+/** True XP level, ignoring the era ceiling — for "banked" messaging. */
+export function uncappedSkillLevel(skillId) {
   return levelForXp(state.skills[skillId].xp);
 }
 
@@ -272,7 +300,18 @@ export function townBonus(key) { try { return _townBuff(key) || 0; } catch { ret
 // Same trick for the active pet's bonus (systems/pets.js imports state.js).
 let _petBonus = () => 0;
 export function registerPetBonus(fn) { _petBonus = fn; }
-export function petBonus(key) { try { return _petBonus(key) || 0; } catch { return 0; } }
+export function petBonus(key) {
+  try {
+    const raw = _petBonus(key) || 0;
+    // The Spirit Lantern is the one thing that scales a pet rather than
+    // adding beside it, so it is applied here rather than in every one of
+    // the six multipliers that read a pet bonus.
+    // Two things scale a pet rather than adding beside it: the Spirit
+    // Lantern and the Beastmaster. Applied here so neither has to be
+    // repeated in every multiplier that reads a pet bonus.
+    return raw * (1 + abilityBonus('pet_amp') + classBonus('pet_amp'));
+  } catch { return 0; }
+}
 
 // And once more for your class (systems/classes.js imports state.js).
 let _classBonus = () => 0;
@@ -283,6 +322,26 @@ export function classBonus(key) { try { return _classBonus(key) || 0; } catch { 
 let _ledgerBonus = () => 0;
 export function registerLedgerBonus(fn) { _ledgerBonus = fn; }
 export function ledgerBonus(key) { try { return _ledgerBonus(key) || 0; } catch { return 0; } }
+
+// And the Syndicate, while it holds a lien on you. Negative by nature.
+let _repoPenalty = () => 0;
+export function registerRepoPenalty(fn) { _repoPenalty = fn; }
+export function repoPenalty(key) { try { return _repoPenalty(key) || 0; } catch { return 0; } }
+
+// And how far down the Descent you have ever reached. Permanent.
+let _deepBonus = () => 0;
+export function registerDeepBonus(fn) { _deepBonus = fn; }
+export function deepBonus(key) { try { return _deepBonus(key) || 0; } catch { return 0; } }
+
+// And every Vigil you have ever switched off. Also permanent.
+let _bossBonus = () => 0;
+export function registerBossBonus(fn) { _bossBonus = fn; }
+export function bossBonus(key) { try { return _bossBonus(key) || 0; } catch { return 0; } }
+
+// And whatever is in your ability slots. Lets an ability be pure data.
+let _abilityBonus = () => 0;
+export function registerAbilityBonus(fn) { _abilityBonus = fn; }
+export function abilityBonus(key) { try { return _abilityBonus(key) || 0; } catch { return 0; } }
 
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
@@ -303,6 +362,10 @@ export function goldMultiplier() {
        * (1 + petBonus('gold'))
        * (1 + classBonus('gold'))
        * (1 + ledgerBonus('gold'))
+       * (1 + deepBonus('gold'))
+       * (1 + bossBonus('gold'))
+       * (1 + abilityBonus('gold'))
+       * (1 + repoPenalty('gold'))
        * endingMult();
 }
 
@@ -316,12 +379,14 @@ export function dropRateMultiplier() {
        * (1 + buffEffect('dropRate'))
        * (1 + townBonus('drop_rate'))
        * (1 + petBonus('drop_rate'))
-       * (1 + classBonus('drop_rate'));
+       * (1 + classBonus('drop_rate'))
+       * (1 + deepBonus('drop_rate'))
+       * (1 + abilityBonus('drop_rate'));
 }
 
 // Town Market Stalls raise what vendors pay you.
 export function sellPriceMultiplier() {
-  return 1 + townBonus('sell_price') + classBonus('sell_price');
+  return 1 + townBonus('sell_price') + classBonus('sell_price') + petBonus('sell_price');
 }
 
 // Action time for a skill action after all speed bonuses
@@ -334,6 +399,7 @@ export function actionTime(skillId, action) {
   speedBonus += state.charStats.AGI * 0.005;
   speedBonus += buffEffect('speed');
   speedBonus += classBonus('gather_speed');
+  speedBonus += petBonus('gather_speed');
   if (skillId === 'woodcutting') speedBonus += townBonus('woodcutting_speed');
   return action.baseTime / (1 + speedBonus);
 }
@@ -346,7 +412,7 @@ export function doubleChance(skillId) {
   // Thieving is the one skill where luck is the whole discipline, so LUK
   // pays out here directly instead of only nudging drop tables.
   if (skillId === 'thieving') chance += state.charStats.LUK * 0.004;
-  return Math.min(0.95, chance + classBonus('double_chance'));
+  return Math.min(0.95, chance + classBonus('double_chance') + petBonus('double_chance'));
 }
 
 export function hirelingRate(skillId) {
@@ -377,7 +443,9 @@ export function maxHp() {
   const gear = gearStats();
   return Math.floor((10 * skillLevel('hitpoints') + gear.hp)
                     * (1 + state.charStats.VIT * 0.01)
-                    * (1 + classBonus('maxhp')));
+                    * (1 + classBonus('maxhp'))
+                    * (1 + petBonus('maxhp'))
+                    * (1 + bossBonus('maxhp')));
 }
 
 export function playerAccuracy() {
@@ -399,6 +467,8 @@ export function playerMaxHit() {
              * (1 + petBonus('damage'))
              * (1 + classBonus('damage'))
              * (1 + state.charStats.INT * classBonus('int_damage'))
+             * (1 + deepBonus('damage'))
+             * (1 + bossBonus('damage'))
              * (state.ending === 'broken' ? 1.10 : 1);
   return Math.max(1, Math.floor(base * mult));
 }
@@ -444,7 +514,7 @@ export function damageReduction() {
              + buffEffect('reduction'));
   // A class can push this DOWN (the Mage wears robes), so clamp at zero
   // rather than assuming every modifier is a bonus.
-  const total = (flat + mult * (1 - flat)) * (1 + classBonus('dr'));
+  const total = (flat + mult * (1 - flat)) * (1 + classBonus('dr') + petBonus('dr'));
   return Math.max(0, Math.min(BALANCE.DR_TOTAL_CAP, total));
 }
 

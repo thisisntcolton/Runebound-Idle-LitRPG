@@ -52,6 +52,16 @@ export function ascend() {
     ledger: state.ledger,
     repo: state.repo,
     salvage: state.salvage,
+    // How far down you have ever been. The Descent's whole point is that
+    // it is the one combat number that only goes up, so this must survive
+    // — and Ascension is what raises its ceiling.
+    deep: state.deep,
+    // And the Vigil. Its health pool is measured in sessions; a reset that
+    // took it back would make the whole encounter unfightable.
+    worldBoss: state.worldBoss,
+    // The road knows you. That is the whole premise of the system, and a
+    // reset that wiped it would make every chain a stranger again.
+    adventure: state.adventure,
   };
 
   // Hearthwick falls — but only while the loop still owns it.

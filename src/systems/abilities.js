@@ -133,8 +133,37 @@ export function applyStrike(baseDamage) {
       return { damage: Math.floor(baseDamage * e.value), hits: 1, label: ability.name };
     }
   }
+  if (e.type === 'sunder') {
+    startCooldown(ability);
+    // Persisted on the combat state rather than on the monster, because
+    // monsters are regenerated from data every tick and anything written
+    // onto one is gone by the next frame.
+    state.combat.shred = Math.max(state.combat.shred || 0, e.shred);
+    return { damage: Math.floor(baseDamage * e.value), hits: 1, label: ability.name };
+  }
+  if (e.type === 'drain') {
+    startCooldown(ability);
+    const dmg = Math.floor(baseDamage * e.value);
+    return { damage: dmg, hits: 1, label: ability.name, heal: Math.floor(dmg * e.drain) };
+  }
+  if (e.type === 'percentMax') {
+    startCooldown(ability);
+    // The one ability that scales with the ENEMY. Worth nothing against a
+    // slime and worth everything against something with a health bar
+    // measured in sessions.
+    const bonus = Math.floor((state.combat.monsterMaxHp || 0) * e.value);
+    return { damage: baseDamage + bonus, hits: 1, label: ability.name, flat: bonus };
+  }
   return { damage: baseDamage, hits: 1, label: null };
 }
+
+/** How much of the target's defence is currently broken. 0..1 */
+export function shredFactor() {
+  return 1 - Math.min(0.8, state.combat.shred || 0);
+}
+
+/** Cleared whenever a fresh target steps up. */
+export function clearShred() { state.combat.shred = 0; }
 
 /** Manual fire — only meaningful for Strike; returns true if it primed. */
 export function manualTrigger() {
@@ -160,6 +189,38 @@ export function applyGuard(incoming) {
       emit('combat-hit', { source: 'parry', damage: 0 });
       emit('notify', { type: 'combat', text: `🤺 Parried!` });
       return 0;
+    }
+    return incoming;
+  }
+
+  if (e.type === 'thorns') {
+    // Banked rather than applied here: applyGuard runs inside the enemy's
+    // attack resolution and reaching into the monster's health from there
+    // would fire before the hit it is reacting to has landed.
+    state.combat.pendingThorns = (state.combat.pendingThorns || 0) + incoming * e.value;
+    return incoming;
+  }
+
+  if (e.type === 'capHit') {
+    const cap = Math.max(1, Math.floor(maxHp() * e.value));
+    if (incoming > cap) {
+      emit('notify', { type: 'combat', text: `🗿 ${ability.name} — it hit you as hard as it is allowed to.` });
+      return cap;
+    }
+    return incoming;
+  }
+
+  if (e.type === 'aegis') {
+    if (isReady(ability.id)) {
+      startCooldown(ability);
+      state.combat.drBurstUntil = Date.now() + e.duration;
+      state.combat.drBurstValue = e.value;
+      emit('combat-hit', { source: 'parry', damage: 0 });
+      emit('notify', { type: 'combat', text: `⛨ ${ability.name} — nothing lands.` });
+      return 0;
+    }
+    if (state.combat.drBurstUntil > Date.now()) {
+      return Math.max(1, Math.floor(incoming * (1 - (state.combat.drBurstValue || 0))));
     }
     return incoming;
   }
@@ -220,7 +281,34 @@ export function tickUtility(onBombDamage) {
     const dmg = Math.max(1, Math.floor(playerMaxHit() * e.value));
     onBombDamage(dmg, ability);
   }
+  if (e.type === 'regen') {
+    const cap = maxHp();
+    if (state.combat.playerHp < cap) {
+      startCooldown(ability);
+      const healed = Math.floor(cap * e.value);
+      state.combat.playerHp = Math.min(cap, state.combat.playerHp + healed);
+      emit('combat-hit', { source: 'heal', damage: healed });
+      emit('notify', { type: 'combat', text: `🩹 ${ability.name} — ${healed} back.` });
+    }
+  }
   // autoElixir is handled by the potion system hook below
+}
+
+/**
+ * Passive contributions from whatever is equipped.
+ *
+ * Same shape as the town, pet, class and Descent hooks. An ability with a
+ * `passive` bag needs no code at all beyond this — which is the whole
+ * reason the Ledger of Debts and the Spirit Lantern are three lines of
+ * data each rather than two more branches in the combat tick.
+ */
+export function abilityBonus(key) {
+  let total = 0;
+  for (const slot of SLOTS) {
+    const ab = equippedAbility(slot.id);
+    if (ab?.passive?.[key]) total += ab.passive[key];
+  }
+  return total;
 }
 
 /** Returns the potion itemId Auto-Elixir wants re-drunk, or null. */
