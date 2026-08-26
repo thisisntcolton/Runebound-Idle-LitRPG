@@ -43,28 +43,38 @@ export function ascend() {
     look: state.look,
     // Talent trees are the one progression nothing ever takes back.
     classProgress: state.classProgress,
+    // You cannot fall back into the box.
+    era: state.era,
+    eraEnteredAt: state.eraEnteredAt,
+    eraSeen: state.eraSeen,
   };
 
-  // Hearthwick DOES fall.
+  // Hearthwick falls — but only while the loop still owns it.
   //
-  // It used to survive intact, and that quietly broke the reset: a returning
-  // player walked out of Ascension into a fully staffed town still printing
-  // gold, and rebought their entire hireling roster inside ten minutes. The
-  // early cycle — the part the whole game is built around — simply vanished.
+  // In Era 1 the buildings, staff, stock and coin are gone every cycle. That
+  // is the reset working: a town that survived intact let a returning player
+  // rebuy their whole hireling roster inside ten minutes and skip the early
+  // game entirely.
   //
-  // So the buildings, staff, stock and coin are gone. What survives is
-  // knowledge: the people you met, and the fact that you have done this
-  // before. That is the seed the next town grows from.
-  const razed = razeTown(state.town);
+  // In Era 2 it stops. Breaking the cycle is what takes the town off the
+  // loop's books, and the raze the player has endured four times becomes the
+  // thing they escaped rather than a rule they live under. By then the early
+  // game is sixty hours behind them and there is nothing left to skip.
+  const inTheWastes = (state.era || 1) >= 2;
+  const razed = inTheWastes ? null : razeTown(state.town);
 
   const fresh = defaultState();
   Object.assign(fresh, keep);
-  fresh.town = razed.town;
+  fresh.town = inTheWastes ? state.town : razed.town;
   replaceState(fresh);
   save();
-  emit('ascended', { shards, razed: razed.summary });
-  emit('notify', { type: 'sys', text: `[ SYSTEM ] ASCENSION COMPLETE — +${shards} Fate Shards. The world resets; you do not.` });
-  if (razed.summary.buildings > 0) {
+  emit('ascended', { shards, razed: razed?.summary || null, era: fresh.era });
+  emit('notify', { type: 'sys', text: inTheWastes
+    ? `[ SYSTEM ] Reset logged: +${shards} Fate Shards. Settlement not reclaimed. Escalating.`
+    : `[ SYSTEM ] ASCENSION COMPLETE — +${shards} Fate Shards. The world resets; you do not.` });
+  if (inTheWastes) {
+    emit('notify', { type: 'gold', text: 'Hearthwick is still standing. It is going to keep standing.' });
+  } else if (razed.summary.buildings > 0) {
     emit('notify', { type: 'combat',
       text: `Hearthwick is gone. ${razed.summary.buildings} building${razed.summary.buildings === 1 ? '' : 's'} and ${razed.summary.staff} worker${razed.summary.staff === 1 ? '' : 's'} unmade with the rest of the world.` });
   }

@@ -174,6 +174,13 @@ export function defaultState() {
     ending: null,        // null | 'fed' | 'broken' (persists)
     endingOfferedCycle: -1,
 
+    // Which Era the world is in. 1 = the sandbox (the tutorial, though
+    // nobody has told you that). 2 = the Scrap Wastes, after the break.
+    // Persists through Ascension: you cannot fall back into the box.
+    era: 1,
+    eraEnteredAt: 0,
+    eraSeen: {},         // one-off Era intro flags
+
     log: [],            // recent system log lines [{t, type, text}]
     settings: { logCollapsed: false },
   };

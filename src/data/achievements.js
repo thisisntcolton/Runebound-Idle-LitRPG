@@ -71,6 +71,12 @@ export const ACHIEVEMENTS = [
     cond: c => c.state.ascensions >= 5, title: 'Cyclewalker' },
   { id: 'cyclebreaker', icon: '⛓️', name: 'Cyclebreaker', desc: 'Break the Cycle',
     cond: c => c.state.ending === 'broken', title: 'Cyclebreaker' },
+  { id: 'warranty_void', icon: '📄', name: 'Warranty Void', desc: 'Leave the sandbox',
+    cond: c => (c.state.era || 1) >= 2, title: 'Unindexed' },
+  { id: 'first_first_time', icon: '🧱', name: 'The First First Time',
+    desc: 'Ascend once in the Wastes and keep your town',
+    cond: c => (c.state.era || 1) >= 2 && (c.state.town?.plots || []).some(p => p.building),
+    title: 'Still Standing' },
   { id: 'fed_flame', icon: '🔥', name: 'The Patient Ransom', desc: 'Feed the Flame instead',
     cond: c => c.state.ending === 'fed' || (c.state.ending === 'broken' && c.state.stats.flamesFed > 0), title: 'Flamekeeper' },
 

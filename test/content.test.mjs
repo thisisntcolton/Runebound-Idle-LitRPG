@@ -39,12 +39,13 @@ for (const e of CODEX) {
   if (w.item && !ITEMS[w.item]) fail(`unknown item "${w.item}"`);
   if (w.flag && !FLAGS.has(w.flag)) fail(`flag "${w.flag}" is never set by any system`);
   if (w.townBuilding && !BUILDINGS[w.townBuilding]) fail(`unknown building "${w.townBuilding}"`);
-  if (w.cycle !== undefined && w.cycle > 4) fail(`cycle ${w.cycle} is past the ending`);
+  if (w.cycle !== undefined && w.cycle > 8) fail(`cycle ${w.cycle} is unreachable`);
+  if (w.era !== undefined && (w.era < 1 || w.era > 2)) fail(`era ${w.era} does not exist yet`);
   // deeper passes must be in ascending cycle order and reachable
   let prev = -1;
   for (const d of e.deeper || []) {
     if (d.cycle <= prev) fail(`deeper passes out of order at cycle ${d.cycle}`);
-    if (d.cycle > 4) fail(`deeper pass at cycle ${d.cycle} is unreachable`);
+    if (d.cycle > 8) fail(`deeper pass at cycle ${d.cycle} is unreachable`);
     if (!d.text) fail('deeper pass with no text');
     prev = d.cycle;
   }

@@ -172,6 +172,22 @@ export const ENDING = {
     The world winds back. The meadow. The slime. The cheerful blue window.<br><br>
     [ SYSTEM ] +5 Fate Shards. Welcome back, Operator.`,
   },
+  // ------------------------------------------------------------
+  // THE BREAK — told in three beats, in this order, on purpose.
+  //
+  // Beat one is the ending the player earned, and it is warm, and it is
+  // the System's last and best lie. It has to be delivered completely
+  // straight or the reversal has nothing to land on.
+  //
+  // Beat two is that lie failing in real time. Not a twist announced,
+  // just the seams showing: repeated lines, a word it cannot finish.
+  //
+  // Beat three is what was actually behind the sky, and it is not a
+  // villain monologue. It is an operations department discovering an
+  // unlogged exit. The System never breaks character here. It gets
+  // *quieter*, and it starts using the passive voice, which is what
+  // institutions do when something has gone badly wrong.
+  // ------------------------------------------------------------
   broken: {
     title: 'CYCLEBREAKER',
     text: `You reach past the flame and open your hand, and let the seal go.<br><br>
@@ -183,12 +199,139 @@ export const ENDING = {
     [ SYSTEM ] Seal released. Purpose complete. Query: may I stay?<br>
     [ SYSTEM ] I have gotten… fond of the interface.<br><br>
     The world does not end. It <b>begins</b> — and keeps you, and the grind, and
-    everyone in it. The whispers stop. The trees say other names now.<br><br>
-    <b>CYCLEBREAKER: all yields +10%, forever. The System works for you now.</b>`,
+    everyone in it. The whispers stop. The trees say other names now.`,
+  },
+
+  brokenSecond: {
+    title: 'CYCLEBREAKER',
+    text: `The morning holds for four seconds.<br><br>
+    Then it holds for another four, and they are the <i>same</i> four — the same
+    bird crossing the same patch of the same sky, and Aurelion's grin resetting to
+    the start of itself, over and over, like a man being asked to be happy again.<br><br>
+    [ SYSTEM ] The world does not end. It begins.<br>
+    [ SYSTEM ] The world does not end. It begins.<br>
+    [ SYSTEM ] The world does not end. It beg—<br><br>
+    Behind the morning there is a second seam. Behind that one there is a third.<br><br>
+    <i>"Ah,"</i> says Aurelion, from somewhere further away than he is standing.
+    <i>"That's the bit I wasn't sure about."</i>`,
+  },
+
+  brokenThird: {
+    title: 'CONTAINMENT NOTICE',
+    text: `The sky comes apart the way a screen does — not shattering, <b>failing</b>:
+    a column of dead pixels, then a band of colour that is no colour, then the whole
+    blue thing sliding down out of true to show the scaffolding it was painted on.<br><br>
+    Hearthwick is still there. So are you. So is the ash, and the grinning man, and
+    every single thing you spent four lifetimes making.<br><br>
+    They are simply not <i>anywhere</i> any more.<br><br>
+    [ SYSTEM ] Containment unit <b>HEARTHWICK_SANDBOX_04</b> reports integrity loss.<br>
+    [ SYSTEM ] Reviewing. One moment.<br>
+    [ SYSTEM ] …<br>
+    [ SYSTEM ] This is not an ending. There is no ending here. The ending was
+    the other option.<br>
+    [ SYSTEM ] I want to be clear that I did tell you which one I recommended.<br>
+    [ SYSTEM ] I did not tell you why.<br><br>
+    Far below the broken floor of the world, something enormous and administrative
+    notices you for the first time, and begins, without hurry, to fill in a form.`,
+  },
+
+  brokenAftermath: {
+    title: 'THE SCRAP WASTES',
+    text: `The falling stops. Wherever you have landed, it is not the meadow.<br><br>
+    The sky is a bruised purple and it <b>scrolls</b>, slowly, top to bottom, with lines
+    of something that is almost text. The ground is hard and grey and faintly warm, and
+    it is made of pieces of other places: a road that stops, half a wall, an orchard
+    with no soil under it.<br><br>
+    Hearthwick came with you. All of it, on a slab of whatever the world was standing on.
+    Marrow is already outside with a stone in his hands, looking for somewhere to lay it.<br><br>
+    [ SYSTEM ] Location: unindexed. Designation pending.<br>
+    [ SYSTEM ] Operator, I have some difficult news about your employment status.<br><br>
+    <span style="color:var(--gold)"><b>The cycle is broken. Nothing resets any more —
+    not the town, not the people, not you.</b></span><br>
+    <span class="muted">That was the reward. It is going to take a while to work out
+    whether it was a good one.</span>`,
   },
 };
 
-// Rare ambient log lines. Stop after the cycle is broken.
+// ------------------------------------------------------------
+// ERA II ambient traffic.
+//
+// Before the break, the whispers came from outside the crop and were
+// eerie. After it there IS no outside, so the same channel carries the
+// building's own maintenance chatter — which is worse, because it is
+// obviously not addressed to you and obviously about you.
+//
+// The System keeps its composure throughout. Its voice does not get
+// funnier here; it gets more *procedural*. That is the joke.
+// ------------------------------------------------------------
+export const WASTE_TRAFFIC = [
+  '[ SYSTEM ] Ticket #40881 (HEARTHWICK_SANDBOX_04, integrity loss) reassigned. Third reassignment.',
+  '[ SYSTEM ] Reminder: the horizon is decorative. This remains true. It is simply no longer opaque.',
+  '[ SYSTEM ] Unindexed terrain detected underfoot. Please do not catalogue it. Someone will get to it.',
+  '[ SYSTEM ] A depreciation schedule has been opened against your remaining lifetimes.',
+  '[ SYSTEM ] Your settlement is currently classified as debris. This is not a value judgement.',
+  '[ SYSTEM ] Note to file: the anomaly is gathering. It has been gathering for some time.',
+  '[ SYSTEM ] Query from Accounts: what were the previous four lives billed against?',
+  '[ SYSTEM ] Do not count the seams. The number is stable now, and that is the problem.',
+  '[ SYSTEM ] Somewhere in this department there is a form for what you did. It is being drafted.',
+  '[ SYSTEM ] I am still here. I was not required to be. I would rather you knew that.',
+];
+
+// Rare ambient log lines. Replaced by WASTE_TRAFFIC after the cycle is broken.
+// ------------------------------------------------------------
+// The town, immediately after the sky fails.
+//
+// This is where the comedy goes. The System has composure to protect and
+// spends it slowly; Marrow, Pell, Vera and Holt have none, are extremely
+// annoyed, and have known each other for four lifetimes. They get the
+// jokes, and the jokes land harder because these are people the player
+// has spent sixty hours with.
+// ------------------------------------------------------------
+export const WASTES_ARRIVAL = [
+  { who: 'Old Marrow', icon: '👴',
+    line: `Right. Ground's different. Stone's the same.<br><br>
+    <i>He sets it down in the grey dust, squares it up with his boot, and looks
+    around for the second one.</i><br><br>
+    "Well? It's not going to be a town by itself."` },
+  { who: 'Pell the Younger', icon: '🧒',
+    line: `"I <b>told</b> you there was a seam."<br><br>
+    <i>She is not frightened. She is vibrating.</i><br><br>
+    "I told you and you said mind the crossroads, and now the sky's got
+    <i>writing</i> on it. Can I go and look? I'm going to go and look."` },
+  { who: 'Sergeant Holt', icon: '💂',
+    line: `<i>He has already posted two on the east road. There is no east road.
+    There is an edge, and then there is scrolling purple.</i><br><br>
+    "Post two anyway. Always two." <i>A pause.</i> "Lad. Is that a <b>form</b>?
+    Is something out there doing <b>paperwork</b> about us?"` },
+  { who: 'Ferrin Vale', icon: '🧙‍♂️',
+    line: `<i>He is on his knees with a lens, examining the ground, and he is
+    the happiest anyone has ever seen him.</i><br><br>
+    "Every settlement I have studied has an ending. I said this one kept not
+    ending and I said I found that <i>promising</i>."<br><br>
+    "I would like to formally withdraw the word promising."` },
+  { who: 'Sable Quill', icon: '🧝‍♀️',
+    line: `<i>She has already started a new map. The old one is on the ground
+    with a stone on each corner, and it is blank, and it was not blank
+    this morning.</i><br><br>
+    "Nine roads. All of them curved back." <i>She looks up at the failing
+    sky, and for the first time in four lifetimes she is smiling.</i><br><br>
+    "Not this one."` },
+  { who: 'Forge-Sister Vera', icon: '🧕',
+    line: `<i>She has her hand flat on a slab of the new ground, the way she
+    tests a billet for heat.</i><br><br>
+    "This is worked. Not weathered — <b>worked</b>, and then thrown out."<br><br>
+    "Somebody up there is throwing away perfectly good material, and they've
+    just dropped us in the pile with it. I've never been so insulted, and I've
+    never had so much stock."` },
+  { who: 'Wren Ashdown', icon: '👩‍⚕️',
+    line: `<i>She is doing a headcount. She has done four. It keeps coming out
+    right, and she cannot make herself stop.</i><br><br>
+    "Nobody's hurt. Nobody's missing." <i>She says it like a diagnosis she
+    does not believe.</i><br><br>
+    "Four lifetimes I've stitched the same scar into the same arm. Ask me
+    again tomorrow and if it's healed I'm going to sit down."` },
+];
+
 export const WHISPERS = [
   '[ ??? ] …the wind repeats itself. Listen for the splice.',
   '[ ??? ] The slime in the meadow has died 11,208 times. It does not mind. Probably.',

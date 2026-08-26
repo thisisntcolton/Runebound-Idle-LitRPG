@@ -37,7 +37,7 @@ import { drinkPotion } from '../systems/potions.js';
 import { setTitle } from '../systems/achievements.js';
 import { activeBuffs } from '../core/state.js';
 import { fmtDuration as fmtDur } from '../core/format.js';
-import { setQuestUIHooks, chooseEnding, activeMainQuest } from '../systems/quests.js';
+import { setQuestUIHooks, chooseEnding, activeMainQuest, enterTheWastes } from '../systems/quests.js';
 import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
@@ -394,15 +394,23 @@ function showItemMenu(itemId) {
 }
 
 function showAscendConfirm() {
+  // The town warning has to track the era, or the confirmation is lying:
+  // after the break Hearthwick does not fall, and telling the player it
+  // will is exactly the kind of thing that makes a UI untrustworthy.
+  const inWastes = (state.era || 1) >= 2;
   showModal(`
-    <div class="modal-tag">◈ THE SYSTEM SPEAKS ◈</div>
+    <div class="modal-tag">${inWastes ? '◈ SYSTEM NOTICE ◈' : '◈ THE SYSTEM SPEAKS ◈'}</div>
     <div class="modal-title">Ascend?</div>
     <div class="modal-body">
       <p>You will gain <b style="color:var(--shard)">💠 ${pendingShards()} Fate Shards</b>.</p>
       <p>All skills, gold, items, gear, upgrades and hirelings will be <b style="color:var(--danger)">reset</b>.</p>
-      <p><b style="color:var(--danger)">Hearthwick falls with them</b> — every building, worker and crate of stock.
-      The people you have met will still know you.</p>
-      <p>Shards, perks, your pets and your chronicle persist.</p>
+      ${inWastes
+        ? `<p><b style="color:var(--gold)">Hearthwick stays.</b> Every building, worker and crate of stock
+             is yours to keep. The loop does not get it back any more.</p>
+           <p class="muted">[ SYSTEM ] Reset will be logged. Settlement will not be reclaimed. This continues to be noted.</p>`
+        : `<p><b style="color:var(--danger)">Hearthwick falls with them</b> — every building, worker and crate of stock.
+             The people you have met will still know you.</p>`}
+      <p>Shards, perks, your pets, your talents and your chronicle persist.</p>
     </div>
     <div class="modal-actions">
       <button class="btn btn-danger" data-act="confirm-ascend">☄️ Do it</button>
@@ -462,6 +470,7 @@ function handleAction(target) {
     case 'close-modal': closeModal(); break;
     case 'ending-feed': closeModal(); chooseEnding('feed'); break;
     case 'ending-break': closeModal(); chooseEnding('break'); break;
+    case 'enter-wastes': closeModal(); enterTheWastes(); break;
     case 'cloud-signin': signIn(target.dataset.provider); break;
     case 'cloud-signout': signOut().then(renderView); break;
     case 'cloud-sync': syncNow().then(renderView); break;
@@ -611,6 +620,19 @@ function handleAction(target) {
 }
 
 // ---------------- Init ----------------
+/**
+ * The world's era, expressed as a class on <body>.
+ *
+ * Era 2 changes the game's own chrome — the sky in the town scrolls with
+ * error traffic, the panel edges carry a dead-pixel band, the System's
+ * blue goes slightly wrong. Doing it with one class rather than editing
+ * every panel means the whole UI shifts at once and nothing can be missed.
+ */
+export function applyEra() {
+  const era = state.era || 1;
+  document.body.classList.toggle('era-wastes', era >= 2);
+}
+
 export function initRenderer() {
   setQuestUIHooks({ queueModal, popup });
   setCloudUIHooks({ queueModal, popup, renderView });
@@ -709,6 +731,9 @@ export function initRenderer() {
     else if (source === 'heal') spawnSplat('player-box', '+' + damage, '#4ade80');
   });
 
+  on('era-changed', () => { applyEra(); renderView(); });
+
+  applyEra();
   renderView();
   updateTopbar();
 }

@@ -1011,3 +1011,89 @@ textarea.save-io {
 .talent-pip.on { background: var(--xp); border-color: var(--xp); }
 .talent-note { font-size: 11.5px; color: var(--text-faint); text-align: center; padding: 4px 0; }
 .talent-note.done { color: var(--xp); font-weight: 700; }
+
+/* ==================== ERA II — THE SCRAP WASTES ====================
+   The break is not just told, it is applied. Everything below hangs off
+   one class on <body>, so the whole interface shifts at once and no panel
+   can be forgotten. Nothing here is decorative for its own sake: the
+   scrolling error band, the failed blue and the dead-pixel seam are the
+   same three images the reveal text uses.
+   ------------------------------------------------------------------- */
+
+/* The moment of failure: a one-shot collapse played over the modal. */
+.glitch-tag { color: var(--danger) !important; animation: glitchTag 2.4s steps(2) infinite; }
+@keyframes glitchTag { 0%,92%,100% { opacity: 1; } 94% { opacity: 0.3; transform: translateX(-2px); } 97% { opacity: 1; transform: translateX(2px); } }
+.glitch-title { position: relative; animation: glitchTitle 3s steps(3) infinite; }
+@keyframes glitchTitle {
+  0%,90%,100% { text-shadow: none; }
+  92% { text-shadow: -2px 0 var(--danger), 2px 0 var(--sys-blue); }
+  95% { text-shadow: 2px 0 var(--danger), -2px 0 var(--sys-blue); }
+}
+
+/* The System's blue never quite recovers. */
+body.era-wastes {
+  --sys-blue: #8f7ad6;
+  --border-bright: #4b3f6b;
+}
+body.era-wastes .game-title { color: #c9b6f0; }
+body.era-wastes .topbar-sub::after {
+  content: ' · unindexed';
+  color: var(--danger);
+  letter-spacing: 1px;
+}
+
+/* A dead band scrolling down the top bar, like a failing panel. */
+body.era-wastes #topbar { position: relative; overflow: hidden; }
+body.era-wastes #topbar::after {
+  content: '';
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(143,122,214,0.55), transparent);
+  animation: scanBand 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes scanBand { from { top: -2px; } to { top: 100%; } }
+
+/* The town sky.
+   Pell's line is "the sky's got WRITING on it", so a colour wash was never
+   going to be enough — the layer carries actual scrolling glyph rows,
+   tiled from an inline SVG so it costs no request and no asset. It is
+   masked to fade out before it reaches the ground, because the ground is
+   still ground; only the sky failed. */
+body.era-wastes .town-map-wrap { position: relative; }
+body.era-wastes .town-map-wrap::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    url("data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='420'%20height='300'%3E%3Ctext%20x='0'%20y='18'%20font-family='monospace'%20font-size='11'%20fill='%23c9b6f0'%20opacity='0.20'%3E4f%2045%2052%2052%205f%2053%2041%204e%2044%2042%204f%2058%205f%2030%2034%3C/text%3E%3Ctext%20x='0'%20y='64'%20font-family='monospace'%20font-size='11'%20fill='%23c9b6f0'%20opacity='0.20'%3E??%20integrity%200.41%20??%20reclaim%20pending%20??%3C/text%3E%3Ctext%20x='0'%20y='110'%20font-family='monospace'%20font-size='11'%20fill='%23c9b6f0'%20opacity='0.20'%3Eticket%2040881%20::%20reassigned%20::%20reassigned%3C/text%3E%3Ctext%20x='0'%20y='156'%20font-family='monospace'%20font-size='11'%20fill='%23c9b6f0'%20opacity='0.20'%3E??%20unindexed%20terrain%20??%20do%20not%20catalogue%3C/text%3E%3C/svg%3E") repeat 0 0,
+    repeating-linear-gradient(0deg,
+      rgba(143,122,214,0.16) 0px, rgba(143,122,214,0.16) 1px,
+      transparent 1px, transparent 5px),
+    linear-gradient(180deg,
+      rgba(58,32,88,0.80) 0%, rgba(58,32,88,0.55) 14%,
+      rgba(40,24,64,0.22) 30%, transparent 46%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 11%, transparent 28%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 11%, transparent 28%);
+  animation: wasteScroll 26s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+}
+/* Only the glyph layer moves; the gradients stay put, so the sky reads as
+   text crawling across a fixed haze rather than the whole thing sliding. */
+@keyframes wasteScroll {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to   { background-position: 0 300px, 0 0, 0 0; }
+}
+
+/* The log is where the maintenance traffic arrives, so it gets the seam. */
+body.era-wastes #system-log { border-color: #5b4a7f; }
+body.era-wastes .system-log-header { background: rgba(143,122,214,0.10); }
+
+/* Ascension no longer promises a clean slate. */
+body.era-wastes .ascend-shards-preview { color: #c9b6f0; text-shadow: 0 0 20px rgba(143,122,214,0.5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .glitch-tag, .glitch-title,
+  body.era-wastes #topbar::after,
+  body.era-wastes .town-map-wrap::before { animation: none; }
+}

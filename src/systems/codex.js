@@ -54,6 +54,7 @@ export function conditionMet(when) {
   if (when.killsOf) return (c.kills[when.killsOf.id] || 0) >= when.killsOf.n;
   if (when.stat) return (state.stats?.[when.stat.key] || 0) >= when.stat.n;
   if (when.cycle !== undefined) return (state.ascensions || 0) >= when.cycle;
+  if (when.era !== undefined) return (state.era || 1) >= when.era;
   if (when.item) return !!c.items[when.item];
   if (when.flag) return !!c.flags[when.flag];
   if (when.pets !== undefined) return (state.pets?.hatched || 0) >= when.pets;

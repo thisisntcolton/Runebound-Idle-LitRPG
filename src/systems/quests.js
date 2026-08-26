@@ -4,7 +4,7 @@
 // ============================================================
 import { state, skillLevel } from '../core/state.js';
 import { MAIN_QUESTS, SIDE_QUESTS, BOUNTIES, ALL_QUESTS, getQuest } from '../data/quests.js';
-import { FRAGMENTS, CYCLES, ENDING, WHISPERS } from '../data/lore.js';
+import { FRAGMENTS, CYCLES, ENDING, WHISPERS, WASTE_TRAFFIC, WASTES_ARRIVAL } from '../data/lore.js';
 import { getItem } from '../data/items.js';
 import { getZone } from '../data/monsters.js';
 import { on, emit } from '../core/events.js';
@@ -140,7 +140,8 @@ function onAscended() {
   const n = Math.min(state.ascensions, 4);
   const cycle = CYCLES[n];
   if (state.ending === 'broken') {
-    emit('notify', { type: 'sys', text: `[ SYSTEM ] Cycle ${state.ascensions + 1} begins — voluntarily, this time. Welcome back.` });
+    emit('notify', { type: 'sys',
+      text: `[ SYSTEM ] Reset ${state.ascensions + 1} logged. Nothing was reclaimed. This continues to be noted.` });
     return;
   }
   if (cycle && !state.cycleSeen[n]) {
@@ -155,6 +156,10 @@ function onAscended() {
 }
 
 function maybeOfferEnding() {
+  // Feeding the flame is the comfortable choice, not a locked door: the
+  // offer comes back every cycle so nobody is shut out of four fifths of
+  // the game by one button, and choosing comfort repeatedly becomes its
+  // own quiet characterisation.
   if (state.ending === 'broken') return;
   if (state.ascensions < 4) return;
   if (state.endingOfferedCycle === state.ascensions) return; // once per cycle
@@ -183,25 +188,105 @@ export function chooseEnding(choice) {
     `);
     emit('notify', { type: 'sys', text: '[ SYSTEM ] The seal is renewed. +5 Fate Shards. He\'ll see you at the top.' });
   } else if (choice === 'break') {
-    state.ending = 'broken';
-    hooks.queueModal(`
-      <div class="modal-tag">◈ TRUE ENDING ◈</div>
-      <div class="modal-title">${ENDING.broken.title}</div>
-      <div class="modal-body" style="line-height:1.7">${ENDING.broken.text}</div>
-      <div class="modal-actions"><button class="btn btn-primary" data-act="close-modal">Begin — truly begin</button></div>
-    `);
-    emit('notify', { type: 'sys', text: '[ SYSTEM ] Seal released. Cyclebreaker bonus active: all yields +10%. Thank you, Operator.' });
+    breakTheCycle();
   }
   emit('state-changed');
+}
+
+/**
+ * The break, staged.
+ *
+ * Four modals queued in order, each with its own button label, because the
+ * reversal only works if the player commits to the happy ending first.
+ * They press "Begin - truly begin" on a screen that means it, and the next
+ * screen is that same sentence stuttering.
+ *
+ * The era flag is set on the LAST beat, not the first: until the player has
+ * read all four, the world should still look like the world they knew.
+ */
+function breakTheCycle() {
+  state.ending = 'broken';
+
+  hooks.queueModal(`
+    <div class="modal-tag">◈ TRUE ENDING ◈</div>
+    <div class="modal-title">${ENDING.broken.title}</div>
+    <div class="modal-body" style="line-height:1.7">${ENDING.broken.text}</div>
+    <div class="modal-actions"><button class="btn btn-primary" data-act="close-modal">Begin — truly begin</button></div>
+  `);
+  hooks.queueModal(`
+    <div class="modal-tag glitch-tag">◈ TRUE ENDING ◈</div>
+    <div class="modal-title">${ENDING.brokenSecond.title}</div>
+    <div class="modal-body" style="line-height:1.7">${ENDING.brokenSecond.text}</div>
+    <div class="modal-actions"><button class="btn" data-act="close-modal">…begin?</button></div>
+  `);
+  hooks.queueModal(`
+    <div class="modal-tag glitch-tag">◈ SYSTEM NOTICE ◈</div>
+    <div class="modal-title glitch-title">${ENDING.brokenThird.title}</div>
+    <div class="modal-body" style="line-height:1.7">${ENDING.brokenThird.text}</div>
+    <div class="modal-actions"><button class="btn btn-danger" data-act="close-modal">Fall</button></div>
+  `);
+  hooks.queueModal(`
+    <div class="modal-tag glitch-tag">◈ ERA II ◈</div>
+    <div class="modal-title">${ENDING.brokenAftermath.title}</div>
+    <div class="modal-body" style="line-height:1.7">${ENDING.brokenAftermath.text}</div>
+    <div class="modal-actions"><button class="btn btn-primary" data-act="enter-wastes">Pick up a stone</button></div>
+  `);
+
+  emit('notify', { type: 'sys', text: '[ SYSTEM ] Seal released. Purpose complete. Query: may I stay?' });
+}
+
+/**
+ * Called when the player dismisses the final beat. Everything that changes
+ * the world happens here rather than in chooseEnding, so the transition is
+ * tied to having actually read it.
+ */
+export function enterTheWastes() {
+  if (state.era >= 2) return false;
+  state.era = 2;
+  state.eraEnteredAt = Date.now();
+  emit('notify', { type: 'combat', text: '[ SYSTEM ] Containment unit HEARTHWICK_SANDBOX_04: integrity loss. Location unindexed.' });
+  emit('notify', { type: 'sys', text: 'Hearthwick came with you. Nothing resets any more.' });
+  emit('era-changed', { era: 2 });
+
+  // The townsfolk get the next word, one at a time. They are the reason
+  // the reveal has any weight: the player has spent sixty hours with
+  // these seven and just watched their sky fail.
+  for (const r of WASTES_ARRIVAL) {
+    hooks.queueModal(`
+      <div class="modal-tag glitch-tag">◈ HEARTHWICK ◈</div>
+      <div class="modal-title">${r.icon} ${r.who}</div>
+      <div class="modal-body" style="line-height:1.75">${r.line}</div>
+      <div class="modal-actions"><button class="btn btn-primary" data-act="close-modal">Next</button></div>
+    `);
+  }
+  hooks.queueModal(`
+    <div class="modal-tag glitch-tag">◈ ERA II ◈</div>
+    <div class="modal-title">Nothing Resets</div>
+    <div class="modal-body" style="line-height:1.75">
+      <p>Marrow has laid four stones. Pell has already gone to look at the edge and come
+      back with something she will not show anyone. Vera is testing the ground.</p>
+      <p>Nobody has said the obvious thing out loud yet, which is that if the world is not
+      going to wind back, then everything from here is <b>the first time it has happened</b>.</p>
+      <p class="muted">Hearthwick now survives Ascension. So do its buildings, its staff and
+      its stock. The loop does not get it back.</p>
+      <p style="color:var(--sys-blue)">[ SYSTEM ] Recommendation: mining.</p>
+    </div>
+    <div class="modal-actions"><button class="btn btn-primary" data-act="close-modal">Get to work</button></div>
+  `);
+  emit('state-changed');
+  return true;
 }
 
 // ---------------- Whispers ----------------
 function startWhispers() {
   setInterval(() => {
-    if (state.ending === 'broken') return;
-    if (Math.random() < 0.4) {
-      const line = WHISPERS[Math.floor(Math.random() * WHISPERS.length)];
-      emit('notify', { type: 'loot', text: line });
+    // Before the break these are whispers from outside the crop. After it,
+    // there is no outside any more, so the same channel carries the
+    // building's own maintenance traffic instead.
+    const pool = state.era >= 2 ? WASTE_TRAFFIC : WHISPERS;
+    if (Math.random() < (state.era >= 2 ? 0.5 : 0.4)) {
+      const line = pool[Math.floor(Math.random() * pool.length)];
+      emit('notify', { type: state.era >= 2 ? 'combat' : 'loot', text: line });
     }
   }, 6 * 60 * 1000);
 }

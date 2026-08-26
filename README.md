@@ -42,17 +42,26 @@ to allocate: STR / AGI / VIT / INT / LUK. System-window popups, a status-screen 
 and a scrolling SYSTEM LOG narrate the grind.
 
 **Ascension (prestige)** — at total skill level 120+, reset for **Fate Shards** (+2% XP & gold each,
-permanent) and spend them on Fate Perks: offline cap, damage, drop rate, global speed… Ascending
-also razes Hearthwick, clears your class so you can pick a new one, and plays a **return report**
+permanent) and spend them on Fate Perks: offline cap, damage, drop rate, global speed… In Era I,
+ascending also razes Hearthwick, clears your class so you can pick a new one, and plays a **return report**
 that quotes real numbers back at you from the cycle you just spent. Your pets, your look, your
 Codex and your chronicle come with you; nothing else does.
+
+**Two Eras.** Everything below happens inside a place called Hearthwick, which you will
+eventually discover is a containment unit. Breaking the cycle is not the end of the game — it is
+the end of the tutorial, and the beginning of **Era II: the Scrap Wastes**, where the sky scrolls
+with error traffic, the gods turn out to be middle management, and nothing resets any more.
 
 **Story & Quests (dark-mystery LitRPG)** — a 14-quest main chain narrated by a System that is
 cheerful, helpful, and lying; 5 hireling side quests (each one a loose thread in the world);
 repeatable zone bounties; and a re-readable Lore Archive of recovered fragments. Ascensions are
 **Cycles**: each one plays a revelation about what the loop actually is, and after Cycle 4 the
 top of the Dragonspire offers the choice the whole game builds toward — **Feed the Flame**
-(shards, forever) or **Break the Cycle** (the true ending, and a permanent Cyclebreaker bonus).
+(shards, forever, and the offer comes back every cycle) or **Break the Cycle**, which is told in
+four beats: the warm ending you earned, that ending stuttering, the sky failing like a screen,
+and the containment notice underneath it. After the break Hearthwick stops being razed, the
+System's blue goes wrong, and the seven townsfolk you have known for four lifetimes get the first
+word about it.
 Rare "whispers" surface in the system log until the mystery resolves. All story beats persist
 across cycles — the world forgets; you don't.
 
@@ -219,6 +228,7 @@ npm run test:browser   # 46 tests: every view, appearance, codex, classes, encou
 npm run test:pets      # 35 tests: hatch -> feed -> level -> breed, offline, multipliers
 npm run test:classes   # 17 tests: the choice, the lock-in, Artisan's zero combat power, talents
 npm run test:ascension # 22 tests: the town is razed; pets, talents and your look survive
+npm run test:era1      # 24 tests: the four-beat reveal, the Wastes, the town surviving after
 npm run balance        # sims: town profit by material tier, class power at 0/20/50 talent points
 npm run preview:heroes # contact sheet of every appearance option, as a PNG
 ```

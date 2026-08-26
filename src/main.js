@@ -4,7 +4,7 @@
 import { load, save, startAutosave } from './core/save.js';
 import { startLoop } from './core/loop.js';
 import { processOffline } from './systems/offline.js';
-import { initRenderer, showOfflineModal, renderView, queueModal as showOfflineModalQueue } from './ui/render.js';
+import { initRenderer, showOfflineModal, renderView, applyEra, queueModal as showOfflineModalQueue } from './ui/render.js';
 import { initNotifications, pushLog, popup } from './ui/notify.js';
 import { initQuests } from './systems/quests.js';
 import { initAchievements, setAchievementUIHooks } from './systems/achievements.js';

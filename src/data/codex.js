@@ -138,6 +138,35 @@ export const CODEX = [
     ],
   },
 
+  {
+    id: 'w_wastes', cat: 'world', title: 'The Scrap Wastes', when: { era: 2 },
+    text: `The ground is worked stone, tooled flat, and then discarded. Not ruins —
+    ruins were something once. This was <i>surplus</i>.<br><br>
+    A road that goes eleven paces and stops. Half a wall with a window in it. An
+    orchard with no soil underneath, still fruiting. Vera has been walking the edges
+    for a week and her conclusion is professional and short: somebody up there throws
+    away good material.<br><br>
+    The sky scrolls. Nobody has managed to read it yet. Ferrin is trying.`,
+    deeper: [
+      { cycle: 5, text: `Pell can read it. She will not say how, and what she says it
+        says is a list of names, and one of them is Hearthwick, and it has a number
+        after it that goes up every time you Ascend.` },
+    ],
+  },
+  {
+    id: 's_recommendation2', cat: 'system', title: 'Recommendation: Mining', when: { era: 2 },
+    text: `The sky failed, the world turned out to be a box, everything anyone believed
+    was administrative, and forty seconds later the blue window said:<br><br>
+    [ SYSTEM ] Recommendation: mining.<br><br>
+    It has not stopped. Whatever else has broken, that has not. It still congratulates
+    you for chopping a tree, in the same warm font, in a place that has no trees.`,
+    deeper: [
+      { cycle: 6, text: `You have started to think the recommendations were never
+        for your benefit or theirs. They are what it does with its hands.<br><br>
+        It is the only one of us that has been doing this longer than you have.` },
+    ],
+  },
+
   // ------------------------------------------------------------
   // BESTIARY
   // ------------------------------------------------------------
@@ -269,6 +298,15 @@ export const CODEX = [
     Ask any two of them where they are from and you get two names. Ask the same person
     twice and you get the same name. The world is internally consistent. It is just not
     <i>large</i>.`,
+  },
+  {
+    id: 'p_firsttime', cat: 'people', title: 'The First First Time', when: { era: 2 },
+    text: `Marrow laid the first stone again. He has laid it every cycle for four
+    lifetimes and remembered doing it for sixty years each time.<br><br>
+    This time it is still there in the morning. And the morning after.<br><br>
+    Nobody has told him what that means. Wren thinks he has worked it out, because
+    he has stopped saying <i>"I laid the first stone here"</i> and started saying
+    <i>"I laid that one."</i>`,
   },
   {
     id: 'p_razed', cat: 'people', title: 'They Rebuild', when: { flag: 'town_razed' },
