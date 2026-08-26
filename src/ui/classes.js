@@ -112,6 +112,49 @@ function talentNode(classId, node, spendable) {
     </div>`;
 }
 
+// ---------------- What you are still holding ----------------
+//
+// The first minutes of every cycle after the first are the moment this
+// game feels most like it has robbed you: character level 1, no class,
+// every skill back to the bottom. And the Path panel — the one place that
+// could say "none of your talent ranks went anywhere" — said nothing at
+// all, because it renders a bare "locked" notice below character level 10
+// and that is precisely where a freshly Ascended player is standing.
+//
+// So it says it there, first, before the reset has time to read as theft.
+
+function bankedBlock() {
+  const banked = CLASS_LIST
+    .map(c => ({ cls: c, ranks: Object.values(state.classProgress?.[c.id]?.spent || {})
+                                     .reduce((s, n) => s + (n || 0), 0) }))
+    .filter(b => b.ranks > 0)
+    .sort((a, b) => b.ranks - a.ranks);
+  if (!banked.length) return '';
+
+  const total = banked.reduce((s, b) => s + b.ranks, 0);
+  return `
+    <div class="banked-block">
+      <div class="banked-title">🌳 Nothing you bought was taken — ${total} talent rank${total === 1 ? '' : 's'} still yours</div>
+      <div class="muted" style="margin-bottom:9px">
+        Ascension clears your <b>class</b>, never your <b>trees</b>. Every rank below is exactly
+        where you left it and costs nothing to get back — pick that path again and the whole tree
+        is live from the first moment. What a capped tree leaves behind applies even when you
+        do not.
+      </div>
+      <div class="banked-rows">
+        ${banked.map(b => `
+          <div class="banked-row">
+            <span class="banked-icon">${b.cls.icon}</span>
+            <span class="banked-name">${b.cls.name}</span>
+            <span class="banked-count">${b.ranks} rank${b.ranks === 1 ? '' : 's'}</span>
+            ${hasMastery(b.cls.id)
+              ? `<span class="pill" style="border-color:var(--gold);color:var(--gold)">Mastery active</span>`
+              : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
 // ---------------- Masteries ----------------
 
 function masteryBlock() {
@@ -220,7 +263,9 @@ export function classPanel() {
         You may specialise at <b>character level ${CLASS_UNLOCK_LEVEL}</b> — ${need} to go.
         Until then, here is what will be on offer.
       </div>
-      <div class="class-grid">${CLASS_LIST.map(c => classCard(c)).join('')}</div>`;
+      ${bankedBlock()}
+      <div class="class-grid">${CLASS_LIST.map(c => classCard(c, { showProgress: cycles > 0 })).join('')}</div>
+      ${masteredClasses().length ? masteryBlock() : ''}`;
   }
 
   if (classPending()) {
@@ -233,6 +278,7 @@ export function classPanel() {
         This holds for the rest of the cycle and cannot be changed. Ascend, and you choose again —
         the world will not remember what you were, and neither will your stats.
       </div>
+      ${bankedBlock()}
       <div class="class-grid">${CLASS_LIST.map(c => classCard(c, { selectable: true })).join('')}</div>
       ${masteredClasses().length ? masteryBlock() : ''}`;
   }

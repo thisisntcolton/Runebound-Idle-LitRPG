@@ -2,11 +2,13 @@
 // ABILITIES — learning tomes, equipping slots, cooldown ticking
 // and the hooks combat calls into.
 // ============================================================
-import { state, enchantLevel, playerMaxHit, maxHp } from '../core/state.js';
-import { ABILITIES, SLOTS, SLOT_UNLOCK_ENCHANT, getAbility,
+import { state, enchantLevel, playerMaxHit, maxHp, dropRateMultiplier } from '../core/state.js';
+import { ABILITIES, SLOTS, SLOT_UNLOCK_ENCHANT, getAbility, ABILITY_LIST,
          tomeIdFor, abilityIdFromTome } from '../data/abilities.js';
 import { getItem } from '../data/items.js';
-import { itemCount, removeItem } from './inventory.js';
+import { ZONES } from '../data/monsters.js';
+import { DUNGEONS } from '../data/dungeons.js';
+import { itemCount, removeItem, addItem } from './inventory.js';
 import { emit } from '../core/events.js';
 
 // ---------------- Slots ----------------
@@ -58,6 +60,142 @@ export function learnTome(tomeItemId) {
   }
   emit('state-changed');
   return true;
+}
+
+// ---------------- Where tomes come from ----------------
+//
+// v1.5 shipped ten abilities that dropped from nothing. The cause was a
+// hand-written list of eight tome ids in unstable.js that nobody thought
+// to extend, and the lesson is that a pool written by hand is a pool that
+// goes stale. So this one is derived from ABILITY_LIST: adding an ability
+// to the data file is now genuinely all it takes to put it in the world.
+//
+// Deterministic drops still exist alongside this — specific bosses drop
+// specific tomes in monsters.js, which is what makes "Broodmother has
+// Cleave" a thing a player can learn and act on. This is the other half:
+// the long tail, so nothing is stranded.
+
+/** Rarity ladder for tomes. Rarer abilities are meaningfully rarer. */
+export const TOME_RARITY_WEIGHTS = [
+  { rarity: 'rare',      weight: 68 },
+  { rarity: 'epic',      weight: 27 },
+  { rarity: 'legendary', weight: 5 },
+];
+
+/** Per-source odds that a tome drops at all. */
+const TOME_CHANCE = {
+  'rift-seal': 0.30,
+  boss:        0.055,
+  descent:     0.05,    // per Warden felled
+  vigil:       1.00,    // the Vigil was built out of something
+  chest:       0.12,
+};
+
+/** Abilities the player has not learned yet, at a given rarity. */
+function unknownOfRarity(rarity) {
+  return ABILITY_LIST.filter(a => a.rarity === rarity && !knowsAbility(a.id));
+}
+
+/**
+ * Roll a tome from a source. Returns the item id awarded, or null.
+ *
+ * Already-known abilities are excluded before the rarity is picked, not
+ * after, so a player who owns every rare still gets epics rather than
+ * rolling a dud and receiving nothing.
+ */
+export function rollTome(source) {
+  const chance = TOME_CHANCE[source];
+  if (!chance) return null;
+  const luck = Math.min(3, dropRateMultiplier());
+  if (Math.random() >= Math.min(1, chance * luck)) return null;
+
+  const bend = Math.max(0, Math.min(2, luck - 1));
+  const pools = TOME_RARITY_WEIGHTS
+    .map(w => ({
+      rarity: w.rarity,
+      pool: unknownOfRarity(w.rarity),
+      weight: w.rarity === 'rare' ? w.weight : w.weight * (1 + bend),
+    }))
+    .filter(w => w.pool.length);
+  if (!pools.length) return null;   // everything is known; nothing to give
+
+  const total = pools.reduce((s, w) => s + w.weight, 0);
+  let r = Math.random() * total;
+  let picked = pools[pools.length - 1];
+  for (const w of pools) { r -= w.weight; if (r <= 0) { picked = w; break; } }
+
+  const ability = picked.pool[Math.floor(Math.random() * picked.pool.length)];
+  const itemId = tomeIdFor(ability.id);
+  addItem(itemId, 1);
+  emit('notify', { type: 'loot', text: `📕 ${getItem(itemId)?.name || ability.name} — something you did not know how to do.` });
+  emit('rare-drop', { itemId, rarity: ability.rarity });
+  emit('loot', { itemId, qty: 1, source, rarity: ability.rarity, tier: ability.rarity });
+  return itemId;
+}
+
+/** How many abilities are still out there, for the panel to be honest with. */
+export function tomesOutstanding() {
+  return ABILITY_LIST.filter(a => !knowsAbility(a.id)).length;
+}
+
+// ---------------- Telling the player where to look ----------------
+//
+// Being obtainable is not the same as being findable. Ten of these drop
+// only from the generic pool, and a panel that says "find its tome" while
+// naming no place to find one is a riddle, not information.
+//
+// The index is built by walking the actual loot tables rather than being
+// written out, for the same reason the pool is: a hand-maintained list of
+// where things drop is a list that quietly stops being true.
+
+// Cached per era: naming an Era II monster to an Era I player would leak
+// the reveal, which is the same mistake the level-105 skill actions made.
+let _sourceIndex = null;
+let _sourceIndexEra = null;
+
+function buildSourceIndex(era) {
+  const idx = {};
+  const note = (itemId, where) => {
+    if (!itemId?.startsWith?.('tome_')) return;
+    (idx[itemId] ||= new Set()).add(where);
+  };
+  // Loot tables are hand-authored data and not perfectly uniform — some
+  // tiers are arrays of drops, some are a single drop, some are neither.
+  // Be liberal about the shape rather than trusting it.
+  const walkLoot = (loot, where) => {
+    for (const tier of Object.values(loot || {})) {
+      if (Array.isArray(tier)) for (const d of tier) note(d?.item, where);
+      else if (tier?.item) note(tier.item, where);
+    }
+  };
+  for (const zone of ZONES) {
+    if ((zone.era || 1) > era) continue;     // do not name what has not been revealed
+    for (const m of zone.monsters || []) walkLoot(m.loot, `${m.icon || ''} ${m.name}`.trim());
+  }
+  for (const d of DUNGEONS) {
+    for (const w of d.waves || []) walkLoot(w.loot, `${d.icon || ''} ${d.name}`.trim());
+    walkLoot(d.boss?.loot, `${d.icon || ''} ${d.name}`.trim());
+  }
+  return idx;
+}
+
+/**
+ * Human-readable answer to "where do I get this?" — named monsters where
+ * one exists, and the honest generic answer where one does not.
+ */
+export function tomeSource(abilityId) {
+  const era = state.era || 1;
+  if (_sourceIndex === null || _sourceIndexEra !== era) {
+    _sourceIndex = buildSourceIndex(era);
+    _sourceIndexEra = era;
+  }
+  const named = [..._sourceIndex[tomeIdFor(abilityId)] || []];
+  if (named.length) {
+    return named.length <= 2
+      ? `Drops from ${named.join(' and ')}`
+      : `Drops from ${named.slice(0, 2).join(', ')} and ${named.length - 2} more`;
+  }
+  return 'Sealing Unstable Rifts, boss kills, and deeper things';
 }
 
 export function equipAbility(slotId, abilityId) {

@@ -3,6 +3,7 @@
 // story fragments, cycle revelations, and the ending choice.
 // ============================================================
 import { state, skillLevel } from '../core/state.js';
+import { SOFT_CAP } from '../core/xp.js';
 import { MAIN_QUESTS, SIDE_QUESTS, BOUNTIES, ALL_QUESTS, getQuest } from '../data/quests.js';
 import { FRAGMENTS, CYCLES, ENDING, WHISPERS, WASTE_TRAFFIC, WASTES_ARRIVAL } from '../data/lore.js';
 import { getItem } from '../data/items.js';
@@ -183,6 +184,13 @@ function maybeOfferEnding() {
     <div class="modal-tag">◈ THE CHOICE ◈</div>
     <div class="modal-title">${ENDING.offer.title}</div>
     <div class="modal-body" style="line-height:1.7">${ENDING.offer.text}</div>
+    <div class="modal-note">
+      The prose above is the whole truth, but here is the mechanical version, because
+      this decision is easy to make by accident:
+      <b>Feeding the flame</b> pays 5 Fate Shards and changes nothing else — your skills keep
+      their ceiling at ${SOFT_CAP}, and everything past it stays shut. <b>Breaking the cycle</b>
+      is how the game continues. The offer returns next cycle either way.
+    </div>
     <div class="modal-actions">
       <button class="btn btn-gold" data-act="ending-feed">🔥 Feed the Flame (+5 💠)</button>
       <button class="btn btn-primary" data-act="ending-break">⛓️ Break the Cycle</button>

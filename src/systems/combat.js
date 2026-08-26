@@ -27,7 +27,7 @@ import { addXp, stopActivity } from './skills.js';
 import { levelForXp, xpForLevel } from '../core/xp.js';
 import { onUnstableKill, waveMonsterFor, failRun } from './unstable.js';
 import { applyStrike, applyGuard, applySurvival, tickUtility, autoElixirWants,
-         shredFactor, clearShred } from './abilities.js';
+         shredFactor, clearShred, rollTome } from './abilities.js';
 import { drinkPotion } from './potions.js';
 
 const RESPAWN_MS = 1200;
@@ -365,7 +365,7 @@ function onDungeonKill(monster) {
   if (mended > 0) emit('combat-hit', { source: 'heal', damage: mended });
   if (monster.boss) state.stats.bossKills++;
   const gold = addGold(monster.gold[0] + Math.random() * (monster.gold[1] - monster.gold[0]), { silent: true });
-  if (monster.boss) rollEggDrop('boss');
+  if (monster.boss) { rollEggDrop('boss'); rollTome('boss'); }
   emit('kill', { monsterId: monster.name, zoneId: null, dungeonId: d.id, boss: !!monster.boss });
 
   c.wave = (c.wave || 0) + 1;
@@ -411,7 +411,7 @@ function onKill(monster) {
     emit('notify', { type: 'loot', text: `${banner ? banner + ' DROP — ' : ''}${item.icon} ${item.name}${drop.qty > 1 ? ' ×' + drop.qty : ''}` });
     if (banner) emit('rare-drop', { itemId: drop.item, rarity: item.rarity, tier: drop.tier });
   }
-  if (monster.boss) rollEggDrop('boss');
+  if (monster.boss) { rollEggDrop('boss'); rollTome('boss'); }
   // You won the argument. Take their purse and get back to work — being
   // dumped out to an idle screen after every caught steal would make the
   // whole system feel like a punishment for training the skill.

@@ -98,6 +98,26 @@ function navItem(view, icon, label, { level = null, working = false } = {}) {
     </button>`;
 }
 
+/**
+ * A locked row where the Wastes will be.
+ *
+ * Naming the place in Era I would spoil the entire reveal, so this
+ * deliberately does not. It appears only once the player has met the
+ * requirement to break the cycle, at which point the reveal is one boss
+ * away and the real risk is no longer spoiling it — it is a player
+ * concluding there is nothing more and stopping.
+ */
+function sealedNavHint() {
+  if ((state.ascensions || 0) < 4) return '';
+  return `
+    <button class="nav-item nav-sealed" data-act="nav" data-view="ascension"
+            title="Four cycles done. Something opens now — the Ascension page says how.">
+      <span class="nav-icon">🔒</span>
+      <span class="nav-label">Sealed</span>
+      <span class="nav-level">?</span>
+    </button>`;
+}
+
 export function renderSidebar() {
   const act = state.activity;
   const el = document.getElementById('sidebar');
@@ -132,10 +152,12 @@ export function renderSidebar() {
     ${navItem('town', '🏘️', 'Hearthwick', {
       level: state.town?.unlocked ? 'Lv.' + townLevel() : null,
       working: !!pendingEncounter() })}
-    ${(state.era || 1) >= 2 ? navItem('wastes', '🕳️', 'The Wastes', {
-      level: ledgerOpen() ? '📒' : null,
-      working: !!repoNotice() || !!activeCamp() || !!salvageView().active
-               || !!state.combat?.deep || bossView().up }) : ''}
+    ${(state.era || 1) >= 2
+      ? navItem('wastes', '🕳️', 'The Wastes', {
+          level: ledgerOpen() ? '📒' : null,
+          working: !!repoNotice() || !!activeCamp() || !!salvageView().active
+                   || !!state.combat?.deep || bossView().up })
+      : sealedNavHint()}
     ${navItem('pets', '🐾', 'Menagerie', { level: petsBadge(), working: eggsReady() })}
     ${navItem('ascension', '💠', 'Ascension', { level: canAscend() ? '💠' + pendingShards() : null })}
     ${navItem('leaderboard', '🏆', 'Leaderboard')}

@@ -4,11 +4,11 @@
 import { state } from '../core/state.js';
 import { getItem } from '../data/items.js';
 import { getSpecies, getTrait, CARE, STAGES, stageFor, MAX_PET_LEVEL,
-         BREEDING, EGG_SHOP, EGG_DROPS } from '../data/pets.js';
+         BREEDING, EGG_SHOP, SPECIES_LIST, EGG_SOURCES, EGG_RARITY_ODDS } from '../data/pets.js';
 import { hunger, happiness, mood, petLevel, petLevelProgress,
          xpForPetLevel, incubatorSlots, eggReady, playCooldownLeft,
          canBreed, breedCooldownLeft, petBonusFor,
-         activePetSummary, feedXpFor } from '../systems/pets.js';
+         activePetSummary, feedXpFor, hasSeen } from '../systems/pets.js';
 import { petPortrait, eggPortrait, petArt } from './petart.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
@@ -413,24 +413,61 @@ function shopSection() {
       }).join('')}
     </div>
 
-    <div class="section-title">Not for sale</div>
-    <div class="card-grid">
-      ${Object.entries(EGG_DROPS).map(([id, d]) => {
-        const sp = getSpecies(id);
-        const owned = (state.pets?.owned && Object.values(state.pets.owned).some(p => p.species === id))
-          || eggs().some(e => e.species === id);
-        const bonus = [sp.bonus, sp.bonus.second].filter(Boolean)
-          .map(b => `+${(b.perLevel * 100).toFixed(1)}% ${b.label} per level`).join(' · ');
-        return `
-          <div class="card ${owned ? '' : 'locked'}">
-            <div class="card-title"><span class="card-icon">${sp.eggIcon}</span> ${sp.eggName}
-              <span class="pill rarity-${sp.rarity}">${sp.rarity}</span></div>
-            <div class="card-sub">${owned ? sp.blurb : 'You have never seen one of these.'}</div>
-            <div class="card-sub">Found in: <b>${d.from}</b> — roughly ${(d.chance * 100).toFixed(0)}% a drop</div>
-            <div class="card-sub" style="color:var(--xp)">${owned ? bonus : '???'}</div>
-          </div>`;
-      }).join('')}
-    </div>
+    ${compendium()}
+  `;
+}
+
+// ---------------- The compendium ----------------
+//
+// Every species, whether you have met it or not, grouped by rarity and
+// told where it comes from. This replaces a two-entry "Not for sale" list
+// that had been correct in v1.2 and silently wrong ever since: ten species
+// were added and the list did not know about any of them, so the game
+// offered no way to find out they existed.
+//
+// It reads SPECIES_LIST directly, so it cannot go stale again.
+
+function compendium() {
+  const shopIds = new Set(EGG_SHOP.map(e => e.species));
+  const order = ['common', 'rare', 'epic', 'legendary'];
+  const found = SPECIES_LIST.filter(sp => hasSeen(sp.id)).length;
+
+  const groups = order.map(rarity => {
+    const list = SPECIES_LIST.filter(sp => sp.rarity === rarity);
+    if (!list.length) return '';
+    const cards = list.map(sp => {
+      const seen = hasSeen(sp.id);
+      const bonus = [sp.bonus, sp.bonus.second].filter(Boolean)
+        .map(b => `+${(b.perLevel * 100).toFixed(1)}% ${b.label} per level`).join(' · ');
+      return `
+        <div class="card ${seen ? '' : 'locked'}">
+          <div class="card-title">
+            <span class="card-icon">${seen ? sp.eggIcon : '🥚'}</span>
+            ${seen ? sp.eggName : '<span class="muted">Undiscovered</span>'}
+            <span class="pill rarity-${sp.rarity}">${sp.rarity}</span>
+          </div>
+          <div class="card-sub">${seen ? sp.blurb : 'You have never held one of these.'}</div>
+          <div class="card-sub">${seen
+            ? `Hatches into a <b>${sp.name}</b>`
+            : `${shopIds.has(sp.id) ? 'Sold in town.' : ''} ${EGG_SOURCES[sp.rarity]}`}</div>
+          <div class="card-sub" style="color:var(--xp)">${seen ? bonus : '???'}</div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="section-title" style="margin-top:14px">
+        <span class="rarity-${rarity}">${rarity}</span>
+        <span class="muted" style="font-weight:normal;font-size:11px"> · ${EGG_RARITY_ODDS[rarity]} of any egg that drops</span>
+      </div>
+      <div class="card-grid">${cards}</div>`;
+  }).join('');
+
+  return `
+    <div class="section-title">📖 Compendium — ${found} / ${SPECIES_LIST.length} discovered</div>
+    <div class="panel-desc">Every creature that exists, and where it comes from. Eggs drop from
+    <b>boss kills</b> and <b>sealed Unstable Rifts</b> in this era; the Descent and the Vigil are
+    more generous, when you get there. Rarity is rolled first and the species picked from that
+    tier, so a common is common no matter how many you already own.</div>
+    ${groups}
   `;
 }
 

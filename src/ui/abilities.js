@@ -4,7 +4,8 @@
 import { state } from '../core/state.js';
 import { SLOTS, ABILITY_LIST, SLOT_UNLOCK_ENCHANT, tomeIdFor } from '../data/abilities.js';
 import { getItem } from '../data/items.js';
-import { abilityStatus, knowsAbility, weaponEnchant, slotUnlocked } from '../systems/abilities.js';
+import { abilityStatus, knowsAbility, weaponEnchant, slotUnlocked,
+         tomeSource, tomesOutstanding } from '../systems/abilities.js';
 
 function abilityCard(ab, { known, equipped, slotOpen }) {
   const tome = getItem(tomeIdFor(ab.id));
@@ -23,6 +24,7 @@ function abilityCard(ab, { known, equipped, slotOpen }) {
           ? (slotOpen ? '' : '<span class="lock-req">slot locked</span>')
           : `<span class="lock-req">Not learned — find ${tome?.icon || '📕'} ${tome?.name || 'its tome'}</span>`}</span>
       </div>
+      ${known ? '' : `<div class="card-sub" style="color:var(--sys-blue)">📍 ${tomeSource(ab.id)}</div>`}
       ${known && slotOpen && !equipped
         ? `<button class="btn btn-sm btn-primary btn-block" data-act="equip-ability" data-slot="${ab.slot}" data-ability="${ab.id}">Equip</button>`
         : ''}
@@ -71,7 +73,8 @@ export function abilitiesPanel() {
       <button class="btn btn-sm ${knowsAbility(t.teaches) ? '' : 'btn-primary'}" data-act="learn-tome" data-item="${t.id}">
         📖 Study
       </button>
-    </div>`).join('') : '<div class="muted">No tomes in your bag. They drop at Rare and above — bosses and Rifts are your best odds.</div>';
+    </div>`).join('') : `<div class="muted">No tomes in your bag. ${tomesOutstanding()} abilities are still out there —
+       each card below says where to look. Sealing an Unstable Rift is the single best odds in the game.</div>`;
 
   const bySlot = SLOTS.map(s => {
     const list = ABILITY_LIST.filter(a => a.slot === s.id).map(ab => abilityCard(ab, {

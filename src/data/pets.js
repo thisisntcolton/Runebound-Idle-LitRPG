@@ -320,15 +320,32 @@ export function randomPetName(rng = Math.random) {
 // ---------------- Egg sources ----------------
 // Where eggs come from, so the system plugs into the game you already have.
 export const EGG_SHOP = [
-  { species: 'cat',  gold: 8000,   label: 'A stray left this on your doorstep. It wants money for it somehow.' },
-  { species: 'dog',  gold: 8000,   label: 'Bought from a farmer who insists it is "definitely a dog egg".' },
-  { species: 'frog', gold: 45000,  label: 'Dredged out of the Gloomroot shallows. Still faintly humming.' },
+  { species: 'cat',     gold: 8000,   label: 'A stray left this on your doorstep. It wants money for it somehow.' },
+  { species: 'dog',     gold: 8000,   label: 'Bought from a farmer who insists it is "definitely a dog egg".' },
+  { species: 'sparrow', gold: 12000,  label: 'Fell out of the inn thatch. Bram charged you for it anyway.' },
+  { species: 'mouse',   gold: 14000,  label: 'Found behind the grain sacks. Technically it found you.' },
+  { species: 'beetle',  gold: 26000,  label: 'The smith keeps these in a tin. He will not say why.' },
+  { species: 'frog',    gold: 45000,  label: 'Dredged out of the Gloomroot shallows. Still faintly humming.' },
 ];
 
-// Rarer eggs drop from content rather than being bought
-export const EGG_DROPS = {
-  poro:     { from: 'Rift chests and boss kills', chance: 0.02 },
-  wyrmling: { from: 'The Dragonspire and sealed Unstable Rifts', chance: 0.01 },
+/**
+ * Where the eggs you cannot buy actually come from.
+ *
+ * This used to list two species and was three versions out of date, which
+ * meant twelve of fifteen pets existed with nothing in the game willing to
+ * say so. It is now keyed by RARITY rather than by species, because that
+ * is how the drop actually works — the roll picks a tier and then picks
+ * uniformly within it — and a rarity has only four values, so it cannot
+ * fall behind the species list the way a species map did.
+ */
+export const EGG_SOURCES = {
+  common:    'Bought in town, or off almost anything that drops an egg at all.',
+  rare:      'Boss kills and sealed Unstable Rifts, reliably enough to plan around.',
+  epic:      'Boss kills and Rifts, but you will be a while. Wardens in the Descent are kinder.',
+  legendary: 'Rifts, Wardens, and whatever the Vigil was carrying. Mostly it is patience.',
 };
+
+/** Odds of each tier when an egg does drop — mirrors EGG_RARITY_WEIGHTS. */
+export const EGG_RARITY_ODDS = { common: '75%', rare: '20%', epic: '4.5%', legendary: '0.5%' };
 
 export function eggItemId(speciesId) { return `egg_${speciesId}`; }

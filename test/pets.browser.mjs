@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { EGG_SHOP, SPECIES_LIST } from '../src/data/pets.js';
 
 // addInitScript runs on EVERY navigation, so guard it — otherwise a reload
 // silently restores the original fixture over whatever the test just did.
@@ -50,10 +51,13 @@ console.log('\n[1] Fresh boot + navigation');
   ok('empty state explains the companion slot',
      (await page.textContent('#main-panel')).includes('No companion at your side'));
   ok('incubator shows 2 empty nests', (await page.locator('.egg-slot.empty').count()) === 2);
-  ok('hatchery tab lists 3 buyable eggs', await (async () => {
+  // Counted against the data, not a number written here: this assertion
+  // failed the moment the shop was widened, which is the wrong thing for a
+  // test to notice.
+  ok(`hatchery tab lists all ${EGG_SHOP.length} buyable eggs`, await (async () => {
     await page.click('[data-act="pets-tab"][data-tab="shop"]');
     await page.waitForTimeout(200);
-    return (await page.locator('[data-act="buy-egg"]').count()) === 3;
+    return (await page.locator('[data-act="buy-egg"]').count()) === EGG_SHOP.length;
   })());
   await ctx.close();
 }

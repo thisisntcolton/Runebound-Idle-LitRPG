@@ -147,6 +147,10 @@ export function defaultState() {
       active: null,     // petId walking with you
       hatched: 0,
       bred: 0,
+      // Species you have ever held an egg of. Kept forever, including
+      // through Ascension, so the Menagerie's compendium is a record of
+      // what you have found rather than what you happen to own today.
+      seen: {},
     },
 
     // The Codex — discovered world lore, and what the last cycle cost.

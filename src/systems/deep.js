@@ -5,6 +5,7 @@ import { state } from '../core/state.js';
 import { DEEP, depthCap, isWardenDepth, deepMonster, stratumFor } from '../data/deep.js';
 import { emit } from '../core/events.js';
 import { rollEggDrop } from './pets.js';
+import { rollTome } from './abilities.js';
 import { fmtInt } from '../core/format.js';
 
 let hooks = { queueModal: () => {}, popup: () => {} };
@@ -65,7 +66,7 @@ export function descendOne() { return setDepth(deep().depth + 1); }
 export function creditDescent(monster) {
   const d = deep();
   d.kills = (d.kills || 0) + 1;
-  if (monster?.boss) { d.wardens = (d.wardens || 0) + 1; rollEggDrop('descent'); }
+  if (monster?.boss) { d.wardens = (d.wardens || 0) + 1; rollEggDrop('descent'); rollTome('descent'); }
 
   const need = clearsNeeded(d.depth);
   d.clears = (d.clears || 0) + 1;

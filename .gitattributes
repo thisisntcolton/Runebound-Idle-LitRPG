@@ -1,0 +1,17 @@
+# Every file in this repo is authored with LF endings, and every consumer of
+# it (Vite, Node, Vercel's build image) wants LF. Without this, Git on
+# Windows checks files out as CRLF and then warns about converting them back
+# on every single `git add` — a hundred lines of noise that hide anything
+# actually worth reading in the output.
+#
+# `text=auto eol=lf` means: decide for yourself what is text, and store AND
+# check out text as LF everywhere.
+* text=auto eol=lf
+
+# Binaries must never be touched.
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary
+*.woff binary
+*.woff2 binary

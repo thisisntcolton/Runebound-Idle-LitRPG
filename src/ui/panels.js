@@ -44,8 +44,12 @@ function xpBarBlock(skillId) {
   // one thing this must not look like.
   const held = trueLvl > cap;
   const pct = held ? 100 : levelProgress(xp) * 100;
+  // Saying the XP is held was already true; it was not useful. A player
+  // who cannot act on a message reads it as a bug report about their own
+  // save. So the ceiling now names the thing that lifts it.
   const label = held
-    ? `CEILING — ${fmtInt(xp - xpForLevel(cap))} XP banked past Lv. ${cap}. It is being counted. It is not being applied.`
+    ? `CEILING — ${fmtInt(xp - xpForLevel(cap))} XP banked past Lv. ${cap}. It is being counted. It is not being applied. `
+      + `<span class="ceiling-key">The ceiling belongs to this place, not to you. Break the cycle and it comes off.</span>`
     : lvl >= MAX_LEVEL
       ? `MAX LEVEL — ${fmtInt(xp)} XP`
       : `${fmtInt(xp - xpForLevel(lvl))} / ${fmtInt(xpForLevel(lvl + 1) - xpForLevel(lvl))} XP to Lv. ${lvl + 1}`;
@@ -609,6 +613,43 @@ function titlePicker() {
 }
 
 // ---------------- Ascension ----------------
+/**
+ * The way onward.
+ *
+ * The single most important transition in the game sat behind an unmarked
+ * boss kill and a modal you could decline without knowing what you had
+ * declined — and the offer only returns once per cycle, so declining it
+ * once cost you a whole run's worth of not knowing. A player four cycles
+ * deep, staring at a level cap they cannot move and content they cannot
+ * see, was given nothing to act on anywhere in the game.
+ *
+ * This says it, and only once it is true: it appears at the cycle count
+ * where the choice actually becomes available. Before that it would be a
+ * spoiler; after that, withholding it is just cruelty.
+ */
+function wayOnwardBlock() {
+  if ((state.era || 1) >= 2) return '';
+  if ((state.ascensions || 0) < 4) return '';
+  const takenThisCycle = state.endingOfferedCycle === state.ascensions;
+  return `
+    <div class="way-onward">
+      <div class="way-onward-title">◈ There is a way out of the loop</div>
+      <div class="way-onward-body">
+        You have gone round four times. That was the requirement, though nothing said so.
+        <b>Defeat Aurelion, the Last Flame</b> in the Dragonspire and the System will put a
+        choice in front of you: renew the seal, or break it.
+        <br><br>
+        <b>Feeding the flame</b> pays five Fate Shards and keeps everything exactly as it is —
+        including the ceiling on every one of your skills, and the content behind it.
+        <b>Breaking the cycle</b> is the way forward. It is the only way forward.
+        ${takenThisCycle
+          ? `<br><br><span class="way-onward-warn">⚠ You have already been offered the choice this cycle.
+             If you fed the flame, the offer returns after your next Ascension.</span>`
+          : ''}
+      </div>
+    </div>`;
+}
+
 export function ascensionPanel() {
   const shards = pendingShards();
   const total = totalSkillLevel();
@@ -650,6 +691,7 @@ export function ascensionPanel() {
       </div>
       ${state.ascensions > 0 ? `<div class="muted" style="margin-top:10px">Ascensions so far: ${state.ascensions} · Shards held: 💠 ${state.shards}</div>` : ''}
     </div>
+    ${wayOnwardBlock()}
     <div class="section-title">💠 What you keep</div>
     <div class="muted" style="margin-bottom:12px">
       Ascension is a reset, not a deletion. Everything on the left comes with you — including,

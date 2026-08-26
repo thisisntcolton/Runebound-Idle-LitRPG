@@ -8,6 +8,7 @@ import { activePet, hunger } from './pets.js';
 import { currentClass } from './classes.js';
 import { addGold, addItem, itemCount } from './inventory.js';
 import { rollEggDrop } from './pets.js';
+import { rollTome } from './abilities.js';
 import { getItem } from '../data/items.js';
 import { emit } from '../core/events.js';
 import { fmt } from '../core/format.js';
@@ -206,6 +207,7 @@ function fell() {
   got.push(`💠 ${s.shards}`);
   // It was carrying something. It has been carrying it for nine hundred years.
   rollEggDrop('vigil');
+  rollTome('vigil');
 
   hooks.queueModal(`
     <div class="modal-tag">◈ IT HAS STOPPED ◈</div>

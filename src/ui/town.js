@@ -9,6 +9,7 @@ import { getItem } from '../data/items.js';
 import { townLevel, plotsAvailable, buildingUnlocked, plotReport, plotStaff,
          unassignedStaff, eligibleStock, canAfford, activeTownBuffs,
          staffSlotsFor, discounted } from '../systems/town.js';
+import { masteryBonus } from '../systems/classes.js';
 import { grassBackdrop, paths, tree, lamp, signpost, emptyPlot, lockedPlot,
          forSalePlot, buildingArt, staffFigures, townsfolk, notableFigure } from './townart.js';
 import { WANDERER_LOOKS, NOTABLES, VILLAGER_NAMES, VILLAGER_TRADES,
@@ -218,6 +219,26 @@ function stockPanel(index, report) {
     ${held ? `<div class="section-title">🏬 Currently stocked</div>${held}` : ''}`;
 }
 
+/**
+ * Where this building's staff slots come from.
+ *
+ * The bug that started all of this was an Artisan capstone granting an
+ * extra staff slot, Ascension clearing the class, and the slot quietly
+ * going away — with nothing anywhere in the town explaining why the number
+ * had changed. The slot now survives as a Mastery, but a number that moves
+ * for invisible reasons is a bug report waiting to happen either way. So
+ * the town shows its working.
+ */
+function slotProvenance(def) {
+  const base = def?.staffSlots || 0;
+  const bonus = staffSlotsFor(def) - base;
+  if (bonus <= 0) return '';
+  const fromMastery = masteryBonus('staff_slots') > 0;
+  return `<br><span style="color:var(--xp)">+${bonus} of those ${bonus === 1 ? 'is' : 'are'} yours from
+    ${fromMastery ? 'the <b>Artisan Mastery</b>, which you keep through every Ascension'
+                  : 'your <b>class talents</b>, and applies while you walk that path'}.</span>`;
+}
+
 function staffPanel(index, report) {
   const onSite = plotStaff(index);
   const free = unassignedStaff();
@@ -247,7 +268,8 @@ function staffPanel(index, report) {
 
   return `
     <div class="muted" style="margin-bottom:10px">${onSite.length} / ${staffSlotsFor(report.def)} positions filled.
-    An unstaffed building produces nothing at all.</div>
+    An unstaffed building produces nothing at all.
+    ${slotProvenance(report.def)}</div>
     ${rows || ''}
     <div class="section-title">🪑 Available staff</div>
     ${available}`;

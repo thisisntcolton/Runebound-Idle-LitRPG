@@ -482,11 +482,29 @@ export function breed(idA, idB) {
 }
 
 // ---------------- Egg shop ----------------
+/**
+ * Record that a species has been seen. Called wherever an egg enters the
+ * player's hands, so the compendium reflects discovery rather than current
+ * ownership — selling or losing a pet should not un-discover it.
+ */
+export function markSeen(speciesId) {
+  if (!speciesId) return;
+  state.pets.seen ||= {};
+  if (!state.pets.seen[speciesId]) state.pets.seen[speciesId] = Date.now();
+}
+
+export function hasSeen(speciesId) {
+  return !!state.pets.seen?.[speciesId]
+      || Object.values(state.pets.owned || {}).some(p => p.species === speciesId)
+      || (state.pets.incubator || []).some(e => e.species === speciesId);
+}
+
 export function buyEgg(speciesId) {
   const entry = EGG_SHOP.find(e => e.species === speciesId);
   if (!entry) return false;
   if (!spendGold(entry.gold)) return false;
   addItem(eggItemId(speciesId), 1);
+  markSeen(speciesId);
   const sp = getSpecies(speciesId);
   emit('notify', { type: 'gold', text: `${sp.eggIcon} Bought ${sp.eggName}.` });
   emit('pets-changed', {});
@@ -565,6 +583,7 @@ export function rollEggDrop(source) {
 
   const itemId = eggItemId(sp.id);
   addItem(itemId, 1);
+  markSeen(sp.id);
   const fanfare = sp.rarity === 'legendary' ? '✦✦✦' : sp.rarity === 'epic' ? '✦✦' : '✦';
   emit('notify', { type: 'loot', text: `${fanfare} ${sp.eggName} — something in there is moving.` });
   emit('rare-drop', { itemId, rarity: sp.rarity });

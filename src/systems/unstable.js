@@ -13,6 +13,7 @@ import { state, maxHp, combatLevel, dropRateMultiplier } from '../core/state.js'
 import { getItem } from '../data/items.js';
 import { addGold, addItem, itemCount, removeItem } from './inventory.js';
 import { rollEggDrop } from './pets.js';
+import { rollTome } from './abilities.js';
 import { resetQuarry, clearBurn } from './classes.js';
 import { emit } from '../core/events.js';
 import { stopActivity } from './skills.js';
@@ -206,19 +207,12 @@ function sealRun() {
     addItem(id, qty);
     parts.push(`${getItem(id)?.icon} ${getItem(id)?.name} ×${qty}`);
   }
-  // sealing has a real shot at a tome
-  if (Math.random() < Math.min(0.6, 0.30 * dropRateMultiplier())) {
-    const tomes = Object.keys(state.abilities?.known || {});
-    const pool = ['tome_heavy_blow', 'tome_cleave', 'tome_parry', 'tome_iron_stance',
-                  'tome_auto_elixir', 'tome_execute', 'tome_second_wind', 'tome_firebomb']
-      .filter(t => !tomes.includes(t.replace('tome_', '')));
-    if (pool.length) {
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      addItem(pick, 1);
-      parts.push(`📕 ${getItem(pick)?.name}`);
-      emit('rare-drop', { itemId: pick, rarity: getItem(pick)?.rarity });
-    }
-  }
+  // Sealing has a real shot at a tome. The pool used to be eight ids
+  // written out by hand here, which is how ten later abilities ended up
+  // in the game with no way to obtain them. rollTome derives it from the
+  // ability list instead.
+  const tome = rollTome('rift-seal');
+  if (tome) parts.push(`📕 ${getItem(tome)?.name}`);
 
   const egg = rollEggDrop('rift-seal');
   if (egg) parts.push(`${getItem(egg)?.icon} ${getItem(egg)?.name}`);

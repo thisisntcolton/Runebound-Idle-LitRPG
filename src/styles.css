@@ -92,6 +92,63 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   cursor: help;
 }
 .build-stamp:hover { opacity: 1; }
+
+/* ---- The way onward ----
+   Deliberately loud. It is the answer to "is there any more of this?", and
+   a player who misses it loses a whole cycle to not knowing. */
+.way-onward {
+  border: 1px solid var(--sys-blue);
+  border-left-width: 3px;
+  background: color-mix(in srgb, var(--sys-blue) 8%, transparent);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin: 18px 0 6px;
+}
+.way-onward-title {
+  color: var(--sys-blue);
+  letter-spacing: 2px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.way-onward-body { line-height: 1.7; font-size: 13px; }
+.way-onward-warn { color: var(--gold); }
+
+/* The ceiling message has to say what lifts it, or it reads as a bug. */
+.ceiling-key { color: var(--sys-blue); }
+
+/* "None of it was taken" — shown at the exact moment a reset reads as theft. */
+.banked-block {
+  border: 1px solid var(--xp);
+  border-left-width: 3px;
+  border-radius: 6px;
+  padding: 13px 15px;
+  margin: 16px 0;
+  background: color-mix(in srgb, var(--xp) 7%, transparent);
+}
+.banked-title { color: var(--xp); font-size: 13px; margin-bottom: 7px; }
+.banked-rows { display: flex; flex-direction: column; gap: 5px; }
+.banked-row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+.banked-icon { font-size: 17px; }
+.banked-name { flex: 1; min-width: 0; }
+.banked-count { color: var(--gold); font-family: var(--font-mono, monospace); font-size: 12px; }
+
+/* The plain-English gloss under a story choice with mechanical stakes. */
+.modal-note {
+  margin: 14px 0 4px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--sys-blue);
+  border-radius: 5px;
+  background: var(--bg-panel-2);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+/* A locked row where the Wastes will be. Reads as a door, not a button. */
+.nav-item.nav-sealed { opacity: 0.55; font-style: italic; }
+.nav-item.nav-sealed:hover { opacity: 0.9; }
+.nav-item.nav-sealed .nav-level { color: var(--sys-blue); }
 .topbar-currencies { display: flex; gap: 18px; flex: 1; }
 .currency {
   display: flex;
