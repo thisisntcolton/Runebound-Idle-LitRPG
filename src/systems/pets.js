@@ -5,7 +5,7 @@
 // the tab is open or you've been gone three days. Nothing ever dies;
 // a neglected pet just stops helping until you make it up to them.
 // ============================================================
-import { state, dropRateMultiplier } from '../core/state.js';
+import { state, dropRateMultiplier, buyPrice } from '../core/state.js';
 import { SPECIES, getSpecies, stageFor, STAGES, CARE, PET_TRAITS, TRAIT_LIST,
          getTrait, BREEDING, MAX_PET_LEVEL, RARITY_RANK, RARITIES,
          randomPetName, eggItemId, BREEDABLE_STAGE, EGG_SHOP, SPECIES_LIST } from '../data/pets.js';
@@ -499,10 +499,16 @@ export function hasSeen(speciesId) {
       || (state.pets.incubator || []).some(e => e.species === speciesId);
 }
 
+/** What an egg costs this player, Charisma included. Quote and charge. */
+export function eggPrice(speciesId) {
+  const entry = EGG_SHOP.find(e => e.species === speciesId);
+  return entry ? buyPrice(entry.gold) : 0;
+}
+
 export function buyEgg(speciesId) {
   const entry = EGG_SHOP.find(e => e.species === speciesId);
   if (!entry) return false;
-  if (!spendGold(entry.gold)) return false;
+  if (!spendGold(eggPrice(speciesId))) return false;
   addItem(eggItemId(speciesId), 1);
   markSeen(speciesId);
   const sp = getSpecies(speciesId);

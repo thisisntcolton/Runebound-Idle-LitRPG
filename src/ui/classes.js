@@ -7,7 +7,8 @@ import { TIERS, treeFor, tierInfo, MAX_CLASS_LEVEL, MAX_POINTS, totalCost,
          MASTERIES, ASCENDANT_TIER } from '../data/talents.js';
 import { currentClass, classUnlocked, classPending, classLevel,
          classLevelProgress, talentPoints, rankOf, tierUnlocked, tierGate,
-         canBuy, classProgress, hasMastery, masteredClasses } from '../systems/classes.js';
+         canBuy, classProgress, hasMastery, masteredClasses,
+         masteryStacks, totalMasteryStacks } from '../systems/classes.js';
 import { SKILLS } from '../data/skills.js';
 import { fmtInt } from '../core/format.js';
 import { KEPT, LOST } from '../data/persistence.js';
@@ -122,40 +123,38 @@ function talentNode(classId, node, spendable) {
 //
 // The first minutes of every cycle after the first are the moment this
 // game feels most like it has robbed you: character level 1, no class,
-// every skill back to the bottom. And the Path panel — the one place that
-// could say "none of your talent ranks went anywhere" — said nothing at
-// all, because it renders a bare "locked" notice below character level 10
-// and that is precisely where a freshly Ascended player is standing.
+// every skill back to the bottom, and now the talent trees emptied too.
 //
-// So it says it there, first, before the reset has time to read as theft.
+// The trees used to survive, which is why the late cycles took minutes —
+// a cycle-seven player walked back in already finished. Now what survives
+// is the Mastery, and it STACKS: cap the Artisan again and the bonus
+// doubles. So this block's job has changed. It is no longer "your ranks
+// are safe"; it is "here is what those ranks bought you, permanently,
+// and here is why doing it again is worth doing".
 
 function bankedBlock() {
-  const banked = CLASS_LIST
-    .map(c => ({ cls: c, ranks: Object.values(state.classProgress?.[c.id]?.spent || {})
-                                     .reduce((s, n) => s + (n || 0), 0) }))
-    .filter(b => b.ranks > 0)
-    .sort((a, b) => b.ranks - a.ranks);
-  if (!banked.length) return '';
+  const stacks = Object.values(MASTERIES)
+    .map(m => ({ m, n: masteryStacks(m.id) }))
+    .filter(x => x.n > 0)
+    .sort((a, b) => b.n - a.n);
+  const total = stacks.reduce((s, x) => s + x.n, 0);
+  if (!total) return '';
 
-  const total = banked.reduce((s, b) => s + b.ranks, 0);
   return `
     <div class="banked-block">
-      <div class="banked-title">🌳 Nothing you bought was taken — ${total} talent rank${total === 1 ? '' : 's'} still yours</div>
+      <div class="banked-title">🏅 ${total} Mastery stack${total === 1 ? '' : 's'} — permanent, and applying right now</div>
       <div class="muted" style="margin-bottom:9px">
-        Ascension clears your <b>class</b>, never your <b>trees</b>. Every rank below is exactly
-        where you left it and costs nothing to get back — pick that path again and the whole tree
-        is live from the first moment. What a capped tree leaves behind applies even when you
-        do not.
+        Ascension takes the trees. It does not take these. Every class you have <b>capped</b> left one
+        distilled bonus behind, and capping that class again in a later cycle earns another stack on
+        top. This is the progression that compounds: the ranks are the work, the Mastery is the wage.
       </div>
       <div class="banked-rows">
-        ${banked.map(b => `
+        ${stacks.map(({ m, n }) => `
           <div class="banked-row">
-            <span class="banked-icon">${b.cls.icon}</span>
-            <span class="banked-name">${b.cls.name}</span>
-            <span class="banked-count">${b.ranks} rank${b.ranks === 1 ? '' : 's'}</span>
-            ${hasMastery(b.cls.id)
-              ? `<span class="pill" style="border-color:var(--gold);color:var(--gold)">Mastery active</span>`
-              : ''}
+            <span class="banked-icon">${m.icon}</span>
+            <span class="banked-name">${m.name}</span>
+            <span class="banked-count">×${n}</span>
+            <span class="muted" style="font-size:11px">${m.desc}</span>
           </div>`).join('')}
       </div>
     </div>`;
@@ -172,7 +171,7 @@ function masteryBlock() {
         <span class="mastery-icon">${m.icon}</span>
         <div style="flex:1;min-width:0">
           <div class="mastery-name">${m.name} ${got
-            ? '<span class="pill" style="border-color:var(--gold);color:var(--gold)">active</span>'
+            ? `<span class="pill" style="border-color:var(--gold);color:var(--gold)">active ×${masteryStacks(m.id)}</span>`
             : '<span class="pill">not yet</span>'}</div>
           <div class="muted">${m.desc}</div>
           ${got ? `<div class="muted" style="font-style:italic;margin-top:2px">${m.flavour}</div>` : ''}
@@ -182,12 +181,14 @@ function masteryBlock() {
 
   return `
     <div class="section-title">🏅 Masteries
-      <span class="pill">${earned.length} of ${Object.keys(MASTERIES).length}</span></div>
+      <span class="pill">${earned.length} of ${Object.keys(MASTERIES).length} classes · ${totalMasteryStacks()} stacks</span></div>
     <div class="muted" style="margin-bottom:10px">
       Cap a class's tree — its tier-5 capstone — and you keep one distilled piece of it
       <b>forever</b>, applied whatever you happen to be playing, including nothing.
-      Not the whole tree; the rest of those ranks still only work while you walk that path.
-      This is the part Ascension cannot take back.<br>
+      Ascension takes the tree itself; it never takes this.<br>
+      <b>And it stacks.</b> Cap the same class again in a later cycle and you earn the Mastery
+      again, on top. That is what the long game is made of — the ranks are temporary, the
+      Masteries only ever accumulate.<br>
       <span style="font-size:12px">A Mastery is a floor, not a stack: while you are actually
       playing that class you have the entire tree instead, which is more.</span>
     </div>

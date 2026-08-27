@@ -23,7 +23,9 @@ const base = {
   version: 1, gold: 8000000, lifetimeGold: 40000000, shards: 400, ascensions: 3,
   skills, lastSeen: now, createdAt: now, era: 1,
   equipment: { weapon: null, helmet: null, chest: null, legs: null, boots: null, ring: null, amulet: null },
-  inventory: {},
+  // The larder needs something in it, and one plain meal plus one that
+  // carries a buff, so both branches of canEat are exercised.
+  inventory: { trout: 20, hearth_pie: 3 },
   charStats: { STR: 20, AGI: 10, VIT: 10, INT: 0, LUK: 0 }, statPointsSpent: 40,
   // A chosen class, so the class-choice modal does not re-offer over
   // every button in the suite.
@@ -209,6 +211,45 @@ const buildable = await page.evaluate(() =>
 ok('the generation buildings are offered',
    /Fish Hatchery/.test(buildable) || /Walled Garden/.test(buildable) || /Shale Quarry/.test(buildable),
    'none named');
+
+console.log('\n[you can eat outside a fight]');
+await go('character');
+const chr = await page.textContent('#main-panel');
+ok('there is a larder', /Larder/.test(chr));
+ok('Charisma is on the sheet', /CHA/.test(chr));
+ok('and says what it does', /sale price/i.test(chr));
+const eatable = await page.locator('[data-act="eat"]').count();
+ok('food in the bag is offered', eatable >= 1, String(eatable));
+if (eatable) {
+  // Hurt first, or eating a plain meal is correctly refused at full health.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('runebound-save-v1'));
+    s.combat = { ...(s.combat || {}), playerHp: 5 };
+    const real = Storage.prototype.setItem.bind(localStorage);
+    real('runebound-save-v1', JSON.stringify(s));
+    Storage.prototype.setItem = function (k, v) { if (k === 'runebound-save-v1') return; return real(k, v); };
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  await dismiss();
+  await go('character');
+  const hpBefore = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('runebound-save-v1')).combat?.playerHp);
+  await page.evaluate(() => document.querySelector('[data-act="eat"]')?.click());
+  await page.waitForTimeout(350);
+  await forceSave();
+  const hpAfter = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('runebound-save-v1')).combat?.playerHp);
+  ok('eating restores health out of combat', hpAfter > hpBefore, `${hpBefore} -> ${hpAfter}`);
+}
+
+console.log('\n[the cycle asks more each time]');
+await go('ascension');
+const asc2 = await page.textContent('#main-panel');
+ok('the bar for this cycle is stated', /need \d+/.test(asc2.replace(/\s+/g, ' ')),
+   (asc2.replace(/\s+/g,' ').match(/need \d+/) || [''])[0]);
+ok('and that it rises', /The bar rises every cycle/.test(asc2));
+ok('and where it stops', /It stops climbing/.test(asc2));
 
 console.log('\n[nothing broke]');
 ok('no runtime errors', errs.length === 0, errs.slice(0, 3).join(' | '));

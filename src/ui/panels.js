@@ -5,7 +5,7 @@ import { state, skillLevel, actionTime, doubleChance, hirelingRate,
          charLevel, totalSkillLevel, combatLevel, statPointsAvailable,
          gearStats, maxHp, playerAccuracy, playerMaxHit, playerMinHit, playerDefenseRating,
          damageReduction, xpMultiplier, goldMultiplier, pendingShards,
-         ASCEND_MIN_TOTAL_LEVEL, offlineCapHours,
+         ascendRequirement, ascendThreshold, offlineCapHours,
          hitChanceVs, expectedDps, timeToKill, attackInterval, BALANCE } from '../core/state.js';
 import { SKILLS, TRAINABLE_SKILLS, COMBAT_SKILLS, getAction } from '../data/skills.js';
 import { ZONES, getZone, getMonster } from '../data/monsters.js';
@@ -13,7 +13,7 @@ import { deepView } from '../systems/deep.js';
 import { bossView } from '../systems/worldboss.js';
 import { getDungeon, totalWaves } from '../data/dungeons.js';
 import { displayOdds, ROLLS_PER_PROFILE } from '../data/loot.js';
-import { dropRateMultiplier, levelCap, classSkillBonus } from '../core/state.js';
+import { dropRateMultiplier, levelCap, classSkillBonus, ASCEND_MAX_TOTAL_LEVEL } from '../core/state.js';
 import { abilityStatus } from '../systems/abilities.js';
 import { currentMonster } from '../systems/combat.js';
 import { activeRun as unstableRun, UNSTABLE } from '../systems/unstable.js';
@@ -25,7 +25,9 @@ import { enchantCost, canEnchant, MAX_ENCHANT } from '../systems/enchant.js';
 import { unlockedTitles } from '../systems/achievements.js';
 import { ITEMS, getItem, EQUIP_SLOTS } from '../data/items.js';
 import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost } from '../data/upgrades.js';
+import { pricedUpgrade, buyPrice } from '../core/state.js';
 import { STAT_INFO } from '../systems/character.js';
+import { edibles, canEat, effectText } from '../systems/potions.js';
 import { canBreakCycle } from '../systems/quests.js';
 import { hirelingProgress, hirelingTask, stealRisk } from '../systems/skills.js';
 import { cloud } from '../core/cloud.js';
@@ -146,7 +148,7 @@ export function skillPanel(skillId) {
 function shopRowUpgrade(u) {
   const lvl = state.upgrades[u.id] || 0;
   const maxed = lvl >= u.maxLevel;
-  const cost = upgradeCost(u, lvl);
+  const cost = pricedUpgrade(u, lvl);
   return `
     <div class="shop-row">
       <div style="font-size:22px">${u.icon}</div>
@@ -165,7 +167,7 @@ function shopRowUpgrade(u) {
 function shopRowHireling(h) {
   const lvl = state.hirelings[h.id] || 0;
   const maxed = lvl >= h.maxLevel;
-  const cost = upgradeCost(h, lvl);
+  const cost = pricedUpgrade(h, lvl);
   const rate = hirelingRate(h.skill);
   const skill = SKILLS[h.skill];
   const prog = lvl > 0 ? hirelingProgress(h.skill) : null;
@@ -596,6 +598,7 @@ export function characterPanel() {
       <div class="stat-row"><span class="stat-desc">Kills: <b>${fmtInt(st.kills)}</b> · Boss kills: <b>${fmtInt(st.bossKills)}</b> · Deaths: <b>${fmtInt(st.deaths)}</b> · Highest hit: <b>${st.highestDamage}</b></span></div>
       <div class="stat-row"><span class="stat-desc">Actions performed: <b>${fmtInt(st.actions)}</b> · Items sold: <b>${fmtInt(st.itemsSold)}</b> · Lifetime gold: <b>🪙 ${fmt(state.lifetimeGold)}</b></span></div>
     </div>
+    ${larderBlock()}
   `;
 }
 
@@ -661,7 +664,8 @@ function wayOnwardBlock() {
 export function ascensionPanel() {
   const shards = pendingShards();
   const total = totalSkillLevel();
-  const ready = total >= ASCEND_MIN_TOTAL_LEVEL && shards > 0;
+  const need = ascendRequirement();
+  const ready = total >= need && shards > 0;
 
   const perkRows = PERKS.map(p => {
     const lvl = state.perks[p.id] || 0;
@@ -693,7 +697,12 @@ export function ascensionPanel() {
     <div class="ascend-hero">
       <div class="muted" style="letter-spacing:2px">ASCENDING NOW YIELDS</div>
       <div class="ascend-shards-preview">💠 ${shards}</div>
-      <div class="muted">Total skill level: ${total} ${total < ASCEND_MIN_TOTAL_LEVEL ? `— need ${ASCEND_MIN_TOTAL_LEVEL}` : ''} · Lifetime gold: 🪙 ${fmt(state.lifetimeGold)}</div>
+      <div class="muted">Total skill level: ${total}${total < need ? ` <b style="color:var(--danger)">— need ${need}</b>` : ''} · Lifetime gold: 🪙 ${fmt(state.lifetimeGold)}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:6px">
+        The bar rises every cycle: this one asks ${need}, the next asks ${ascendThreshold((state.ascensions || 0) + 1)}.
+        It stops climbing once it reaches ${ASCEND_MAX_TOTAL_LEVEL} — by then a cycle means having been
+        somewhere, rather than having been quick.
+      </div>
       <div style="margin-top:16px">
         <button class="btn btn-danger" data-act="ascend" ${ready ? '' : 'disabled'}>☄️ ASCEND</button>
       </div>
@@ -710,6 +719,45 @@ export function ascensionPanel() {
     <div class="section-title">◈ Fate Perks</div>
     ${perkRows}
   `;
+}
+
+/**
+ * The larder.
+ *
+ * Lives on the Character sheet because that is where a player looks when
+ * they notice their health is low and they are not currently fighting —
+ * which, before this existed, was a dead end.
+ */
+function larderBlock() {
+  const food = edibles();
+  const cap = maxHp();
+  const hp = state.combat.playerHp ?? cap;
+  if (!food.length) {
+    return `
+      <div class="section-title">🍖 Larder</div>
+      <div class="muted">Nothing edible in the bag. Cooking is the skill for that, and the
+      good meals do rather more than fill you up.</div>`;
+  }
+  return `
+    <div class="section-title">🍖 Larder <span class="pill">${hp} / ${cap} health</span></div>
+    <div class="muted" style="margin-bottom:9px">
+      Eat any time, not just mid-fight. A meal with a <b>buff</b> is worth eating even at full
+      health — the effect runs on a timer and stacks up to three times its duration.
+    </div>
+    <div class="pet-food-strip">
+      ${food.map(({ id, item, qty }) => {
+        const usable = canEat(id).ok;
+        return `
+        <button class="food-chip ${item.effects ? 'liked' : ''}" data-act="eat" data-item="${id}"
+                ${usable ? '' : 'disabled'} title="${usable ? '' : canEat(id).why}">
+          <span style="font-size:19px">${item.icon}</span>
+          <span>${item.name}</span>
+          <b>×${fmt(qty)}</b>
+          <span class="food-bond">${item.heal ? '+' + item.heal : ''}${
+            item.effects ? ' ✦ ' + effectText(item.effects) : ''}</span>
+        </button>`;
+      }).join('')}
+    </div>`;
 }
 
 // ---------------- Settings ----------------

@@ -2,6 +2,7 @@
 // GAME STATE — single mutable object + derived-stat helpers
 // ============================================================
 import { SKILL_IDS, TRAINABLE_SKILLS, COMBAT_SKILLS, SKILLS } from '../data/skills.js';
+import { upgradeCost as upgradeCostBase } from '../data/upgrades.js';
 import { UPGRADES, HIRELINGS, PERKS, SHARD_XP_BONUS, SHARD_GOLD_BONUS,
          HIRELING_BASE_RATE, HIRELING_RATE_PER_RANK } from '../data/upgrades.js';
 import { getItem } from '../data/items.js';
@@ -87,15 +88,20 @@ export function defaultState() {
     hirelingTask: {},   // skillId -> actionId the hireling is told to farm
     perks: {},          // perkId -> level
 
-    charStats: { STR: 0, AGI: 0, VIT: 0, INT: 0, LUK: 0 },
+    charStats: { STR: 0, AGI: 0, VIT: 0, INT: 0, LUK: 0, CHA: 0 },
     statPointsSpent: 0,
 
     // Class — chosen at character level 10, cleared by Ascension.
     classId: null,
     classChosenAt: 0,
-    // Per-class talent progress. Keyed by class id, NEVER reset by
-    // anything: this is the game's only permanent progression.
+    // Per-class talent progress. Keyed by class id, and RESET by
+    // Ascension along with everything else — keeping every rank forever
+    // meant a late-cycle player walked back in already finished.
     classProgress: {},
+
+    // What capping a class leaves behind: classId -> times capped. This
+    // is the permanent progression now, and it stacks.
+    masteries: {},
 
     // Appearance — the hero you actually look like. Survives Ascension.
     look: null,
@@ -109,7 +115,7 @@ export function defaultState() {
       // Counters the newer systems keep. Declared here rather than
       // sprung into existence by the first increment, so a Deed reads
       // "0 / 5" on a fresh save instead of showing nothing at all.
-      riftsSealed: 0, theftsFought: 0, tomesLearned: 0, errands: 0,
+      riftsSealed: 0, theftsFought: 0, tomesLearned: 0, errands: 0, mealsEaten: 0,
     },
 
     abilities: {
@@ -448,7 +454,46 @@ export function dropRateMultiplier() {
 
 // Town Market Stalls raise what vendors pay you.
 export function sellPriceMultiplier() {
-  return 1 + townBonus('sell_price') + classBonus('sell_price') + petBonus('sell_price');
+  return 1 + townBonus('sell_price') + classBonus('sell_price') + petBonus('sell_price')
+           + state.charStats.CHA * CHA.SELL_PER_POINT;
+}
+
+// ============================================================
+// CHARISMA
+//
+// The sixth stat, and the only one that touches the economy from both
+// ends: what you are paid, and what you are charged.
+//
+// Buying has a FLOOR. A percentage-off with no limit eventually reaches
+// free, and a free town is a game with no gold sink in it at all — the
+// thing the whole town layer exists to be. Ninety-nine points of CHA
+// takes forty percent off and stops there.
+//
+// The one rule this must obey: every price is quoted and charged through
+// the SAME function. A discount that shows in the shop and is not
+// honoured at the till (or the reverse) is the exact failure the town's
+// build costs already carry a comment about.
+// ============================================================
+export const CHA = {
+  SELL_PER_POINT: 0.006,   // +0.6% sale price per point
+  BUY_PER_POINT: 0.004,    // -0.4% purchase price per point
+  BUY_FLOOR: 0.60,         // never cheaper than 60% of list
+};
+
+export function buyPriceMultiplier() {
+  const off = state.charStats.CHA * CHA.BUY_PER_POINT
+            + townBonus('buy_price') + classBonus('buy_price');
+  return Math.max(CHA.BUY_FLOOR, 1 - off);
+}
+
+/** Every gold price in the game goes through here, quote and charge alike. */
+export function buyPrice(gold) {
+  return Math.max(1, Math.floor(gold * buyPriceMultiplier()));
+}
+
+/** What an upgrade or hireling rank actually costs this player. */
+export function pricedUpgrade(def, level) {
+  return buyPrice(upgradeCostBase(def, level));
 }
 
 // Action time for a skill action after all speed bonuses
@@ -602,4 +647,45 @@ export function pendingShards() {
   return Math.max(0, fromLevels + fromGold);
 }
 
-export const ASCEND_MIN_TOTAL_LEVEL = 120;
+// ============================================================
+// WHAT ENDING A CYCLE COSTS
+//
+// This was a flat 120 forever. Thirteen skills at total level 120 is an
+// average of level nine, which is under an hour — while Aurelion, the
+// boss that opens Era II, needs combat 95 and roughly a hundred hours.
+// The bar to finish a cycle sat at a fraction of a percent of the bar to
+// see what the cycle was for, so the optimal play was to ascend on
+// repeat and never touch the game. A tester hit cycle seven and said it
+// felt like he was nearly finished. He was.
+//
+// The bar now climbs. The first cycle is still a short introduction —
+// that one IS a tutorial and should not be a wall — and then it steepens
+// until, somewhere around the fifth, ending a cycle means having been to
+// the Dragonspire. Tuned in test/cycle.sim.mjs, which prices every cycle
+// in hours and fails if cycle one gets long or cycle seven does not.
+// ============================================================
+export const ASCEND_BASE_TOTAL_LEVEL = 120;
+export const ASCEND_GROWTH = 1.62;
+
+// The bar climbs and then STOPS. Two reasons, and the second one is not
+// optional: an idle game whose cycles grow without limit eventually asks
+// for five hundred hours a cycle, which is a wall rather than a pace —
+// and unbounded growth passes the maximum total skill level that exists
+// (13 skills x 99 = 1287 in the sandbox), at which point the player can
+// never legally Ascend again and the game is simply over. The plateau is
+// the cycle length the late game actually runs at.
+export const ASCEND_MAX_TOTAL_LEVEL = 850;
+
+export function ascendThreshold(ascensions = 0) {
+  const n = Math.max(0, ascensions);
+  return Math.min(ASCEND_MAX_TOTAL_LEVEL,
+    Math.round(ASCEND_BASE_TOTAL_LEVEL * Math.pow(ASCEND_GROWTH, n)));
+}
+
+/** The bar for THIS player, right now. */
+export function ascendRequirement() {
+  return ascendThreshold(state.ascensions || 0);
+}
+
+// Kept as the cycle-one value so older code and copy still read true.
+export const ASCEND_MIN_TOTAL_LEVEL = ASCEND_BASE_TOTAL_LEVEL;

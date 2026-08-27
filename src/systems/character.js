@@ -10,6 +10,8 @@ export const STAT_INFO = {
   VIT: { name: 'VIT', full: 'Vitality', desc: '+1% max HP per point' },
   INT: { name: 'INT', full: 'Intellect', desc: '+1% all XP per point' },
   LUK: { name: 'LUK', full: 'Luck', desc: '+0.5% gold & rare drops per point' },
+  CHA: { name: 'CHA', full: 'Charisma',
+         desc: '+0.6% sale price and -0.4% on everything you buy, per point' },
 };
 
 export function allocateStat(stat) {

@@ -11,7 +11,7 @@ import { addGold, spendGold, addItem, removeItem, itemCount } from './inventory.
 import { emit } from '../core/events.js';
 import { plotHalted } from './unstable.js';
 import { residentBonus } from './npcs.js';
-import { classBonus } from '../core/state.js';
+import { classBonus, buyPrice } from '../core/state.js';
 
 // ---------------- Helpers ----------------
 
@@ -86,10 +86,12 @@ export function buyPlot(index) {
  */
 export function discounted(cost) {
   const off = classBonus('build_cost');   // negative for a discount
-  if (!off) return cost;
   const mult = Math.max(0.1, 1 + off);
   return {
-    gold: Math.floor(cost.gold * mult),
+    // buyPrice folds in Charisma. It has to happen here and nowhere else,
+    // because this is the single function both the quote and the charge
+    // read — that is the whole reason it exists.
+    gold: buyPrice(Math.floor(cost.gold * mult)),
     items: Object.fromEntries(Object.entries(cost.items || {})
       .map(([id, q]) => [id, Math.max(1, Math.ceil(q * mult))])),
   };
@@ -154,7 +156,7 @@ export function demolish(plotIndex) {
 
 export function refreshApplicants({ free = false } = {}) {
   if (!free) {
-    if (!spendGold(REROLL_COST)) return false;
+    if (!spendGold(buyPrice(REROLL_COST))) return false;
   }
   state.town.applicants = Array.from({ length: APPLICANT_POOL_SIZE },
     (_, i) => rollApplicant(Math.random, i));
@@ -167,7 +169,7 @@ export function hire(applicantId) {
   const idx = state.town.applicants.findIndex(a => a.id === applicantId);
   if (idx === -1) return false;
   const applicant = state.town.applicants[idx];
-  const signingFee = applicant.wage * 5;
+  const signingFee = buyPrice(applicant.wage * 5);
   if (!spendGold(signingFee)) {
     emit('notify', { type: 'sys', text: `You can't cover ${applicant.name}'s signing fee (${signingFee} gold).` });
     return false;

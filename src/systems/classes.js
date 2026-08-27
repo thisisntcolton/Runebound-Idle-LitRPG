@@ -109,35 +109,55 @@ export function buyTalent(nodeId, id = state.classId) {
 
 // ---------------- Masteries ----------------
 //
-// Earned by owning a class's tier-5 capstone. Derived from classProgress
-// rather than stored separately, so there is exactly one source of truth
-// and no way for a save migration to lose it.
+// THE ONE THING THAT SURVIVES.
+//
+// Talent trees used to be permanent and Ascension took nothing from them,
+// which made the late cycles trivially fast: a cycle-seven player walked
+// back in with every rank already bought. Now the trees reset with
+// everything else, and what you keep instead is the Mastery — one
+// distilled bonus for having CAPPED a class, awarded again every time you
+// cap it again.
+//
+// That inverts the long game. Re-maxing the Artisan is no longer wasted
+// effort on ranks you already owned; it is another permanent stack. Ten
+// cycles of work is ten Masteries deep, and it is the only progression in
+// the game that compounds.
+//
+// Stored in state.masteries as a COUNT, not a boolean, and kept through
+// the reset by name in prestige.js. It cannot be derived from
+// classProgress any more — that is the whole point.
+
+export function masteryStacks(id) {
+  return state.masteries?.[id] || 0;
+}
 
 export function hasMastery(id) {
-  const node = capstoneNode(id);
-  if (!node) return false;
-  return (state.classProgress?.[id]?.spent?.[node.id] || 0) > 0;
+  return masteryStacks(id) > 0;
 }
 
 export function masteredClasses() {
   return Object.keys(MASTERIES).filter(hasMastery);
 }
 
+/** Total stacks across every class — the headline long-game number. */
+export function totalMasteryStacks() {
+  return Object.keys(MASTERIES).reduce((n, id) => n + masteryStacks(id), 0);
+}
+
 /**
  * Sum of every earned Mastery's contribution to one bonus key.
  *
- * A Mastery does NOT stack with the class it came from. While you are
- * actually walking that path you have the whole tree, which is strictly
- * more; the Mastery is the floor underneath it, not a bonus on top. Left
- * stacking, a capped Artisan would have had three extra staff slots and
- * every card describing the class would have been wrong.
+ * Each stack counts. A Mastery still does not stack with the class you
+ * are CURRENTLY walking — while you are on that path you have the live
+ * tree, which is strictly more, and letting both apply made a capped
+ * Artisan claim three extra staff slots on a card that promised one.
  */
 export function masteryBonus(key) {
   let total = 0;
   for (const id of masteredClasses()) {
     if (id === state.classId) continue;
     const m = MASTERIES[id];
-    if (m?.bonus?.[key]) total += m.bonus[key];
+    if (m?.bonus?.[key]) total += m.bonus[key] * masteryStacks(id);
   }
   return total;
 }
@@ -146,11 +166,18 @@ function awardMastery(id) {
   const m = masteryFor(id);
   if (!m) return;
   const p = classProgress(id);
-  if (p.masteredAt) return;      // announce once, ever
+  // Once per cycle per class. classProgress resets with everything else,
+  // so capping the same tree in a later cycle earns another stack — which
+  // is the entire point of the new design.
+  if (p.masteredAt) return;
   p.masteredAt = Date.now();
-  emit('notify', { type: 'loot', text: `${m.icon} MASTERY: ${m.name} — ${m.desc}` });
+  state.masteries ||= {};
+  state.masteries[id] = (state.masteries[id] || 0) + 1;
+  const n = state.masteries[id];
+  emit('notify', { type: 'loot',
+    text: `${m.icon} MASTERY: ${m.name}${n > 1 ? ` ×${n}` : ''} — ${m.desc}` });
   hooks.popup('MASTERY EARNED',
-    `${m.icon} <b>${m.name}</b><br>${m.desc}` +
+    `${m.icon} <b>${m.name}</b>${state.masteries[id] > 1 ? ` <span style="color:var(--gold)">×${state.masteries[id]}</span>` : ''}<br>${m.desc}` +
     `<br><span style="font-size:12px;color:var(--text-dim);font-style:italic">${m.flavour}</span>`,
     { gold: true, ttl: 10 });
   emit('mastery-earned', { classId: id, mastery: m });

@@ -9,7 +9,7 @@ import { getSpecies, getTrait, CARE, STAGES, stageFor, MAX_PET_LEVEL,
 import { hunger, happiness, mood, petLevel, petLevelProgress,
          xpForPetLevel, incubatorSlots, eggReady, playCooldownLeft,
          canBreed, breedCooldownLeft, petBonusFor,
-         activePetSummary, feedXpFor, hasSeen, errandView } from '../systems/pets.js';
+         activePetSummary, feedXpFor, hasSeen, errandView, eggPrice } from '../systems/pets.js';
 import { petPortrait, eggPortrait, petArt } from './petart.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
@@ -446,7 +446,8 @@ function shopSection() {
     <div class="card-grid">
       ${EGG_SHOP.map(entry => {
         const sp = getSpecies(entry.species);
-        const afford = state.gold >= entry.gold;
+        const price = eggPrice(entry.species);
+        const afford = state.gold >= price;
         const bonus = [sp.bonus, sp.bonus.second].filter(Boolean)
           .map(b => `+${(b.perLevel * 100).toFixed(1)}% ${b.label} per level`).join(' · ');
         return `
@@ -457,7 +458,7 @@ function shopSection() {
             <div class="card-sub" style="font-style:italic;opacity:0.75">${sp.blurb}</div>
             <div class="card-sub">Hatches into a <b>${sp.name}</b> · ${fmtDuration(sp.hatchMs / 1000)} to incubate</div>
             <div class="card-sub" style="color:var(--xp)">${bonus}</div>
-            <div class="card-yield"><span class="cost ${afford ? '' : 'unaffordable'}">🪙 ${fmtInt(entry.gold)}</span></div>
+            <div class="card-yield"><span class="cost ${afford ? '' : 'unaffordable'}">🪙 ${fmtInt(price)}</span></div>
             <button class="btn btn-sm ${afford ? 'btn-gold' : ''} btn-block" data-act="buy-egg"
                     data-species="${sp.id}" ${afford ? '' : 'disabled'}>Buy egg</button>
           </div>`;

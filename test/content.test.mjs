@@ -103,6 +103,11 @@ console.log('\n=== ASCENSION PERSISTENCE ===');
   const src = readFileSync(new URL('../src/systems/prestige.js', import.meta.url), 'utf8');
   const block = src.slice(src.indexOf('const keep = {'), src.indexOf('};', src.indexOf('const keep = {')));
   const actually = new Set([...block.matchAll(/^\s{4}(\w+):/gm)].map(m => m[1]));
+  // Some fields are not kept wholesale — they are rebuilt after the
+  // literal, so that (for example) the road keeps its flags and drops its
+  // mileage. Reading only the object literal missed those entirely and
+  // reported the game as lying when it was telling the truth.
+  for (const m of src.matchAll(/^\s*keep\.(\w+)\s*=/gm)) actually.add(m[1]);
   const claimed = new Set(KEPT.map(e => e.key));
 
   for (const k of claimed) {

@@ -126,6 +126,13 @@ export const PERKS = [
 export const SHARD_XP_BONUS = 0.02;   // each Fate Shard: +2% XP…
 export const SHARD_GOLD_BONUS = 0.02; // …and +2% gold, always on.
 
+/**
+ * List price of an upgrade rank, before Charisma.
+ *
+ * Kept pure — data files know nothing about the player. The Charisma
+ * discount is applied by `pricedUpgrade` in state.js, which BOTH the shop
+ * row and the purchase call, so the quote and the charge cannot drift.
+ */
 export function upgradeCost(def, level) {
   return Math.floor(def.baseCost * Math.pow(def.costMult, level));
 }

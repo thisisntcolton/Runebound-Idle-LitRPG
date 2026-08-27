@@ -2,7 +2,7 @@
 // ENCHANTING — runes from Rifts push gear to +1…+5
 // Each + adds +10% to the item's stats (floored, in gearStats).
 // ============================================================
-import { state, enchantLevel } from '../core/state.js';
+import { state, enchantLevel, buyPrice } from '../core/state.js';
 import { getItem } from '../data/items.js';
 import { itemCount, removeItem, spendGold } from './inventory.js';
 import { emit } from '../core/events.js';
@@ -28,7 +28,8 @@ export function enchantCost(itemId) {
     next,
     rune: byRarity.rune,
     runeQty: byRarity.base * next,
-    gold: byRarity.gold * Math.pow(2, next - 1),
+    // Charisma applies here, where the panel and the purchase both read it.
+    gold: buyPrice(byRarity.gold * Math.pow(2, next - 1)),
   };
 }
 

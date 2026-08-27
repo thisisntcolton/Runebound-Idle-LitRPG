@@ -26,6 +26,9 @@ const base = {
   // read as stolen.
   classProgress: { artisan: { xp: 250000, pointsUsed: 30,
     spent: { art_hands: 3, art_haggle: 3, art_foreman: 1 } } },
+  // Capped in a previous cycle. The trees reset now, so the permanent
+  // record lives here rather than being read back out of classProgress.
+  masteries: { artisan: 2 },
   pets: { owned: {}, incubator: [], active: null, hatched: 0, bred: 0, seen: {} },
   town: { unlocked: true },
 };
@@ -100,11 +103,16 @@ ok('the sidebar shows a sealed door', (await page.locator('.nav-sealed').count()
 console.log('\n[a reset does not read as theft]');
 await go('class');
 const path = await page.textContent('#main-panel');
-ok('the Path panel is not silent below the class gate', /talent rank/i.test(path));
-ok('it counts the ranks still banked', /7 talent ranks still yours/.test(path),
-   (path.match(/\d+ talent ranks? still yours/) || [''])[0]);
-ok('it names the class they belong to', /Artisan/.test(path));
-ok('and says the class is what resets, not the tree', /clears your .*class.*never your/i.test(path.replace(/\s+/g, ' ')));
+// The trees no longer survive Ascension — keeping every rank forever was
+// why the late cycles took minutes. What the panel has to say now is not
+// "your ranks are safe" but "here is the permanent thing those ranks
+// bought, and here is why capping this class again is worth doing".
+ok('the Path panel is not silent below the class gate',
+   /Mastery|Masteries/i.test(path));
+ok('it counts the Mastery stacks that survived', /Mastery stack/i.test(path),
+   (path.match(/\d+ Mastery stacks?/) || [''])[0]);
+ok('it names the class they belong to', /Artisan|Valley Remembers/.test(path));
+ok('and says capping again stacks', /stack/i.test(path));
 
 console.log('\n[the skill ceiling says what lifts it]');
 await go('skill:mining');

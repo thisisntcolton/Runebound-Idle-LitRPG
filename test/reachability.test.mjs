@@ -33,7 +33,7 @@ import { CLASSES } from '../src/data/classes.js';
 import { SKILLS, TRAINABLE_SKILLS } from '../src/data/skills.js';
 import { BUILDING_LIST } from '../src/data/town.js';
 import { ITEMS } from '../src/data/items.js';
-import { totalSkillLevel, pendingShards } from '../src/core/state.js';
+import { totalSkillLevel, pendingShards, buyPrice } from '../src/core/state.js';
 import { CHAINS } from '../src/data/adventure.js';
 import { TIERS, MASTERIES, TREES } from '../src/data/talents.js';
 import { ACHIEVEMENTS } from '../src/data/achievements.js';
@@ -257,6 +257,53 @@ const masteryless = Object.keys(CLASSES).filter(id => !MASTERIES[id]);
 if (masteryless.length) fail(`classes with no Mastery to earn: ${masteryless.join(', ')}`);
 else good(`${Object.keys(MASTERIES).length} Masteries, one per class`);
 
+
+
+// ============================================================
+console.log('\n=== FOOD AND CHARISMA ===');
+{
+  const foods = Object.values(ITEMS).filter(i => i.type === 'food');
+  const buffFood = foods.filter(i => i.effects);
+  good(`${foods.length} foods, ${buffFood.length} of which carry a buff`);
+
+  // A buff key nothing reads is a meal that does nothing — the same
+  // failure as a building buff nobody wired up.
+  const BUFF_KEYS = new Set(['xp', 'gold', 'dropRate', 'speed', 'damage', 'reduction']);
+  const deadKeys = [];
+  for (const f of buffFood) {
+    for (const k of Object.keys(f.effects)) if (!BUFF_KEYS.has(k)) deadKeys.push(`${f.name}: ${k}`);
+    if (!f.duration) deadKeys.push(`${f.name}: buff with no duration`);
+  }
+  if (deadKeys.length) { fail(`${deadKeys.length} food buff problem(s):`); deadKeys.forEach(m => console.log('      ' + m)); }
+  else good('every food buff uses a key the multiplier chain reads');
+
+  // Every buff food must be craftable, or it is another unreachable tome.
+  const cooked = new Set((SKILLS.cooking?.actions || []).flatMap(a => Object.keys(a.output || {})));
+  const uncookable = buffFood.filter(f => !cooked.has(f.id));
+  if (uncookable.length) fail(`${uncookable.length} buff food(s) have no recipe: ${uncookable.map(f => f.name).join(', ')}`);
+  else good('every buff food has a Cooking recipe');
+
+  // And every recipe's inputs must exist.
+  const badInputs = [];
+  for (const a of SKILLS.cooking?.actions || []) {
+    for (const id of Object.keys(a.input || {})) if (!ITEMS[id]) badInputs.push(`${a.name} needs unknown "${id}"`);
+  }
+  if (badInputs.length) { fail(`${badInputs.length} recipe input(s) are broken:`); badInputs.forEach(m => console.log('      ' + m)); }
+  else good('every Cooking recipe names real ingredients');
+
+  // Charisma has to be a real allocatable stat and it must not be free money.
+  const s = defaultState();
+  if (!('CHA' in s.charStats)) fail('Charisma is not on charStats — it cannot be allocated');
+  else good('Charisma is an allocatable stat');
+  state.charStats = { STR: 0, AGI: 0, VIT: 0, INT: 0, LUK: 0, CHA: 0 };
+  const listPrice = buyPrice(10000);
+  state.charStats.CHA = 99;
+  const maxed = buyPrice(10000);
+  if (maxed >= listPrice) fail('Charisma does not reduce prices');
+  else if (maxed < listPrice * 0.5) fail(`Charisma takes prices to ${(maxed / listPrice * 100).toFixed(0)}% — the floor is not holding`);
+  else good(`99 Charisma buys at ${(maxed / listPrice * 100).toFixed(0)}% of list, and no lower`);
+  state.charStats.CHA = 0;
+}
 
 // ============================================================
 console.log('\n=== THE TOWN ===');

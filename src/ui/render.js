@@ -43,7 +43,7 @@ import { learnTome, equipAbility, manualTrigger, abilityStatus } from '../system
 import { leaderboardPanel, loadLeaderboard, lbState } from './leaderboard.js';
 import { startDungeon, currentMonster } from '../systems/combat.js';
 import { enchantItem } from '../systems/enchant.js';
-import { drinkPotion } from '../systems/potions.js';
+import { drinkPotion, eat } from '../systems/potions.js';
 import { setTitle } from '../systems/achievements.js';
 import { activeBuffs } from '../core/state.js';
 import { fmtDuration as fmtDur } from '../core/format.js';
@@ -548,6 +548,7 @@ function handleAction(target) {
     case 'ending-break': closeModal(); chooseEnding('break'); break;
     case 'enter-wastes': closeModal(); enterTheWastes(); break;
     case 'ending-offer': offerEndingNow(); break;
+    case 'eat': eat(target.dataset.item); renderView(); break;
     case 'cloud-signin': signIn(target.dataset.provider); break;
     case 'cloud-signout': signOut().then(renderView); break;
     case 'cloud-sync': syncNow().then(renderView); break;

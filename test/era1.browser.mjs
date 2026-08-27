@@ -1,6 +1,7 @@
 // The Era 1 -> Era 2 transition: the four-beat reveal, the townsfolk,
 // the world state change, and the town surviving Ascension afterwards.
 import { chromium } from 'playwright';
+import { xpForLevel } from '../src/core/xp.js';
 const now = Date.now();
 const skills = {};
 for (const k of ['attack','strength','defense','hitpoints','woodcutting','mining','fishing','smithing','cooking','alchemy','farming','thieving','runecrafting']) skills[k]={xp:0};
@@ -9,6 +10,12 @@ for (const k of ['attack','strength','defense','woodcutting','mining','fishing',
 // Aurelion is 3200hp / 350def and gates the ending. Max the combat skills and
 // hand over runite so the fight resolves inside the test's patience.
 for (const k of ['attack','strength','defense','hitpoints']) skills[k].xp = 14000000;
+// The bar to Ascend now RISES each cycle — at four ascensions it is total
+// skill level 826, and four maxed combat skills alone are only about 400.
+// A fixture that cannot legally Ascend silently skips the half of this
+// test that is about Ascension, so the rest of the skills are trained too.
+for (const k of ['woodcutting','mining','fishing','smithing','cooking',
+                 'alchemy','farming','thieving','runecrafting']) skills[k].xp = xpForLevel(75);
 
 const plots = Array.from({length:9},(_,i)=> i<3
   ? { owned:true, building:['lumber_yard','market_stall','cafe'][i], level:3, stock:{oak_log:150}, progress:0 }
@@ -143,9 +150,21 @@ for (let i=0;i<6;i++){ const t=await modalText(); if(!t)break; await advance(); 
 const after = await save_();
 ok('buildings survived Ascension', after.town.plots.filter(p=>p.building).length === 3,
    String(after.town.plots.filter(p=>p.building).length));
-ok('staff survived Ascension', Object.keys(after.town.staff).length === 4);
+// Staff no longer ride out the reset. The town surviving Era II was the
+// reward for breaking the cycle, and handing back nine staffed level-5
+// buildings was most of an economy for free — a large part of why the
+// late cycles felt like they were already over. It stays STANDING and
+// takes a real hit: staff leave, stock is gone, buildings drop a level.
+ok('staff do not survive Ascension any more', Object.keys(after.town.staff).length === 0,
+   String(Object.keys(after.town.staff).length));
+ok('and the buildings took a level off', after.town.strain?.downgraded > 0,
+   JSON.stringify(after.town.strain));
+ok('storerooms emptied', after.town.plots.every(p => !p.building || !Object.keys(p.stock || {}).length));
 ok('the town is still unlocked', after.town.unlocked === true);
-ok('gold still reset', after.gold < 1000, String(after.gold));
+// Gold resets, but completing Deeds for the first time pays out — and
+// this fixture has met a pile of their conditions. Assert the reset by
+// checking it is far below what the fixture was carrying, not by zero.
+ok('gold still reset', after.gold < 300000, String(after.gold));
 ok('hirelings still reset', Object.keys(after.hirelings||{}).length === 0);
 ok('era survived Ascension', after.era === 2);
 

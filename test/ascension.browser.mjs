@@ -70,14 +70,22 @@ ok('pets survived', Object.keys(after.pets.owned).length === 1);
 ok('pet kept its level', after.pets.owned.p1.xp >= 3000);
 ok('people you met are remembered', Object.keys(after.town.metNotables).length === 2);
 ok('raze counted', after.town.timesRazed === 1, String(after.town.timesRazed));
-ok('talent points survive Ascension', after.classProgress?.rogue?.pointsUsed === 8,
+// Talent trees used to survive Ascension in full, which is precisely why
+// a cycle-seven player walked back in already finished and the late
+// cycles took minutes. They reset now, and what survives instead is the
+// Mastery — see the block below.
+ok('talent points do NOT survive Ascension',
+   !(after.classProgress?.rogue?.pointsUsed > 0),
    JSON.stringify(after.classProgress?.rogue));
-ok('spent talent ranks survive', after.classProgress?.rogue?.spent?.r_edge === 5);
-// >= not ==: hirelings keep earning while the fixture runs, and that XP
-// correctly feeds the active class too.
-ok('class XP survives', (after.classProgress?.rogue?.xp || 0) >= 2500000,
+ok('spent talent ranks are gone too', !after.classProgress?.rogue?.spent?.r_edge);
+ok('class XP resets with them', !(after.classProgress?.rogue?.xp > 0),
    String(after.classProgress?.rogue?.xp));
-ok('other classes keep their progress too', after.classProgress?.mage?.pointsUsed === 2);
+ok('no class keeps its progress', Object.keys(after.classProgress || {}).length === 0,
+   JSON.stringify(after.classProgress));
+// A tree that was never capped earns no Mastery, so this fixture keeps
+// nothing — which is the honest outcome and worth asserting.
+ok('and an uncapped tree leaves no Mastery behind',
+   Object.keys(after.masteries || {}).length === 0, JSON.stringify(after.masteries));
 ok('the class itself is cleared for a fresh choice', !after.classId, String(after.classId));
 ok('your appearance survives', after.look?.name === 'Vesper');
 ok('lifetime revenue rolled up', after.town.lifetimeRevenueAllCycles === 4000000,

@@ -45,6 +45,38 @@ def({ id: 'leviathan_steak', name: 'Leviathan Steak', icon: '🥩', type: 'food'
 // because it takes two skills to make instead of one.
 def({ id: 'bread',        name: 'Fresh Bread',    icon: '🍞', type: 'food', rarity: 'common',   sell: 11,  heal: 16 });
 def({ id: 'root_stew',    name: 'Root Stew',      icon: '🍲', type: 'food', rarity: 'common',   sell: 34,  heal: 44 });
+
+// ============================================================
+// THE GOOD STUFF
+//
+// Food used to be one number: how much health it gives back. That made
+// Cooking a supply chain for combat and nothing else, and it meant the
+// top of the skill was a slightly bigger number than the middle of it.
+//
+// These are meals. They still heal — generously — but each also carries a
+// timed buff, so a cook is doing something for the party rather than
+// restocking a first-aid kit. `effects` and `duration` are read by the
+// same buff machinery potions use, so nothing new had to be invented and
+// nothing can drift out of step with it.
+// ============================================================
+def({ id: 'hearth_pie',   name: 'Hearthwick Pie',  icon: '🥧', type: 'food', rarity: 'rare', sell: 260, heal: 95,
+      duration: 600, effects: { xp: 0.08 },
+      blurb: 'Whatever was in the larder, under a lid. It is always slightly different and always right.' });
+def({ id: 'anglers_broth', name: "Angler's Broth", icon: '🍜', type: 'food', rarity: 'rare', sell: 340, heal: 120,
+      duration: 600, effects: { speed: 0.07 },
+      blurb: 'Hemlock will not give up the recipe. He will, however, give up a bowl.' });
+def({ id: 'coalfire_roast', name: 'Coalfire Roast', icon: '🍖', type: 'food', rarity: 'rare', sell: 420, heal: 145,
+      duration: 600, effects: { damage: 0.09 },
+      blurb: 'Cooked directly on the forge. Vera insists this is the correct way and nobody argues with Vera.' });
+def({ id: 'gilded_platter', name: 'Gilded Platter', icon: '🍱', type: 'food', rarity: 'epic', sell: 1500, heal: 230,
+      duration: 900, effects: { gold: 0.15, dropRate: 0.10 },
+      blurb: 'Presented rather than served. You feel briefly and unaccountably wealthy.' });
+def({ id: 'wardens_table', name: "The Warden's Table", icon: '🫕', type: 'food', rarity: 'epic', sell: 2200, heal: 320,
+      duration: 900, effects: { reduction: 0.12, damage: 0.06 },
+      blurb: 'A pot that has never once been emptied, only added to. Nobody knows how old the bottom is.' });
+def({ id: 'last_supper',  name: 'Last Supper',      icon: '🍽️', type: 'food', rarity: 'legendary', sell: 9000, heal: 600,
+      duration: 1200, effects: { damage: 0.14, xp: 0.14, gold: 0.14, reduction: 0.08 },
+      blurb: 'Made once, eaten once, remembered for a very long time. The name is Bumblewort\'s idea of a joke.' });
 def({ id: 'ember_stew',   name: 'Ember Stew',     icon: '🥘', type: 'food', rarity: 'uncommon', sell: 88,  heal: 82 });
 def({ id: 'gourd_pie',    name: 'Moon Gourd Pie', icon: '🥧', type: 'food', rarity: 'rare',     sell: 195, heal: 130 });
 def({ id: 'silk_broth',   name: 'Silkleaf Broth', icon: '🍜', type: 'food', rarity: 'rare',     sell: 420, heal: 205 });

@@ -95,6 +95,23 @@ export const SKILLS = {
         input: { silkleaf: 2, moon_gourd: 1 }, output: { silk_broth: 1 } },
       { id: 'sunfruit_tart', name: 'Sunfruit Tart', icon: '🥮', level: 76, baseTime: 8800, xp: 330,
         input: { sunfruit: 2, silkleaf: 1 }, output: { sunfruit_tart: 1 } },
+      // ---- The feast line ----
+      // Food that does more than refill a bar. These are the reason to
+      // take Cooking past the point where the healing numbers stop
+      // mattering: every one carries a timed buff, and the top of the
+      // ladder wants ingredients from three other skills.
+      { id: 'hearth_pie',    name: 'Hearthwick Pie',   icon: '🥧', level: 40, baseTime: 7000, xp: 190,
+        input: { wheat: 4, root_veg: 3, trout: 1 }, output: { hearth_pie: 1 } },
+      { id: 'anglers_broth', name: "Angler's Broth",   icon: '🍜', level: 52, baseTime: 8000, xp: 265,
+        input: { salmon: 2, silkleaf: 1, herb_mooncap: 2 }, output: { anglers_broth: 1 } },
+      { id: 'coalfire_roast', name: 'Coalfire Roast',  icon: '🍖', level: 64, baseTime: 9000, xp: 350,
+        input: { lobster: 2, emberpepper: 3, coal: 4 }, output: { coalfire_roast: 1 } },
+      { id: 'gilded_platter', name: 'Gilded Platter',  icon: '🍱', level: 78, baseTime: 12000, xp: 520,
+        input: { leviathan_steak: 1, gourd_pie: 1, sunfruit_tart: 1 }, output: { gilded_platter: 1 } },
+      { id: 'wardens_table', name: "The Warden's Table", icon: '🫕', level: 88, baseTime: 15000, xp: 720,
+        input: { coalfire_roast: 2, root_stew: 4, herb_kingsleaf: 2 }, output: { wardens_table: 1 } },
+      { id: 'last_supper',   name: 'Last Supper',      icon: '🍽️', level: 99, baseTime: 22000, xp: 1200,
+        input: { gilded_platter: 1, wardens_table: 1, herb_voidbloom: 3 }, output: { last_supper: 1 } },
       // --- past the ceiling ---
       { id: 'glasseel_fillet', name: 'Fillet Glass Eel', icon: '🍥', level: 108, baseTime: 11000, xp: 950,
         input: { raw_glasseel: 1, frostgrain: 1 }, output: { glasseel_fillet: 1 } },

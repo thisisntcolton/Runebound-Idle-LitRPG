@@ -3,6 +3,7 @@
 // to crate. Also the Ascendant tier and Masteries, since all three are the
 // same promise — progress that Ascension cannot take back.
 import { chromium } from 'playwright';
+import { xpForLevel } from '../src/core/xp.js';
 import { MASTERIES } from '../src/data/talents.js';
 
 const now = Date.now();
@@ -11,6 +12,10 @@ for (const k of ['attack','strength','defense','hitpoints','woodcutting','mining
                  'smithing','cooking','alchemy','farming','thieving','runecrafting']) skills[k] = { xp: 0 };
 for (const k of ['attack','strength','defense','hitpoints']) skills[k].xp = 14000000;
 for (const k of ['mining','thieving','runecrafting','smithing']) skills[k].xp = 6000000;
+// The Ascend bar rises every cycle and at six ascensions it is the 850
+// plateau. A fixture below it cannot Ascend, which silently skips every
+// assertion in this file that is about Ascension.
+for (const k of ['woodcutting','fishing','cooking','alchemy','farming']) skills[k].xp = xpForLevel(90);
 
 /** A player deep in Era II, with a capped Artisan tree and no class picked. */
 const save = {
@@ -26,6 +31,10 @@ const save = {
   // marketplace still only allows 1 staff member."
   classId: null, classChosenAt: 0,
   classProgress: { artisan: { xp: 900000000, spent: { a_capstone: 1 }, pointsUsed: 8 } },
+  // Masteries are no longer derived from classProgress — the trees reset
+  // now, so a permanent bonus could not live inside them. They are a
+  // stacking count on state, kept by name through Ascension.
+  masteries: { artisan: 1 },
   town: { unlocked: true, name: 'Hearthwick',
     plots: Array.from({ length: 9 }, (_, i) => i < 2
       ? { owned: true, building: ['market_stall','lumber_yard'][i], level: 3, stock: { oak_log: 200 }, progress: 0 }
@@ -214,10 +223,18 @@ for (let i = 0; i < 8 && !ascended; i++) {
   await dismiss();
 }
 const st3 = await read();
-ok('Ascension does not touch your deepest reach', (st3.deep?.best || 0) === 12, String(st3.deep?.best));
+// The Descent used to survive Ascension on the argument that depth was
+// "the one number that only goes up". In practice it meant a returning
+// player skipped the whole ramp, which was a real part of why the late
+// cycles were over before they started. It resets with everything else;
+// what carries is the Mastery.
+ok('Ascension now resets your depth too', (st3.deep?.best || 0) === 0, String(st3.deep?.best));
 ok('but it does raise the ceiling', (st3.ascensions || 0) === capBefore + 1);
 await go('wastes');
-ok('and the panel says so', /deepest reach 12 \/ 29/.test(await page.textContent('#main-panel')),
+// Depth back to zero, ceiling raised by the Ascension — the panel has to
+// show both halves or the reset reads as pure loss.
+ok('and the panel shows the reset depth against the higher ceiling',
+   /deepest reach 0 \/ 29/.test(await page.textContent('#main-panel')),
    (await page.textContent('#main-panel')).match(/deepest reach [^\n]*/)?.[0]);
 
 // ------------------------------------------------------------
