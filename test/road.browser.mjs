@@ -175,7 +175,7 @@ await dismiss();
 await go('ascension');
 const asc = await page.textContent('#main-panel');
 ok('the Ascension panel lists what you keep', /What you keep/i.test(asc));
-ok('and says talents survive in full', /talent/i.test(asc));
+ok('and it speaks to what happens to talents', /talent/i.test(asc));
 ok('both columns are rendered',
    (await page.locator('.persist-row.kept').count()) > 5 &&
    (await page.locator('.persist-row.lost').count()) > 3,

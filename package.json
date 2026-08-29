@@ -1,8 +1,8 @@
 {
   "name": "runebound-idle",
   "private": true,
-  "version": "1.9.0",
-  "description": "Runebound \u2014 an idle LitRPG. Skills, combat, gear, classes, a town to build, pets to raise, a codex that remembers, and a loop that does not. Beyond it: the Wastes, a descent, a bill, and something very large that was never switched off.",
+  "version": "2.0.0",
+  "description": "Runebound — an idle LitRPG. Skills, combat, gear, classes, a town to build, pets to raise, a codex that remembers, and a loop that does not. Beyond it: the Wastes, a descent, a bill, and something very large that was never switched off.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -39,7 +39,8 @@
     "sim:road": "node test/road.sim.mjs",
     "sim:casino": "node test/casino.sim.mjs",
     "test:bugrun": "node test/bugrun.browser.mjs",
-    "sim:cycle": "node test/cycle.sim.mjs"
+    "sim:cycle": "node test/cycle.sim.mjs",
+    "test:v20": "node test/v20.browser.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4"

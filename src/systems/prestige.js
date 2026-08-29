@@ -7,6 +7,7 @@ import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost,
          getUpgrade, getHireling, getPerk } from '../data/upgrades.js';
 import { emit } from '../core/events.js';
 import { spendGold } from './inventory.js';
+import { retireCurrentSelf } from './legacy.js';
 import { save } from '../core/save.js';
 import { snapshotCycle, showReturnReport } from './codex.js';
 
@@ -53,6 +54,10 @@ export function ascend() {
   const shards = pendingShards();
   // Record what this cycle cost before the numbers stop existing.
   snapshotCycle();
+  // And retire the person you have been into the town. This has to happen
+  // BEFORE the state is replaced — everything it records is read off the
+  // life that is ending.
+  const retired = retireCurrentSelf();
   const keep = {
     shards: state.shards + shards,
     ascensions: state.ascensions + 1,
@@ -82,6 +87,15 @@ export function ascend() {
     // CAPPED, and it stacks every time you cap that class again, so the
     // long game compounds instead of front-loading.
     masteries: state.masteries,
+    // Your house. The loop has never been able to touch it, and nothing
+    // in the fiction explains why.
+    home: state.home,
+    // The people you used to be. They live here now.
+    legacy: state.legacy,
+    // And what the neighbours make of you. This is the whole promise the
+    // game has been making since the first cycle note: the world winds
+    // back, these people do not.
+    lives: state.lives,
     casino: state.casino,
     // You cannot fall back into the box.
     era: state.era,
@@ -136,6 +150,13 @@ export function ascend() {
 
   const fresh = defaultState();
   Object.assign(fresh, keep);
+  // A party that is out past the gate belongs to the cycle that sent it.
+  // Carrying one across would mean a expedition whose members include a
+  // person who now also exists as your predecessor.
+  fresh.expedition = { active: null, history: state.expedition?.history || [],
+                       completed: state.expedition?.completed || 0,
+                       bestHaul: state.expedition?.bestHaul || 0 };
+  for (const w of fresh.legacy || []) { w.job = 'idle'; w.jobSkill = null; }
 
   // The Long Memory. The only Fate Perk that touches the reset itself:
   // every skill keeps a slice of its XP rather than going to zero. It is
@@ -167,6 +188,8 @@ export function ascend() {
     emit('notify', { type: 'combat',
       text: `Hearthwick is gone. ${razed.summary.buildings} building${razed.summary.buildings === 1 ? '' : 's'} and ${razed.summary.staff} worker${razed.summary.staff === 1 ? '' : 's'} unmade with the rest of the world.` });
   }
+  emit('notify', { type: 'sys',
+    text: `${retired.classIcon} ${retired.name} did not leave. They have taken a room in Hearthwick.` });
   showReturnReport();
   emit('state-changed');
   return true;

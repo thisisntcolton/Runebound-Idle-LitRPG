@@ -1,7 +1,7 @@
 // ============================================================
 // CLASS SYSTEM — pick at level 10, keep for the cycle
 // ============================================================
-import { state, charLevel, maxHp, combatLevel, perkEffect } from '../core/state.js';
+import { state, charLevel, maxHp, combatLevel, perkEffect, homeBonus } from '../core/state.js';
 import { CLASSES, CLASS_LIST, getClass, CLASS_UNLOCK_LEVEL, SIGNATURE } from '../data/classes.js';
 import { TREES, treeFor, nodeById, CLASS_LEVEL_CURVE, MAX_CLASS_LEVEL,
          POINTS_PER_LEVEL, TIERS, tierInfo, MASTERIES, masteryFor,
@@ -369,7 +369,7 @@ export function overLevelLootMult(monster) {
 export function rollCrit() {
   // Keen Edge is a Fate Perk, so it applies whatever class you are — and
   // to a classless character, who previously could not crit at all.
-  const chance = classBonus('crit') + perkEffect('crit');
+  const chance = classBonus('crit') + perkEffect('crit') + homeBonus('crit');
   return chance > 0 && Math.random() < chance;
 }
 

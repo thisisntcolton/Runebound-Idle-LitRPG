@@ -726,3 +726,127 @@ export function notableFigure(n, x, y) {
       <text y="-4" text-anchor="middle" font-size="19">${n.icon}</text>
     </g>`;
 }
+
+// ============================================================
+// THE CIVIC BUILDINGS
+//
+// The five places that are the town rather than the economy. Drawn
+// distinctly from the parcels on purpose: a business is a shopfront on a
+// numbered plot, a place is a building with a door you walk through, and
+// the player should be able to tell at a glance which is which.
+// ============================================================
+
+function doorway(w, h, colour = '#3a2c1e') {
+  return `
+    <rect x="${w / 2 - 17}" y="${h - 44}" width="34" height="44" rx="4" fill="${colour}"/>
+    <circle cx="${w / 2 + 10}" cy="${h - 22}" r="2.4" fill="#e8c98a"/>`;
+}
+
+export function houseArt(w, h, level = 1) {
+  // The house grows with its rooms — a visible reward for extending it.
+  const wings = Math.max(0, level - 1);
+  return `
+    <g>
+      <rect x="0" y="${h * 0.32}" width="${w}" height="${h * 0.68}" rx="5" fill="#c9b090"/>
+      <rect x="0" y="${h * 0.32}" width="${w}" height="10" fill="#a68f70"/>
+      <path d="M-8 ${h * 0.34} L${w / 2} ${h * 0.04} L${w + 8} ${h * 0.34} Z" fill="#8a4b3a"/>
+      <path d="M-8 ${h * 0.34} L${w / 2} ${h * 0.04} L${w / 2} ${h * 0.34} Z" fill="#7a4133"/>
+      ${doorway(w, h)}
+      <rect x="${w * 0.13}" y="${h * 0.47}" width="30" height="26" rx="3" fill="#f0d79a" opacity="0.85"/>
+      <rect x="${w * 0.72}" y="${h * 0.47}" width="30" height="26" rx="3" fill="#f0d79a" opacity="0.85"/>
+      <rect x="${w * 0.63}" y="${h * 0.02}" width="16" height="${h * 0.22}" rx="2" fill="#8a6a52"/>
+      <circle cx="${w * 0.71}" cy="${h * 0.03}" r="7" fill="#cfd6e4" opacity="0.5">
+        <animate attributeName="cy" values="${h * 0.03};${h * -0.12}" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.5;0" dur="4s" repeatCount="indefinite"/>
+      </circle>
+      ${Array.from({ length: wings }, (_, i) => `
+        <rect x="${6 + i * 18}" y="${h * 0.58 + i * 4}" width="${w - 12 - i * 36}" height="${h * 0.42}"
+              rx="4" fill="#bda484" opacity="${0.5 - i * 0.08}"/>`).join('')}
+    </g>`;
+}
+
+export function squareArt(w, h) {
+  return `
+    <g>
+      <ellipse cx="${w / 2}" cy="${h - 14}" rx="${w * 0.42}" ry="16" fill="#b8ac93"/>
+      <rect x="${w / 2 - 42}" y="${h * 0.28}" width="84" height="58" rx="4" fill="#6b4f36"/>
+      <rect x="${w / 2 - 37}" y="${h * 0.32}" width="74" height="48" rx="2" fill="#e6dcc2"/>
+      ${[0, 1, 2].map(i => `<rect x="${w / 2 - 30}" y="${h * 0.36 + i * 12}" width="${52 - i * 9}" height="4" rx="2" fill="#9a8c74"/>`).join('')}
+      <rect x="${w / 2 - 6}" y="${h * 0.52}" width="12" height="${h * 0.36}" fill="#5b422d"/>
+      <circle cx="${w * 0.2}" cy="${h * 0.72}" r="20" fill="#7d7161"/>
+      <circle cx="${w * 0.2}" cy="${h * 0.72}" r="14" fill="#2c3a4e"/>
+      <rect x="${w * 0.2 - 2}" y="${h * 0.44}" width="4" height="${h * 0.22}" fill="#6b4f36"/>
+      <rect x="${w * 0.14}" y="${h * 0.42}" width="24" height="4" rx="2" fill="#6b4f36"/>
+    </g>`;
+}
+
+export function tableArt(w, h) {
+  return `
+    <g>
+      <ellipse cx="${w / 2}" cy="${h * 0.3}" rx="${w * 0.44}" ry="${h * 0.3}" fill="#3f6b3d" opacity="0.9"/>
+      <ellipse cx="${w / 2}" cy="${h * 0.24}" rx="${w * 0.34}" ry="${h * 0.24}" fill="#4d7d46" opacity="0.9"/>
+      <rect x="${w / 2 - 5}" y="${h * 0.36}" width="10" height="${h * 0.3}" fill="#6b4f36"/>
+      <rect x="${w * 0.16}" y="${h * 0.66}" width="${w * 0.68}" height="12" rx="4" fill="#a9834f"/>
+      <rect x="${w * 0.16}" y="${h * 0.78}" width="${w * 0.68}" height="5" rx="2" fill="#8a6a3f"/>
+      ${[0.24, 0.5, 0.76].map(f => `<rect x="${w * f - 3}" y="${h * 0.78}" width="6" height="${h * 0.16}" fill="#7a5c38"/>`).join('')}
+      ${[0.3, 0.7].map(f => `<rect x="${w * f - 12}" y="${h * 0.72}" width="24" height="5" rx="2" fill="#96703f"/>`).join('')}
+    </g>`;
+}
+
+export function gateArt(w, h) {
+  return `
+    <g>
+      <rect x="${w * 0.1}" y="${h * 0.18}" width="16" height="${h * 0.8}" rx="3" fill="#6b4f36"/>
+      <rect x="${w * 0.82}" y="${h * 0.18}" width="16" height="${h * 0.8}" rx="3" fill="#6b4f36"/>
+      <rect x="${w * 0.04}" y="${h * 0.14}" width="${w * 0.92}" height="14" rx="4" fill="#5b422d"/>
+      <rect x="${w * 0.1}" y="${h * 0.3}" width="${w * 0.8}" height="9" rx="3" fill="#5b422d"/>
+      <path d="M${w * 0.2} ${h} L${w * 0.32} ${h * 0.42} L${w * 0.68} ${h * 0.42} L${w * 0.8} ${h} Z"
+            fill="#1d2437" opacity="0.55"/>
+      <circle cx="${w * 0.5}" cy="${h * 0.7}" r="${h * 0.18}" fill="#2b3550" opacity="0.5"/>
+      <text x="${w * 0.5}" y="${h * 0.12}" text-anchor="middle" font-size="13"
+            font-family="var(--font-mono, monospace)" fill="#e8dcc0">OUT</text>
+    </g>`;
+}
+
+export function snakeArt(w, h) {
+  return `
+    <g>
+      <rect x="2" y="${h * 0.24}" width="${w - 4}" height="${h * 0.76}" rx="5" fill="#2a2233"/>
+      <rect x="2" y="${h * 0.24}" width="${w - 4}" height="9" fill="#3d3348"/>
+      ${doorway(w, h, '#15111d')}
+      <rect x="${w * 0.12}" y="${h * 0.4}" width="${w * 0.22}" height="20" rx="3" fill="#c9a227" opacity="0.75"/>
+      <rect x="${w * 0.66}" y="${h * 0.4}" width="${w * 0.22}" height="20" rx="3" fill="#c9a227" opacity="0.75"/>
+      <path d="M${w * 0.3} ${h * 0.72} q ${w * 0.1} -14 ${w * 0.2} 0 q ${w * 0.1} 14 ${w * 0.2} 0"
+            stroke="#c9a227" stroke-width="3" fill="none" opacity="0.9"/>
+      <circle cx="${w * 0.5}" cy="${h * 0.2}" r="4" fill="#c9a227">
+        <animate attributeName="opacity" values="1;0.25;1" dur="3.2s" repeatCount="indefinite"/>
+      </circle>
+    </g>`;
+}
+
+export function roadArt(w, h) {
+  return `
+    <g>
+      <path d="M${w * 0.06} ${h} Q ${w * 0.38} ${h * 0.6} ${w * 0.54} ${h * 0.14}"
+            stroke="#c2b393" stroke-width="26" fill="none" stroke-linecap="round"/>
+      <path d="M${w * 0.06} ${h} Q ${w * 0.38} ${h * 0.6} ${w * 0.54} ${h * 0.14}"
+            stroke="#d6c9ac" stroke-width="16" fill="none" stroke-linecap="round"/>
+      ${tree(w * 0.78, h * 0.62, 0.7)}
+      ${tree(w * 0.9, h * 0.86, 0.55)}
+      <rect x="${w * 0.2}" y="${h * 0.2}" width="6" height="${h * 0.34}" fill="#6b4f36"/>
+      <rect x="${w * 0.12}" y="${h * 0.18}" width="34" height="12" rx="2" fill="#8a6a52"/>
+    </g>`;
+}
+
+/** One civic place, as a clickable group. */
+export function placeArt(place, { locked = false, level = 1 } = {}) {
+  const art =
+      place.id === 'home'   ? houseArt(place.w, place.h, level)
+    : place.id === 'square' ? squareArt(place.w, place.h)
+    : place.id === 'table'  ? tableArt(place.w, place.h)
+    : place.id === 'gate'   ? gateArt(place.w, place.h)
+    : place.id === 'snake'  ? snakeArt(place.w, place.h)
+    : place.id === 'road'   ? roadArt(place.w, place.h)
+    : squareArt(place.w, place.h);
+  return `<g opacity="${locked ? 0.4 : 1}">${art}</g>`;
+}

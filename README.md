@@ -19,6 +19,41 @@ Production build: `npm run build` (output in `dist/`, servable from any static h
 
 ## What's in the game
 
+### Hearthwick is where the game opens now (v2.0)
+
+The town is no longer a tab. It is the front door: a hand-drawn map, tinted by the hour of day,
+with six places you walk into.
+
+**Your house** — four rooms, six places in each, and thirty pieces of furniture across five sets.
+Buy them at the Square, commission them from your crafting skills, or find the rest out in the
+world being guarded by something. Every piece carries a small bonus into the same multiplier chain
+everything else uses, and filling a whole room from a **single set** earns the set bonus on top —
+all-or-nothing, so furnishing is a puzzle rather than a shopping list.
+
+**The residents have lives.** Eight of them keep their own schedules across the six bands of the
+day: you learn where somebody is at dusk the way you learn anything about a place you live in.
+Talking to them moves a **bond** that rises slowly and decays if you stop turning up, opens four
+tiers of dialogue, and unlocks the things they will ask you for. They remember you across every
+cycle. That is the entire argument the game has been making since the first cycle note: the world
+winds back, and these people do not.
+
+**Your former selves stay behind.** Every Ascension retires the character you have been into
+Hearthwick as a resident — their name, their class, their look, the level they reached. They live
+in the town, they can be put to work a skill for a share of a hireling's rate, they get older and
+better at it, and they can be sent out past the gate. A save nine cycles deep has a household.
+
+**Expeditions** — send a party (former selves, and who else you can spare) through the gate to
+seven destinations, priced in the same combat-minute currency as the Road and the errands, dialled
+by how much risk you accept and what you pack. The whole trip is rolled the moment you send it, so
+what comes back is decided by the choice you made and not by when you happened to check.
+
+**Visiting** — publish your Hearthwick and walk through somebody else's from the leaderboard: their
+house, their buildings, their household, who lives there. Leave a gift on the doorstep, once per
+person per day. Asynchronous on purpose — no live server, no presence, no chat, and nothing a
+visitor can do to a town but look at it.
+
+### The rest
+
 **Skills (Melvor-style)** — nine trainable skills, each with its own hireling: Woodcutting, Mining,
 Fishing, Smithing, Cooking, Alchemy, plus **Farming** (crops that feed the kitchens, the cauldrons
 and the town), **Thieving** (pure gold, and the one place LUK is the whole discipline) and
@@ -119,10 +154,14 @@ you sooner, pay better and go your way more often; the road is the kit) or **Art
 +50% town revenue, cheaper construction and an extra staff slot on every building. Ascend and you
 choose again, so a class is a commitment for one run rather than for the save.
 
-**What Ascension takes, and what it cannot**, is now one list rendered in both places the question
-gets asked — and a test cross-checks it against what `prestige.js` actually keeps, so the game can
-no longer be wrong about it. The short version: **you keep every talent point and every rank in
-every tree, forever.** What you lose is the class itself.
+**What Ascension takes, and what it cannot**, is one list rendered in both places the question gets
+asked — and a test cross-checks it against what `prestige.js` actually keeps, so the game cannot be
+wrong about it. The short version: **the class and every talent in it reset with everything else.**
+What survives a class is its **Mastery**: one distilled permanent bonus, earned by capping that
+class, and it stacks again every time you cap it again. Keeping whole trees forever meant a
+cycle-seven player walked back in already finished and the late cycles took minutes; a Mastery per
+cap compounds instead of front-loading. What the loop has never been able to touch is your house,
+the people you used to be, your pets, and what the neighbours make of you.
 
 **Appearance** — a Mii-style character builder: face shape, skin, ten hairstyles, eyes, brows,
 mouth, facial hair, scars and war paint and rune brands, build and colours, all hand-drawn SVG.

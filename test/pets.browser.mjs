@@ -257,6 +257,13 @@ console.log('\n[7] Bonus reaches the multiplier chain');
   const read = async (active) => {
     const { ctx, page } = await boot(seed(mk(active)));
     await page.waitForTimeout(400);
+    // The landing view is Hearthwick now, not the character sheet — walk to
+    // the sheet before reading it. Dismiss anything sitting on top first;
+    // a fixture with no class is offered one the moment it boots.
+    await page.evaluate(() => document.getElementById('modal-overlay')?.classList.add('hidden'));
+    await page.evaluate(() =>
+      document.querySelector('[data-act="nav"][data-view="character"]')?.click());
+    await page.waitForTimeout(320);
     const v = await page.evaluate(() => {
       const el = document.querySelector('#main-panel');
       return el ? el.innerHTML : '';

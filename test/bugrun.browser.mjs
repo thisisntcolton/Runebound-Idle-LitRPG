@@ -17,6 +17,9 @@ import { chromium } from 'playwright';
 import { SPECIES_LIST } from '../src/data/pets.js';
 import { ABILITY_LIST } from '../src/data/abilities.js';
 import { CLASS_LIST } from '../src/data/classes.js';
+import { ROOMS, FURNITURE } from '../src/data/home.js';
+import { LIVES } from '../src/data/lives.js';
+import { DESTINATIONS } from '../src/data/expeditions.js';
 import { xpForLevel } from '../src/core/xp.js';
 
 const now = Date.now();
@@ -37,6 +40,37 @@ const town = built => ({
                          skill: 4, wage: 58, assigned: 0 } } : {},
   plots: plots(built), metNotables: {}, extraPopulation: 0, visitor: null, nextVisitorAt: 0,
 });
+
+// ---- v2.0 state, built from the real data so it cannot name a dead id ----
+//
+// Written as functions of FURNITURE / LIVES / DESTINATIONS rather than as
+// literals, for the reason every hand-written list in this project has
+// eventually gone stale: the moment somebody renames a piece of furniture,
+// a literal fixture starts testing a house that no longer exists.
+const furnishedHome = (level = 4) => {
+  const placed = {};
+  for (const r of ROOMS.slice(0, level)) {
+    placed[r.id] = FURNITURE.filter(f => f.room === r.id).slice(0, r.slots).map(f => f.id);
+  }
+  const owned = {};
+  for (const list of Object.values(placed)) for (const id of list) owned[id] = 1;
+  return { level, placed, owned, visits: 12 };
+};
+
+const household = n => Array.from({ length: n }, (_, i) => ({
+  id: `self${i + 1}`, cycle: i + 1, name: `The ${i + 1}th You`,
+  look: null, classId: null, className: 'Wanderer', classIcon: '🧭',
+  title: null, charLevel: 40 + i * 5, combatLevel: 30 + i * 4, totalLevel: 300 + i * 40,
+  retiredAt: now - (n - i) * 3600e3,
+  // One of them is out working, one is hurt, one is idle: all three code
+  // paths render, and hurt/working are the two that have no empty state.
+  job: i === 0 ? 'skill' : 'idle', jobSkill: i === 0 ? 'woodcutting' : null,
+  hurtUntil: i === 1 ? now + 3600e3 : 0,
+}));
+
+const knownResidents = bond => Object.fromEntries(
+  Object.keys(LIVES).map(id => [id, { bond, met: now - 9e6, lastSeen: now - 6e5,
+    spokeAt: 0, request: null, requestDoneAt: 0, done: 2, ignored: 0, gifts: 1 }]));
 
 const SAVES = [
   {
@@ -69,7 +103,11 @@ const SAVES = [
                                    stage: 'elder', xp: 9000000, hunger: 100, happy: 100, careAt: now } },
                     incubator: [], active: null, hatched: 9, bred: 3,
                     seen: Object.fromEntries(SPECIES_LIST.map(s => [s.id, now])) },
-            town: town(4) },
+            town: town(4),
+            // Six cycles in, so six former selves are living here: one at
+            // work, one hurt, the rest idle.
+            home: furnishedHome(2), legacy: household(6), lives: knownResidents(45),
+            expedition: { active: null, history: [], completed: 3, bestHaul: 40000 } },
   },
   {
     name: 'Era II, everything open',
@@ -84,7 +122,22 @@ const SAVES = [
             worldBoss: { felled: 3, dealt: 0 },
             town: town(9),
             inventory: { leviathan_steak: 900, runite_bar: 400 },
-            charStats: { STR: 99, AGI: 60, VIT: 80, INT: 40, LUK: 40 }, statPointsSpent: 319 },
+            charStats: { STR: 99, AGI: 60, VIT: 80, INT: 40, LUK: 40 }, statPointsSpent: 319,
+            home: furnishedHome(ROOMS.length), legacy: household(9),
+            lives: knownResidents(90),
+            // A party out past the gate, already due back — so the return
+            // path fires during the sweep instead of only the waiting one.
+            expedition: {
+              active: {
+                destinationId: DESTINATIONS[0].id, riskId: 'steady', provisionId: 'none',
+                party: [{ id: 'self:self1', kind: 'self', name: 'The 1th You', icon: '🧭' }],
+                startedAt: now - 7200e3, readyAt: now - 60e3,
+                outcome: { beats: [{ tone: 'good', text: 'It went well enough.' }],
+                           gold: 12000, finds: {}, hurtId: null,
+                           mishaps: 0, triumphs: 1, danger: 0.2 },
+              },
+              history: [], completed: 11, bestHaul: 900000,
+            } },
   },
   {
     name: 'capped Era II, every perk bought',
@@ -101,6 +154,9 @@ const SAVES = [
 const VIEWS = ['character','journal','codex','look','class','achievements','inventory','equipment',
                'combat','rifts','road','abilities','town','casino','pets','ascension',
                'leaderboard','settings','wastes',
+               // Hearthwick, v2.0. The map is the front door now, so these
+               // are the views a player actually stands in most of the time.
+               'home','square','table','gate','visit',
                ...['woodcutting','mining','fishing','smithing','cooking','alchemy','farming',
                    'thieving','runecrafting'].map(s => 'skill:' + s)];
 
@@ -163,6 +219,8 @@ for (const { name, save } of SAVES) {
     ['pets', 'pets-tab'],
     ['casino', 'casino-table'],
     ['codex', 'codex-cat'],
+    ['home', 'home-room'],
+    ['square', 'square-tab'],
   ];
   let tabbed = 0;
   for (const [view, act] of TAB_VIEWS) {
@@ -172,12 +230,12 @@ for (const { name, save } of SAVES) {
     await page.evaluate(v => document.querySelector(`[data-act="nav"][data-view="${v}"]`)?.click(), view);
     await page.waitForTimeout(200);
     const vals = await page.evaluate(a => [...document.querySelectorAll(`#main-panel [data-act="${a}"]`)]
-      .map(e => e.dataset.tab || e.dataset.table || e.dataset.cat).filter(Boolean), act);
+      .map(e => e.dataset.tab || e.dataset.table || e.dataset.cat || e.dataset.room).filter(Boolean), act);
     for (const val of vals) {
       await dismiss();
       await page.evaluate(([a, v]) => {
         const el = [...document.querySelectorAll(`#main-panel [data-act="${a}"]`)]
-          .find(e => (e.dataset.tab || e.dataset.table || e.dataset.cat) === v);
+          .find(e => (e.dataset.tab || e.dataset.table || e.dataset.cat || e.dataset.room) === v);
         el?.click();
       }, [act, val]);
       await page.waitForTimeout(140);

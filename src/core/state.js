@@ -164,6 +164,18 @@ export function defaultState() {
       seen: {},
     },
 
+    // Your house. The one structure the loop has never touched.
+    home: { level: 1, placed: {}, owned: {}, visits: 0 },
+
+    // The people you used to be, living in Hearthwick.
+    legacy: [],
+
+    // How the residents feel about you, and what they have asked for.
+    lives: {},
+
+    // Parties out past the gate.
+    expedition: { active: null, history: [], completed: 0, bestHaul: 0 },
+
     // The Gilded Snake. Kept through Ascension: the tally of what this
     // place has taken off you is the point, and resetting it every cycle
     // would let a player believe they were ahead.
@@ -365,6 +377,16 @@ let _townBuff = () => 0;
 export function registerTownBuff(fn) { _townBuff = fn; }
 export function townBonus(key) { try { return _townBuff(key) || 0; } catch { return 0; } }
 
+// The house. Registered lazily for the same reason every other system is:
+// systems/home.js reads state, so importing it here would be a cycle.
+let _legacyRate = () => 0;
+export function registerLegacyRate(fn) { _legacyRate = fn; }
+export function legacyRate(skillId) { try { return _legacyRate(skillId) || 0; } catch { return 0; } }
+
+let _homeBonus = () => 0;
+export function registerHomeBonus(fn) { _homeBonus = fn; }
+export function homeBonus(key) { try { return _homeBonus(key) || 0; } catch { return 0; } }
+
 // Same trick for the active pet's bonus (systems/pets.js imports state.js).
 let _petBonus = () => 0;
 export function registerPetBonus(fn) { _petBonus = fn; }
@@ -414,6 +436,7 @@ export function abilityBonus(key) { try { return _abilityBonus(key) || 0; } catc
 export function xpMultiplier() {
   return (1 + state.shards * SHARD_XP_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'xp'))
+       * (1 + homeBonus('xp'))
        * (1 + state.charStats.INT * 0.01)
        * (1 + buffEffect('xp'))
        * (1 + townBonus('xp'))
@@ -425,6 +448,7 @@ export function xpMultiplier() {
 export function goldMultiplier() {
   return (1 + state.shards * SHARD_GOLD_BONUS)
        * (1 + sumEffect(PERKS, perkLevel, 'gold'))
+       * (1 + homeBonus('gold'))
        * (1 + state.charStats.LUK * 0.005)
        * (1 + buffEffect('gold'))
        * (1 + petBonus('gold'))
@@ -442,7 +466,7 @@ export function combatXpMultiplier() {
 }
 
 export function dropRateMultiplier() {
-  return (1 + sumEffect(PERKS, perkLevel, 'dropRate'))
+  return (1 + homeBonus('drop_rate')) * (1 + sumEffect(PERKS, perkLevel, 'dropRate'))
        * (1 + state.charStats.LUK * 0.005)
        * (1 + buffEffect('dropRate'))
        * (1 + townBonus('drop_rate'))
@@ -533,7 +557,9 @@ export function hirelingRate(skillId) {
   const lvl = state.hirelings[h.id] || 0;
   if (lvl === 0) return 0;
   return (HIRELING_BASE_RATE + (lvl - 1) * HIRELING_RATE_PER_RANK)
-       * (1 + classBonus('hireling_rate') + sumEffect(PERKS, perkLevel, 'hireling_rate'));
+       * (1 + classBonus('hireling_rate') + sumEffect(PERKS, perkLevel, 'hireling_rate'))
+       // Your former selves, if any of them are working this skill.
+       + legacyRate(skillId);
 }
 
 // Combat-derived stats --------------------------------------
@@ -573,6 +599,7 @@ export function playerMaxHit() {
              + gearStats().str * BALANCE.MAXHIT_PER_GEAR_STR;
   const mult = (1 + upgradeLevel('whetstone') * 0.06)
              * (1 + sumEffect(PERKS, perkLevel, 'damage'))
+             * (1 + homeBonus('damage'))
              * (1 + state.charStats.STR * 0.01)
              * (1 + buffEffect('damage'))
              * (1 + townBonus('damage'))

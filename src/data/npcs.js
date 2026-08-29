@@ -140,6 +140,30 @@ export const NOTABLES = [
     ],
   },
   {
+    id: 'vera', name: 'Forge-Sister Vera', icon: '👩‍🏭', role: 'Smith',
+    atLevel: 11,
+    perk: { key: 'sell_price', value: 0.05 },
+    perkLabel: '+5% sell price',
+    greeting: 'She was named in the Smithy\'s paperwork before she arrived, which nobody has been brave enough to raise with her.',
+    idle: [
+      '"Bring me metal or bring me nothing."',
+      '"The hammer knows. Ask it sometime."',
+      '"I dreamt this blade before you brought it. That happens to me."',
+    ],
+  },
+  {
+    id: 'bram', name: 'Bram Otley', icon: '🧔', role: 'Innkeeper',
+    atLevel: 15,
+    perk: { key: 'offline_hours', value: 1 },
+    perkLabel: '+1 offline hour',
+    greeting: 'Behind the bar, mid-pour, as though he had been told exactly when you would walk in.',
+    idle: [
+      '"Room\'s upstairs. Don\'t ask about the noise."',
+      '"I never ask where anyone\'s been. It\'s a policy."',
+      '"Nobody\'s ever checked out. Not once."',
+    ],
+  },
+  {
     id: 'quill', name: 'Sable Quill', icon: '🧝‍♀️', role: 'Cartographer',
     atLevel: 18,
     perk: { key: 'gold', value: 0.05 },

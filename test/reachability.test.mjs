@@ -33,6 +33,11 @@ import { CLASSES } from '../src/data/classes.js';
 import { SKILLS, TRAINABLE_SKILLS } from '../src/data/skills.js';
 import { BUILDING_LIST } from '../src/data/town.js';
 import { ITEMS } from '../src/data/items.js';
+import { PLACES, HOURS } from '../src/data/places.js';
+import { FURNITURE, SETS, ROOMS } from '../src/data/home.js';
+import { LIVES } from '../src/data/lives.js';
+import { DESTINATIONS, PROVISIONS } from '../src/data/expeditions.js';
+import { NOTABLES } from '../src/data/npcs.js';
 import { totalSkillLevel, pendingShards, buyPrice } from '../src/core/state.js';
 import { CHAINS } from '../src/data/adventure.js';
 import { TIERS, MASTERIES, TREES } from '../src/data/talents.js';
@@ -363,6 +368,104 @@ console.log('\n=== CLASS SPECIALTIES ===');
   const covered = new Set(Object.values(CLASSES).map(c => c.specialty?.skill).filter(Boolean));
   const orphan = TRAINABLE_SKILLS.filter(s => !covered.has(s));
   if (orphan.length) console.log(`      (no class patronises ${orphan.join(', ')} — deliberate, there are more skills than classes)`);
+}
+
+
+// ============================================================
+console.log('\n=== HEARTHWICK AS A PLACE ===');
+{
+  // Every place must route somewhere the renderer knows about.
+  const render = readFileSync(new URL('../src/ui/render.js', import.meta.url), 'utf8');
+  const unrouted = PLACES.filter(pl => !new RegExp(`v === '${pl.view}'`).test(render));
+  if (unrouted.length) fail(`${unrouted.length} place(s) point at a view that does not exist: ${unrouted.map(p => p.view).join(', ')}`);
+  else good(`all ${PLACES.length} places open a real view`);
+
+  // A set with fewer pieces than the room it lives in has slots is a set
+  // that can NEVER be completed — the same failure as a tome nothing
+  // drops, and it shipped once already.
+  const uncompletable = [];
+  for (const setId of Object.keys(SETS)) {
+    const pieces = FURNITURE.filter(f => f.set === setId);
+    const byRoom = {};
+    for (const f of pieces) byRoom[f.room] = (byRoom[f.room] || 0) + 1;
+    const ok = Object.entries(byRoom).some(([r, n]) => n >= (ROOMS.find(x => x.id === r)?.slots ?? Infinity));
+    if (!ok) uncompletable.push(setId);
+  }
+  if (uncompletable.length) {
+    fail(`${uncompletable.length} furniture set(s) can never be completed: ${uncompletable.join(', ')}`);
+  } else good(`all ${Object.keys(SETS).length} furniture sets can be completed in some room`);
+
+  // Every piece needs a way in, and every bonus key needs a reader.
+  const orphan = FURNITURE.filter(f => !f.gold && !f.craft && !f.source);
+  if (orphan.length) fail(`${orphan.length} furniture piece(s) have no source: ${orphan.map(f => f.name).join(', ')}`);
+  else good(`all ${FURNITURE.length} pieces are bought, made or found`);
+
+  const engine = readFileSync(new URL('../src/core/state.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/home.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/town.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/lives.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/offline.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/classes.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/deep.js', import.meta.url), 'utf8')
+               + readFileSync(new URL('../src/systems/expeditions.js', import.meta.url), 'utf8');
+  const keys = new Set();
+  for (const f of FURNITURE) for (const k of Object.keys(f.bonus || {})) keys.add(k);
+  for (const s of Object.values(SETS)) for (const k of Object.keys(s.bonus || {})) keys.add(k);
+  const dead = [...keys].filter(k => !new RegExp(`['"\`]${k}['"\`]`).test(engine));
+  if (dead.length) fail(`${dead.length} furniture bonus key(s) are read by nothing: ${dead.join(', ')}`);
+  else good(`all ${keys.size} furniture bonus keys feed a real multiplier`);
+}
+
+console.log('\n=== THE RESIDENTS ===');
+{
+  // A schedule that sends everyone home leaves a dead hour, and a player
+  // who checks in then finds an empty town and concludes it is broken.
+  const dead = HOURS.filter(h =>
+    Object.values(LIVES).filter(l => l.at[h.id] !== 'home').length < 2);
+  if (dead.length) fail(`${dead.length} hour(s) have almost nobody about: ${dead.map(h => h.label).join(', ')}`);
+  else good(`somebody is findable in all ${HOURS.length} hours of the day`);
+
+  // Every scheduled location has to be a real place.
+  const placeIds = new Set([...PLACES.map(p => p.id), 'home']);
+  const badWhere = [];
+  for (const [id, l] of Object.entries(LIVES)) {
+    for (const [hour, where] of Object.entries(l.at)) {
+      if (!placeIds.has(where)) badWhere.push(`${id}@${hour} → ${where}`);
+    }
+  }
+  if (badWhere.length) fail(`${badWhere.length} schedule entries point nowhere: ${badWhere.slice(0, 4).join(', ')}`);
+  else good('every scheduled location is a real place');
+
+  // Requests must be satisfiable and must name real items.
+  const badReq = [];
+  for (const [id, l] of Object.entries(LIVES)) {
+    for (const r of l.requests || []) {
+      if (r.need?.item && !ITEMS[r.need.item]) badReq.push(`${id}/${r.id} wants unknown "${r.need.item}"`);
+      if (!r.reward?.gold) badReq.push(`${id}/${r.id} pays nothing`);
+    }
+  }
+  if (badReq.length) { fail(`${badReq.length} broken request(s):`); badReq.slice(0, 5).forEach(m => console.log('      ' + m)); }
+  else good(`all ${Object.values(LIVES).reduce((n, l) => n + (l.requests || []).length, 0)} requests are satisfiable`);
+
+  // And every resident with a life has to actually be a notable who moves in.
+  const ghosts = Object.keys(LIVES).filter(id => !NOTABLES.some(n => n.id === id));
+  if (ghosts.length) fail(`${ghosts.length} resident(s) have a life but never move in: ${ghosts.join(', ')}`);
+  else good(`all ${Object.keys(LIVES).length} residents with lives are real notables`);
+}
+
+console.log('\n=== EXPEDITIONS ===');
+{
+  const badLoot = [];
+  for (const d of DESTINATIONS) {
+    for (const id of d.loot || []) if (!ITEMS[id]) badLoot.push(`${d.id} → ${id}`);
+    if (!d.hours || d.hours < 1) badLoot.push(`${d.id} has no duration`);
+  }
+  if (badLoot.length) { fail(`${badLoot.length} destination problem(s):`); badLoot.forEach(m => console.log('      ' + m)); }
+  else good(`all ${DESTINATIONS.length} destinations drop real items`);
+
+  const badProv = PROVISIONS.filter(p => p.item && !ITEMS[p.item]);
+  if (badProv.length) fail(`provisions name unknown items: ${badProv.map(p => p.item).join(', ')}`);
+  else good('every provision is a real item');
 }
 
 // ============================================================

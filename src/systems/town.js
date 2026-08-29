@@ -11,7 +11,7 @@ import { addGold, spendGold, addItem, removeItem, itemCount } from './inventory.
 import { emit } from '../core/events.js';
 import { plotHalted } from './unstable.js';
 import { residentBonus } from './npcs.js';
-import { classBonus, buyPrice } from '../core/state.js';
+import { classBonus, buyPrice, homeBonus } from '../core/state.js';
 
 // ---------------- Helpers ----------------
 
@@ -363,7 +363,7 @@ export function plotReport(plotIndex) {
   let goodsValue = 0;
   for (const [cat, n] of Object.entries(needs)) goodsValue += categoryValue(plot, cat, n);
   const labour = ((def.revenue[0] + def.revenue[1]) / 2) * levelMult;
-  const revMid = (labour + goodsValue * markup) * mods.revenue * skillMult * (1 + classBonus('town_revenue'));
+  const revMid = (labour + goodsValue * markup) * mods.revenue * skillMult * (1 + classBonus('town_revenue') + homeBonus('town_revenue'));
 
   // Payroll: the hired rate, scaled by how big an operation they are
   // running, plus a commission on the goods they actually move. Without
@@ -461,7 +461,7 @@ function completeCycle(plotIndex, plot, def, mods) {
   // Revenue = flat labour + a markup on the value of the goods moved.
   const labour = def.revenue[0] + Math.random() * (def.revenue[1] - def.revenue[0]);
   const rev = labour * levelMult + goodsValue * markupFor(def, plot.level);
-  const gained = addGold(rev * mods.revenue * skillMult * (1 + classBonus('town_revenue')), { silent: true });
+  const gained = addGold(rev * mods.revenue * skillMult * (1 + classBonus('town_revenue') + homeBonus('town_revenue')), { silent: true });
   state.town.lifetimeRevenue = (state.town.lifetimeRevenue || 0) + gained;
   state.town.cycles = (state.town.cycles || 0) + 1;
 

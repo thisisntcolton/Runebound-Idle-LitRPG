@@ -58,6 +58,10 @@ export async function GET(request) {
     const entries = rows.map((r, i) => ({
       rank: i + 1,
       you: session?.userId === r.user_id,
+      // Exposed so a player can go and visit them. It is the same opaque
+      // id the leaderboard already keys on and it grants no access to
+      // anything but a published town snapshot.
+      userId: r.user_id,
       name: r.display_name,
       avatar: r.avatar_url,
       totalLevel: Number(r.total_level),

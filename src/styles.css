@@ -1567,3 +1567,118 @@ body.era-wastes .ascend-shards-preview { color: #c9b6f0; text-shadow: 0 0 20px r
   font-size: 12.5px;
   line-height: 1.55;
 }
+
+/* ============================================================
+   HEARTHWICK AS A PLACE
+   ============================================================ */
+.town-place .place-hit { transition: stroke 0.15s, fill 0.15s; }
+.town-place:hover .place-hit { fill: rgba(77,163,255,0.10); stroke: var(--sys-blue); }
+.town-place.locked:hover .place-hit { fill: none; stroke: transparent; }
+
+.place-back { margin: -6px 0 12px; }
+
+/* ---- The house ---- */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.home-slot {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 10px;
+  text-align: center;
+  min-height: 118px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  background: var(--bg-panel-2);
+}
+.home-slot.empty {
+  border-style: dashed;
+  opacity: 0.5;
+}
+.home-slot-icon { font-size: 30px; line-height: 1; }
+.home-slot-name { font-size: 12px; }
+.home-slot-set { font-size: 10.5px; color: var(--text-dim); }
+
+.set-banner {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 14px;
+}
+.set-chip {
+  border: 1px solid var(--xp);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--xp) 10%, transparent);
+}
+
+/* ---- People ---- */
+.person-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--sys-blue);
+  border-radius: 7px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--bg-panel-2);
+}
+.person-card.open { border-left-color: var(--gold); }
+.person-head { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.person-icon { font-size: 26px; }
+.person-name { font-size: 14px; }
+.person-line {
+  margin-top: 9px;
+  font-style: italic;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.person-request {
+  margin-top: 10px; padding: 9px 11px;
+  border-radius: 5px; background: var(--bg-deep);
+  border-left: 3px solid var(--gold);
+  font-size: 12.5px; line-height: 1.6;
+}
+.person-request.ready { border-left-color: var(--xp); }
+
+.bond-bar-outer {
+  width: 90px; height: 7px; border-radius: 4px;
+  background: var(--bg-deep); border: 1px solid var(--border);
+  overflow: hidden; flex-shrink: 0;
+}
+.bond-bar-inner { height: 100%; background: var(--gold); }
+
+.where-list { display: flex; flex-direction: column; gap: 5px; }
+.where-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 5px;
+  background: var(--bg-panel-2); font-size: 12.5px;
+}
+.where-name { min-width: 130px; }
+.where-at { flex: 1; color: var(--text-dim); font-style: italic; }
+
+.ready-row { border-color: var(--xp) !important; }
+.hurt-row { opacity: 0.65; }
+
+/* ---- The gate ---- */
+.expedition-out {
+  border: 1px solid var(--gold);
+  border-left-width: 3px;
+  border-radius: 7px;
+  padding: 16px 18px;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  margin-bottom: 16px;
+}
+.expedition-out-title { color: var(--gold); letter-spacing: 1.5px; margin-bottom: 6px; }
+
+.legacy-job {
+  background: var(--bg-deep); color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px;
+  padding: 4px 8px; font-size: 12px; margin-top: 4px;
+}
+
+/* Expedition log tones. */
+.beat-good     { color: var(--xp); }
+.beat-triumph  { color: var(--gold); font-weight: 600; }
+.beat-neutral  { color: var(--text-dim); }
+.beat-bad      { color: #d8a35c; }
+.beat-disaster { color: var(--danger); }

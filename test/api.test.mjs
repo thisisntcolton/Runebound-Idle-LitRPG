@@ -52,6 +52,8 @@ async function resetFixtures() {
   await ensureSchema();
   const sql = db();
   for (const id of TEST_USERS) {
+    await sql`DELETE FROM town_gifts WHERE to_user = ${id} OR from_user = ${id}`;
+    await sql`DELETE FROM towns WHERE user_id = ${id}`;
     await sql`DELETE FROM leaderboard WHERE user_id = ${id}`;
     await sql`DELETE FROM saves WHERE user_id = ${id}`;
     await sql`DELETE FROM users WHERE id = ${id}`;
@@ -357,6 +359,135 @@ test('logout clears the session cookie', async () => {
   assert.equal(res.status, 200);
   assert.match(res.headers.get('set-cookie'), /rb_session=;/);
   assert.match(res.headers.get('set-cookie'), /Max-Age=0/);
+});
+
+// =============================================================
+// TOWNS — the one surface where one player's data reaches another's screen.
+// =============================================================
+async function seedUser(id, name) {
+  const { db, ensureSchema } = await import('../api/_lib/db.js');
+  await ensureSchema();
+  const sql = db();
+  await sql`INSERT INTO users (id, provider, provider_id, display_name, avatar_url)
+            VALUES (${id}, 'github', ${id.split(':')[1]}, ${name}, null)
+            ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name`;
+  const { sessionCookie } = await import('../api/_lib/session.js');
+  return { cookie: sessionCookie({ id }).split(';')[0] };
+}
+
+test('town: publish requires a session, and rebuilds the snapshot it is sent', async () => {
+  const townApi = await import('../api/town.js');
+
+  const anon = await townApi.PUT(req('/api/town', {
+    method: 'PUT', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ snapshot: {} }),
+  }));
+  assert.equal(anon.status, 401, 'publishing without a session must be refused');
+
+  const { cookie } = await seedUser('github:1001', 'Testfang the Bold');
+  const res = await townApi.PUT(req('/api/town', {
+    method: 'PUT', headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ snapshot: {
+      townName: 'Hearthwick 2',              // spaces and digits must SURVIVE
+      townLevel: 7, era: 1, ascensions: 3,
+      plots: Array.from({ length: 40 }, () => ({ building: 'lumber_yard', level: 99 })),
+      home: { level: 99, placed: { hearth: ['plain_chair', 'straw_bed'] }, sets: ['hearthwick'] },
+      residents: [{ id: 'marrow', bond: 900 }],
+      legacy: [{ name: 'Older You', cycle: 2, className: 'Rogue', classIcon: '🗡️',
+                 title: 'the Quiet', charLevel: 61 }],
+      secretField: 'should not survive',
+    } }),
+  }));
+  assert.equal(res.status, 200);
+  const { snapshot } = await res.json();
+
+  assert.equal(snapshot.townName, 'Hearthwick 2',
+    'the sanitiser must not eat spaces or digits out of a town name');
+  assert.equal(snapshot.secretField, undefined, 'unknown fields are dropped, not passed through');
+  assert.equal(snapshot.plots.length, 12, 'plot list is count-capped');
+  assert.equal(snapshot.plots[0].level, 20, 'plot level is clamped');
+  assert.equal(snapshot.home.level, 8, 'house level is clamped to the real maximum');
+  assert.equal(snapshot.residents[0].bond, 100, 'bond is clamped');
+  assert.equal(snapshot.legacy[0].charLevel, 61);
+});
+
+test('town: a snapshot cannot carry markup into somebody elses game', async () => {
+  const townApi = await import('../api/town.js');
+  const { cookie } = await seedUser('github:1001', 'Testfang the Bold');
+  const res = await townApi.PUT(req('/api/town', {
+    method: 'PUT', headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ snapshot: {
+      townName: '<b>Ok Town 3',
+      legacy: [{ name: '<script>bad</script>', cycle: 1 }],
+    } }),
+  }));
+  const { snapshot } = await res.json();
+  assert.ok(!/[<>]/.test(snapshot.townName), `angle brackets survived: ${snapshot.townName}`);
+  assert.ok(!/[<>]/.test(snapshot.legacy[0].name));
+  assert.ok(snapshot.townName.includes('Ok Town 3'),
+    `the readable part must survive: ${snapshot.townName}`);
+});
+
+test('town: visiting fetches a published town, and unknown towns are empty not errors', async () => {
+  const townApi = await import('../api/town.js');
+  await seedUser('github:1001', 'Testfang the Bold');
+
+  const found = await (await townApi.GET(req('/api/town?user=github:1001'))).json();
+  assert.equal(found.town.userId, 'github:1001');
+  assert.equal(found.town.name, 'Testfang the Bold');
+  assert.ok(found.town.snapshot.townName);
+
+  const missing = await (await townApi.GET(req('/api/town?user=github:9999'))).json();
+  assert.equal(missing.town, null, 'a town nobody has published is null, not a 500');
+});
+
+test('town: gifts land once per person per day, and claiming is not replayable', async () => {
+  const townApi = await import('../api/town.js');
+  const { db } = await import('../api/_lib/db.js');
+  const sql = db();
+
+  const owner = 'github:1001';
+  const { cookie: giverCookie } = await seedUser('google:2002', 'Wren of Hollow');
+  await seedUser(owner, 'Testfang the Bold');
+  await sql`DELETE FROM town_gifts WHERE to_user = ${owner}`;
+
+  const gift = () => townApi.POST(req(`/api/town?gift=${owner}`, {
+    method: 'POST', headers: { cookie: giverCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ note: 'Nice hearth.' }),
+  }));
+
+  assert.equal((await gift()).status, 200);
+  assert.equal((await gift()).status, 429, 'a doorstep is not a mailbox');
+
+  const self = await townApi.POST(req(`/api/town?gift=google:2002`, {
+    method: 'POST', headers: { cookie: giverCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ note: 'hi me' }),
+  }));
+  assert.equal(self.status, 400, 'you cannot leave a gift at your own door');
+
+  const ownerCookie = (await seedUser(owner, 'Testfang the Bold')).cookie;
+  const waiting = await (await townApi.GET(req('/api/town', { headers: { cookie: ownerCookie } }))).json();
+  assert.equal(waiting.gifts.length, 1);
+  assert.equal(waiting.gifts[0].from_name, 'Wren of Hollow');
+
+  const claimed = await (await townApi.DELETE(req('/api/town', {
+    method: 'DELETE', headers: { cookie: ownerCookie } }))).json();
+  assert.equal(claimed.claimed.length, 1);
+
+  // The reward is granted client-side off this list, so a second claim
+  // returning the same rows would mint shards forever.
+  const again = await (await townApi.DELETE(req('/api/town', {
+    method: 'DELETE', headers: { cookie: ownerCookie } }))).json();
+  assert.equal(again.claimed.length, 0, 'claiming twice must yield nothing the second time');
+});
+
+test('town: gifts require a session', async () => {
+  const townApi = await import('../api/town.js');
+  const res = await townApi.POST(req('/api/town?gift=github:1001', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }));
+  assert.equal(res.status, 401);
+  const del = await townApi.DELETE(req('/api/town', { method: 'DELETE' }));
+  assert.equal(del.status, 401);
 });
 
 // =============================================================

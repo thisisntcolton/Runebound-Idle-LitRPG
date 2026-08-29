@@ -52,6 +52,30 @@ export function ensureSchema() {
         cyclebreaker  BOOLEAN NOT NULL DEFAULT false,
         updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+    // Towns you can visit. Stored apart from `saves` on purpose: a save is
+    // private and enormous, a snapshot is small, public and safe to hand
+    // to anybody. Keeping them in one table would mean one careless SELECT
+    // away from serving somebody's whole save to a stranger.
+    await sql`
+      CREATE TABLE IF NOT EXISTS towns (
+        user_id      TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        display_name TEXT NOT NULL,
+        snapshot     JSONB NOT NULL,
+        updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+    // Gifts and notes left for somebody, waiting for their next visit.
+    await sql`
+      CREATE TABLE IF NOT EXISTS town_gifts (
+        id          BIGSERIAL PRIMARY KEY,
+        to_user     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        from_user   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        from_name   TEXT NOT NULL,
+        note        TEXT,
+        claimed     BOOLEAN NOT NULL DEFAULT false,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+    await sql`CREATE INDEX IF NOT EXISTS town_gifts_to ON town_gifts (to_user, claimed)`;
+
     // migrations for columns added after launch
     await sql`ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS title TEXT`;
     await sql`CREATE INDEX IF NOT EXISTS lb_total_level_idx   ON leaderboard (total_level DESC)`;

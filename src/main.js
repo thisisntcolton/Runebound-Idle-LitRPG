@@ -27,7 +27,11 @@ import { setLedgerUIHooks, ledgerBonus, initLedger } from './systems/ledger.js';
 import { registerTownBuff, registerPetBonus, registerClassBonus, registerLedgerBonus,
          registerRepoPenalty, registerDeepBonus, registerBossBonus,
          registerAbilityBonus } from './core/state.js';
-import { emit } from './core/events.js';
+import { emit, on } from './core/events.js';
+import { homeBonus as _homeBonus } from './systems/home.js';
+import { legacyRate as _legacyRate } from './systems/legacy.js';
+import { registerHomeBonus, registerLegacyRate } from './core/state.js';
+import { tickExpedition, initExpeditions, setExpeditionUIHooks } from './systems/expeditions.js';
 import { buildLabel, buildInfo } from './core/build.js';
 
 // Before anything else, say what this page is. If a deploy ever goes
@@ -47,6 +51,12 @@ const hadSave = load();
 // reads a bonus off it.
 initTown();
 registerTownBuff(townBuff);
+
+// The house and the household both feed the same multiplier chain as
+// everything else, registered lazily for the usual reason: they read
+// state, so importing them from core/state.js would be a cycle.
+registerHomeBonus(_homeBonus);
+registerLegacyRate(_legacyRate);
 
 // The Menagerie feeds the same multiplier chain, so it wires up alongside.
 initPets();
@@ -88,6 +98,13 @@ initCombat();
 initAdventure();
 initLedger();
 
+// A party out past the gate comes home on the wall clock, so this has to
+// run on load as well as on the tick — an expedition that finished while
+// the tab was closed should be waiting at the gate, not still walking.
+setExpeditionUIHooks({ queueModal: showOfflineModalQueue });
+initExpeditions();
+tickExpedition();
+
 // Offline progress (counts toward quests via events)
 const offline = hadSave ? processOffline() : null;
 if (offline) {
@@ -107,6 +124,15 @@ save();
 
 // Cloud session + save reconciliation (no-op when there's no backend)
 initCloud();
+
+// Publish this town so other people can visit it, and pick up anything
+// left on the doorstep. Both are best-effort and silent on failure — a
+// player with no backend should never see an error about a feature they
+// have not been offered.
+import('./systems/visiting.js').then(({ publish, loadGifts }) => {
+  setTimeout(() => { publish(); loadGifts(); }, 4000);
+  on('ascended', () => publish({ force: true }));
+});
 
 // keep lastSeen fresh when tab hides, so offline calc is honest
 document.addEventListener('visibilitychange', () => {

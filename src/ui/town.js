@@ -19,6 +19,10 @@ import { SKIN, HAIR_COLOR, CLOTH_COLOR, HAIR_STYLES, BUILDS,
 import { population, residents, pendingVisitor, getVisitorDef, buildingCount } from '../systems/npcs.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 import { encounterView } from '../systems/encounters.js';
+import { PLACES, TOWN_VIEWBOX, hourNow } from '../data/places.js';
+import { placeArt } from './townart.js';
+import { peopleAt } from '../systems/lives.js';
+import { houseLevel } from '../systems/home.js';
 
 export const townUI = { selectedPlot: null, tab: 'build' };
 
@@ -129,23 +133,68 @@ function plotSvg(index) {
     </g>`;
 }
 
-function townMap() {
+/**
+ * A civic place on the map.
+ *
+ * Deliberately drawn and labelled differently to a parcel: a place has a
+ * nameplate and a door, a parcel has a level badge and a staff count. A
+ * player should never have to click to find out which kind of thing they
+ * are looking at.
+ */
+function placeSvg(place) {
+  const locked = place.unlockTownLevel && townLevel() < place.unlockTownLevel;
+  const here = peopleAt(place.id);
   return `
-    <svg viewBox="0 0 960 620" class="town-svg" preserveAspectRatio="xMidYMid meet">
+    <g class="town-place ${locked ? 'locked' : ''}" transform="translate(${place.x},${place.y})"
+       ${locked ? '' : `data-act="enter-place" data-place="${place.id}"`}
+       style="cursor:${locked ? 'default' : 'pointer'}">
+      <rect x="-6" y="-6" width="${place.w + 12}" height="${place.h + 12}" rx="12"
+            fill="transparent" stroke="transparent" stroke-width="2" class="place-hit"/>
+      ${placeArt(place, { locked, level: houseLevel() })}
+      <g transform="translate(${place.w / 2}, ${place.h + 20})">
+        <rect x="-72" y="-14" width="144" height="21" rx="10"
+              fill="#12182a" opacity="0.92" stroke="var(--border-bright)"/>
+        <text y="1" text-anchor="middle" font-size="11.5" fill="#d9e2f5">${place.icon} ${place.name}</text>
+      </g>
+      ${locked ? `
+        <g transform="translate(${place.w / 2}, ${place.h / 2})">
+          <circle r="17" fill="#12182a" opacity="0.85" stroke="var(--border-bright)"/>
+          <text y="6" text-anchor="middle" font-size="17">🔒</text>
+        </g>` : ''}
+      ${here.length ? `
+        <g transform="translate(${place.w - 16}, 14)">
+          <circle r="13" fill="#12182a" opacity="0.92" stroke="var(--xp)"/>
+          <text y="5" text-anchor="middle" font-size="12" fill="#d9e2f5">${here.length}</text>
+        </g>` : ''}
+    </g>`;
+}
+
+function townMap() {
+  const hour = hourNow();
+  return `
+    <svg viewBox="0 0 ${TOWN_VIEWBOX.w} ${TOWN_VIEWBOX.h}" class="town-svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="hour-tint" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${hour.tint}" stop-opacity="0.30"/>
+          <stop offset="100%" stop-color="${hour.tint}" stop-opacity="0.05"/>
+        </linearGradient>
+      </defs>
       ${grassBackdrop()}
       ${paths()}
-      ${tree(30, 230, 1.05)} ${tree(930, 210, 0.9)} ${tree(918, 400, 1.1)}
-      ${tree(28, 600, 0.95)} ${tree(930, 596, 0.85)} ${tree(276, 604, 0.8)}
+      ${tree(30, 230, 1.05)} ${tree(918, 400, 1.1)}
+      ${tree(28, 600, 0.95)} ${tree(276, 604, 0.8)}
       ${lamp(322, 236)} ${lamp(622, 236)} ${lamp(322, 420)} ${lamp(622, 420)}
       ${signpost(480, 34, esc(state.town.name || 'Hearthwick'))}
       ${state.town.plots.map((_, i) => plotSvg(i)).join('')}
+      ${PLACES.map(placeSvg).join('')}
       ${townsfolk(population(), VILLAGE_PALETTES, state.town.name || 'Hearthwick')}
       ${residents().map((n, i) => {
-        // stand them along the two vertical roads, clear of the parcels
         const spots = [[322,140],[622,200],[322,330],[622,380],[322,545],[622,545]];
         const [nx, ny] = spots[i % spots.length];
         return notableFigure(n, nx, ny);
       }).join('')}
+      <rect x="0" y="0" width="${TOWN_VIEWBOX.w}" height="${TOWN_VIEWBOX.h}"
+            fill="url(#hour-tint)" pointer-events="none"/>
     </svg>`;
 }
 

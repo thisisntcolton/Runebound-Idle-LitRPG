@@ -1,6 +1,7 @@
 // ============================================================
 // THE DESCENT — state, the ladder, and the one number that never resets
 // ============================================================
+import { homeBonus } from '../core/state.js';
 import { state } from '../core/state.js';
 import { DEEP, depthCap, isWardenDepth, deepMonster, stratumFor } from '../data/deep.js';
 import { emit } from '../core/events.js';
@@ -132,10 +133,12 @@ function announceFloor(depth) {
 // `best` is the only field any of this reads.
 
 export function deepBonus(key) {
+  // The house's Salvage-and-Seam set pays into the Descent directly.
+  const fromHome = key === 'gold' || key === 'damage' ? homeBonus('deep_bonus') : 0;
   if (!unlocked()) return 0;
   const per = DEEP.BONUS_PER_DEPTH[key];
   if (!per) return 0;
-  return per * (deep().best || 0);
+  return fromHome + per * (deep().best || 0);
 }
 
 // ---------------- View ----------------

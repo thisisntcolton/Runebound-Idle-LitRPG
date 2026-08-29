@@ -68,6 +68,9 @@ function row(entry, board) {
         </div>
       </div>
       <div class="shop-row-level" style="font-size:14px">${primaryStat(entry, board)}</div>
+      ${entry.you || !entry.userId ? '' :
+        `<button class="btn btn-sm" data-act="visit-town" data-who="${escapeHtml(entry.userId)}"
+                 title="Go and see their Hearthwick">🚪 Visit</button>`}
     </div>`;
 }
 

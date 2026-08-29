@@ -17,6 +17,13 @@ import { abilitiesPanel } from './abilities.js';
 import { townPanel, townUI } from './town.js';
 import { petsPanel, petsUI } from './pets.js';
 import { casinoPanel, casinoUI } from './casino.js';
+import { homePanel, squarePanel, tablePanel, gatePanel, visitPanel, placesUI } from './places.js';
+import { place as placeFurniture, unplace, buyFurniture, extend as extendHouse } from '../systems/home.js';
+import { talkTo, deliver as deliverRequest, gift as giveGift } from '../systems/lives.js';
+import { assign as assignSelf } from '../systems/legacy.js';
+import { send as sendExpedition, collect as collectExpedition } from '../systems/expeditions.js';
+import { visit as visitTown, leaveGift, claimGifts, loadGifts, publish as publishTown,
+         visiting } from '../systems/visiting.js';
 import { codexPanel, codexUI } from './codex.js';
 import { classPanel } from './classes.js';
 import { appearancePanel } from './appearance.js';
@@ -53,6 +60,8 @@ import { FRAGMENTS } from '../data/lore.js';
 import { popup } from './notify.js';
 import { cloud, setCloudUIHooks, signIn, signOut, syncNow, resolveConflict } from '../core/cloud.js';
 import { townLevel } from '../systems/town.js';
+import { getPlace } from '../data/places.js';
+import { townView } from '../systems/lives.js';
 import { deal, hit, stand, double, clearHand, hazardStart, hazardRoll,
          clearHazard, casinoOpen, legalBet } from '../systems/casino.js';
 import { enterRift, failRun, pendingRift, activeRun, UNSTABLE } from '../systems/unstable.js';
@@ -69,7 +78,8 @@ import { pendingShards } from '../core/state.js';
 import { fmtDuration } from '../core/format.js';
 
 export const ui = {
-  view: 'character',
+  // You start in the town. It is the front door now, not a panel.
+  view: 'town',
   selectedZone: ZONES[0].id,
 };
 
@@ -111,6 +121,14 @@ function navItem(view, icon, label, { level = null, working = false } = {}) {
  * away and the real risk is no longer spoiling it — it is a player
  * concluding there is nothing more and stopping.
  */
+/** How many residents are currently asking you for something. */
+function askingCount() {
+  try {
+    const n = townView().filter(p => p.request).length;
+    return n ? '❗' + n : null;
+  } catch { return null; }
+}
+
 function sealedNavHint() {
   if ((state.ascensions || 0) < 4) return '';
   return `
@@ -126,6 +144,14 @@ export function renderSidebar() {
   const act = state.activity;
   const el = document.getElementById('sidebar');
   el.innerHTML = `
+    <div class="nav-section-label">Hearthwick</div>
+    ${navItem('town', '🏘️', 'The Town', {
+      level: state.town?.unlocked ? 'Lv.' + townLevel() : null,
+      working: !!pendingEncounter() })}
+    ${navItem('home', '🏠', 'Your House')}
+    ${navItem('square', '📋', 'The Square', { level: askingCount() || null })}
+    ${navItem('table', '🪑', 'The Long Table')}
+    ${navItem('gate', '⛩️', 'The Gate', { working: !!state.expedition?.active })}
     <div class="nav-section-label">Hero</div>
     ${navItem('character', '📜', 'Character', { level: 'Lv.' + charLevel() })}
     ${navItem('journal', '🗺️', 'Journal', { working: !!activeMainQuest() })}
@@ -153,9 +179,6 @@ export function renderSidebar() {
       working: (act?.type === 'skill' && act.skillId === id) || hasWorkingHireling(id),
     })).join('')}
     <div class="nav-section-label">Beyond</div>
-    ${navItem('town', '🏘️', 'Hearthwick', {
-      level: state.town?.unlocked ? 'Lv.' + townLevel() : null,
-      working: !!pendingEncounter() })}
     ${(state.era || 1) >= 2
       ? navItem('wastes', '🕳️', 'The Wastes', {
           level: ledgerOpen() ? '📒' : null,
@@ -213,6 +236,11 @@ export function renderView() {
   else if (v === 'equipment') el.innerHTML = equipmentPanel();
   else if (v === 'ascension') el.innerHTML = ascensionPanel();
   else if (v === 'casino') el.innerHTML = casinoPanel();
+  else if (v === 'home') el.innerHTML = homePanel();
+  else if (v === 'square') el.innerHTML = squarePanel();
+  else if (v === 'table') el.innerHTML = tablePanel();
+  else if (v === 'gate') el.innerHTML = gatePanel();
+  else if (v === 'visit') el.innerHTML = visitPanel();
   else if (v === 'leaderboard') el.innerHTML = leaderboardPanel();
   else if (v === 'settings') el.innerHTML = settingsPanel();
   else el.innerHTML = characterPanel();
@@ -225,6 +253,21 @@ export function renderView() {
   if (titleSel) titleSel.addEventListener('change', e => setTitle(e.target.value || null));
   for (const sel of document.querySelectorAll('.hireling-task')) {
     sel.addEventListener('change', e => setHirelingTask(e.target.dataset.skill, e.target.value));
+  }
+  // A <select> never fires the delegated click handler with a useful value,
+  // so the household's job picker is wired here instead.
+  //
+  // This loop used to sit INSIDE the hireling loop above, which meant two
+  // things and both were wrong: on a panel with no hirelings — the Gate,
+  // which is the only place the household is shown — the job picker was
+  // never wired at all, and on a panel with several, every select got a
+  // listener per hireling and one change fired the assignment N times.
+  for (const sel of document.querySelectorAll('.legacy-job')) {
+    sel.addEventListener('change', e => {
+      const v = e.target.value;
+      assignSelf(e.target.dataset.who, v === 'idle' ? 'idle' : 'skill', v === 'idle' ? null : v);
+      renderView();
+    });
   }
 }
 
@@ -486,7 +529,13 @@ function showAscendConfirm() {
            <p class="muted">[ SYSTEM ] Reset will be logged. Settlement will not be reclaimed. This continues to be noted.</p>`
         : `<p><b style="color:var(--danger)">Hearthwick falls with them</b> — every building, worker and crate of stock.
              The people you have met will still know you.</p>`}
-      <p>Shards, perks, your pets, your talents and your chronicle persist.</p>
+      <p><b style="color:var(--danger)">Your class and every talent in it reset too.</b>
+         What you keep from a class is its Mastery — earned by capping it, and
+         stacking every time you cap it again.</p>
+      <p><b style="color:var(--gold)">Your house, the people you used to be, and
+         what the neighbours make of you all stay.</b> The loop has never been
+         able to touch any of them.</p>
+      <p>Shards, perks, your pets and your chronicle persist.</p>
     </div>
     <div class="modal-actions">
       <button class="btn btn-danger" data-act="confirm-ascend">☄️ Do it</button>
@@ -660,6 +709,55 @@ function handleAction(target) {
     case 'pet-active': setActive(target.dataset.pet); break;
     case 'pet-errand': sendOnErrand(target.dataset.pet, target.dataset.errand); renderView(); break;
     case 'pet-errand-collect': collectErrand(target.dataset.pet); renderView(); break;
+    // ---- Places ----
+    case 'enter-place': {
+      const p = getPlace(target.dataset.place);
+      if (p) setView(p.view);
+      break;
+    }
+    case 'home-room': placesUI.room = target.dataset.room; renderView(); break;
+    case 'home-place': placeFurniture(target.dataset.furniture, target.dataset.room); renderView(); break;
+    case 'home-unplace': unplace(target.dataset.room, Number(target.dataset.index)); renderView(); break;
+    case 'home-buy': buyFurniture(target.dataset.furniture); renderView(); break;
+    case 'home-extend': extendHouse(); renderView(); break;
+    case 'square-tab': placesUI.shopTab = target.dataset.tab; renderView(); break;
+    case 'visit-person': {
+      const who = target.dataset.who;
+      placesUI.person = placesUI.person === who ? null : who;
+      talkTo(who);
+      renderView();
+      break;
+    }
+    case 'request-deliver': deliverRequest(target.dataset.who); renderView(); break;
+    case 'give-gift': giveGift(target.dataset.who, target.dataset.item); renderView(); break;
+    case 'legacy-assign': break;   // handled on change, below
+    case 'exp-dest': placesUI.dest = target.dataset.dest; renderView(); break;
+    case 'exp-risk': placesUI.risk = target.dataset.risk; renderView(); break;
+    case 'exp-prov': placesUI.prov = target.dataset.prov; renderView(); break;
+    case 'exp-party': {
+      const id = target.dataset.member;
+      const i = placesUI.party.indexOf(id);
+      if (i >= 0) placesUI.party.splice(i, 1); else placesUI.party.push(id);
+      renderView();
+      break;
+    }
+    case 'exp-send':
+      sendExpedition({ destinationId: placesUI.dest, party: placesUI.party,
+                       riskId: placesUI.risk, provisionId: placesUI.prov });
+      placesUI.party = [];
+      renderView();
+      break;
+    case 'expedition-collect': collectExpedition(); renderView(); break;
+    case 'visit-town':
+      setView('visit');
+      visitTown(target.dataset.who).then(renderView);
+      break;
+    case 'leave-gift': {
+      const note = document.getElementById('gift-note')?.value || '';
+      leaveGift(target.dataset.who, note).then(renderView);
+      break;
+    }
+    case 'claim-gifts': claimGifts().then(renderView); break;
     case 'casino-table': casinoUI.table = target.dataset.table; renderView(); break;
     case 'casino-bet':
       casinoUI.bet = legalBet(target.dataset.bet);
