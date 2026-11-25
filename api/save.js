@@ -48,7 +48,9 @@ export async function POST(request) {
   if (!result.ok) return json({ error: result.error }, 400);
 
   const { save, derived } = result;
-  const clientUpdatedAt = Number(body?.save?.lastSeen) || Date.now();
+  const clientUpdatedAt = Date.now();
+  const expected = body?.revision ?? null;
+  if (expected !== null && (!Number.isSafeInteger(expected) || expected < 0)) return json({ error: "invalid_revision" }, 400);
 
   try {
     await ensureSchema();
@@ -56,7 +58,7 @@ export async function POST(request) {
 
     // Throttle: reject writes that arrive too fast
     const existing = await sql`
-      SELECT updated_at FROM saves WHERE user_id = ${session.userId} LIMIT 1`;
+      SELECT updated_at, client_updated_at FROM saves WHERE user_id = ${session.userId} LIMIT 1`;
     if (existing.length) {
       const age = Date.now() - new Date(existing[0].updated_at).getTime();
       if (age < MIN_PUSH_INTERVAL_MS && !body?.force) {
@@ -64,13 +66,17 @@ export async function POST(request) {
       }
     }
 
-    await sql`
+    const written = await sql`
       INSERT INTO saves (user_id, data, client_updated_at, updated_at)
-      VALUES (${session.userId}, ${JSON.stringify(save)}::jsonb, ${clientUpdatedAt}, now())
+      SELECT ${session.userId}, ${JSON.stringify(save)}::jsonb, ${clientUpdatedAt}, now()
+      WHERE ${expected}::bigint IS NULL OR EXISTS (SELECT 1 FROM saves WHERE user_id = ${session.userId})
       ON CONFLICT (user_id) DO UPDATE
         SET data = EXCLUDED.data,
-            client_updated_at = EXCLUDED.client_updated_at,
-            updated_at = now()`;
+            client_updated_at = GREATEST(saves.client_updated_at + 1, EXCLUDED.client_updated_at),
+            updated_at = now()
+        WHERE saves.client_updated_at = ${expected}::bigint
+        RETURNING client_updated_at`;
+    if (!written.length) return json({ error: "save_conflict" }, 409);
 
     await sql`
       INSERT INTO leaderboard (
@@ -95,7 +101,7 @@ export async function POST(request) {
             title         = EXCLUDED.title,
             updated_at    = now()`;
 
-    return json({ ok: true, summary: derived, maxBytes: MAX_SAVE_BYTES });
+    return json({ ok: true, revision: Number(written[0].client_updated_at), summary: derived, maxBytes: MAX_SAVE_BYTES });
   } catch (err) {
     console.error('[save:POST]', err);
     return json({ error: 'db_error' }, 500);

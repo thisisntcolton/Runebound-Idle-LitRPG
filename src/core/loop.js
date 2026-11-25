@@ -26,14 +26,15 @@ const MAX_CATCHUP_MS = 5000; // longer gaps are handled by offline progress on r
 
 let last = performance.now();
 
-export function startLoop() {
+export function startLoop(onGap = () => {}) {
   last = performance.now();
+  document.addEventListener("visibilitychange", () => { last = performance.now(); });
   setInterval(() => {
     const now = performance.now();
     let dt = now - last;
     last = now;
-    if (dt <= 0) return;
-    if (dt > MAX_CATCHUP_MS) dt = MAX_CATCHUP_MS;
+    if (document.visibilityState === "hidden" || dt <= 0) return;
+    if (dt > MAX_CATCHUP_MS) { onGap(dt); return; }
 
     tickActiveSkill(dt);
     tickHirelings(dt);

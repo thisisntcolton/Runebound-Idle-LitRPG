@@ -31,6 +31,7 @@ import { edibles, canEat, effectText } from '../systems/potions.js';
 import { canBreakCycle } from '../systems/quests.js';
 import { hirelingProgress, hirelingTask, stealRisk } from '../systems/skills.js';
 import { cloud } from '../core/cloud.js';
+import { saveStatus } from '../core/save.js';
 import { levelForXp, xpForLevel, levelProgress, MAX_LEVEL, SOFT_CAP } from '../core/xp.js';
 import { fmt, fmtInt, fmtDuration } from '../core/format.js';
 
@@ -790,7 +791,7 @@ function accountSection() {
         <button class="btn btn-sm btn-primary" data-act="cloud-sync">⟳ Sync now</button>
         <button class="btn btn-sm" data-act="cloud-signout">Sign out</button>
       </div>
-      <div class="muted" style="margin-top:8px">Your save uploads every 60 seconds and when you leave the tab.</div>`;
+      <div class="muted" style="margin-top:8px">Your save uploads every 60 seconds while the game is visible. Use Sync now before switching devices.</div>`;
   }
 
   const buttons = cloud.providers.map(p => {
@@ -813,12 +814,14 @@ function accountSection() {
 }
 
 export function settingsPanel() {
+  const local = saveStatus();
   return `
     <div class="panel-header"><div class="panel-title">⚙️ Settings</div></div>
     <div class="section-title">Account</div>
     ${accountSection()}
     <div class="section-title">Save management</div>
     <div class="panel-desc">The game autosaves every 10 seconds and on close. Offline progress accrues for up to ${offlineCapHours()}h.</div>
+    <div class="panel-desc">${local.blocked ? "⚠ Local saving paused: export your progress and check the original save before reloading." : `Last local save: ${local.lastSaved ? new Date(local.lastSaved).toLocaleTimeString() : "Not yet saved"}`}</div>
     <div style="display:flex; gap:8px; margin-bottom:10px">
       <button class="btn btn-sm" data-act="export-save">📤 Export save</button>
       <button class="btn btn-sm" data-act="import-save">📥 Import save</button>

@@ -12,10 +12,7 @@
 import { levelForXp, MAX_LEVEL } from '../../src/core/xp.js';
 import { TITLE_SET } from '../../src/data/achievements.js';
 
-const KNOWN_SKILLS = [
-  'woodcutting', 'mining', 'fishing', 'smithing', 'cooking', 'alchemy',
-  'attack', 'strength', 'defense', 'hitpoints',
-];
+import { SKILL_IDS as KNOWN_SKILLS } from '../../src/data/skills.js';
 
 export const MAX_SAVE_BYTES = 512 * 1024;      // 512 KB
 const MAX_XP = 1e12;                            // far beyond level 99 (~13M)

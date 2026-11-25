@@ -13,25 +13,18 @@ import { settleAll } from './pets.js';
 import { getSpecies } from '../data/pets.js';
 
 // Returns a summary { seconds, cappedSeconds, gains: [{icon,text}] } or null.
-export function processOffline() {
+export function processOffline(elapsedOverride) {
   const now = Date.now();
-  const elapsed = Math.floor((now - (state.lastSeen || now)) / 1000);
+  const elapsed = Math.floor(elapsedOverride ?? (now - (state.lastSeen || now)) / 1000);
   state.lastSeen = now;
-  if (elapsed < 60) return null;
+  if (elapsed < 1) return null;
 
   const capSeconds = offlineCapHours() * 3600;
   const seconds = Math.min(elapsed, capSeconds);
   const gains = [];
-  const itemTotals = {};
-  const xpTotals = {};
-
-  const track = (skillId, action, times) => {
-    if (times <= 0) return;
-    xpTotals[skillId] = (xpTotals[skillId] || 0) + action.xp * times;
-    for (const [itemId, qty] of Object.entries(action.output)) {
-      itemTotals[itemId] = (itemTotals[itemId] || 0) + qty * times;
-    }
-  };
+  const beforeItems = {...state.inventory};
+  const beforeXp = Object.fromEntries(Object.entries(state.skills).map(([id, skill]) => [id, skill.xp]));
+  const beforeGold = state.gold;
 
   // Active skill action
   const act = state.activity;
@@ -40,13 +33,13 @@ export function processOffline() {
     if (action) {
       const time = actionTime(act.skillId, action) / 1000;
       let completions = Math.floor(seconds / time);
-      let done = 0;
+
       while (completions-- > 0) {
         if (action.input && !hasInputs(action.input)) break;
         if (!completeAction(act.skillId, action, { announce: false })) break;
-        done++;
+
       }
-      track(act.skillId, action, done);
+
     }
   } else if (act?.type === 'combat') {
     gains.push({ icon: '⛺', text: 'Your hero made camp — combat pauses while you\'re away.' });
@@ -64,23 +57,20 @@ export function processOffline() {
     // Unspent Hours makes the time you were away count for more.
     const offlineRate = rate * (1 + perkEffect('offline_rate') + homeBonus('offline_rate'));
     let completions = Math.floor((seconds * offlineRate) / time);
-    let done = 0;
+
     while (completions-- > 0) {
       if (action.input && !hasInputs(action.input)) break;
       if (!completeAction(skillId, action, { announce: false })) break;
-      done++;
+
     }
-    track(skillId, action, done);
+
   }
 
   // Hearthwick keeps trading while you're away
   const townGains = processTownOffline(seconds);
   if (townGains) {
     gains.push({ icon: '🏘️', text: `Hearthwick worked ${townGains.cycles} shift${townGains.cycles > 1 ? 's' : ''} — net 🪙 ${Math.floor(townGains.gold).toLocaleString()}` });
-    for (const [itemId, qty] of Object.entries(townGains.items)) {
-      const item = getItem(itemId);
-      gains.push({ icon: item?.icon || '📦', text: `${item?.name || itemId} ×${qty} (town)` });
-    }
+
   }
 
   // Pets: care decays against the wall clock, so this is just a report.
@@ -98,13 +88,16 @@ export function processOffline() {
       neglected.length > 1 ? 'are' : 'is'} sulking and needs feeding.` });
   }
 
-  for (const [skillId, xp] of Object.entries(xpTotals)) {
-    gains.push({ icon: SKILLS[skillId].icon, text: `${SKILLS[skillId].name}: +${Math.floor(xp)} base XP` });
+  for (const [skillId, skill] of Object.entries(state.skills)) {
+    const xp = skill.xp - (beforeXp[skillId] || 0);
+    if (xp) gains.push({ icon: SKILLS[skillId]?.icon || '✨', text: `${SKILLS[skillId]?.name || skillId}: +${Math.floor(xp)} XP` });
   }
-  for (const [itemId, qty] of Object.entries(itemTotals)) {
-    const item = getItem(itemId);
-    gains.push({ icon: item?.icon || '📦', text: `${item?.name || itemId} ×${qty}` });
+  for (const itemId of new Set([...Object.keys(beforeItems), ...Object.keys(state.inventory)])) {
+    const qty = (state.inventory[itemId] || 0) - (beforeItems[itemId] || 0);
+    if (qty) gains.push({ icon: getItem(itemId)?.icon || '📦', text: `${getItem(itemId)?.name || itemId}: ${qty > 0 ? '+' : ''}${qty} (net)` });
   }
+  const gold = state.gold - beforeGold;
+  if (gold) gains.push({ icon: '🪙', text: `Gold: ${gold > 0 ? '+' : ''}${Math.floor(gold).toLocaleString()} (net)` });
 
   if (gains.length === 0) return null;
   return { seconds: elapsed, cappedSeconds: seconds, capped: elapsed > capSeconds, gains };

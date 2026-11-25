@@ -8,7 +8,7 @@ import { UPGRADES, HIRELINGS, PERKS, upgradeCost, perkCost,
 import { emit } from '../core/events.js';
 import { spendGold } from './inventory.js';
 import { retireCurrentSelf } from './legacy.js';
-import { save } from '../core/save.js';
+import { save, backupSave } from '../core/save.js';
 import { snapshotCycle, showReturnReport } from './codex.js';
 
 export function canAscend() {
@@ -51,6 +51,7 @@ function strainTown(town) {
 
 export function ascend() {
   if (!canAscend()) return false;
+  backupSave("before-ascension");
   const shards = pendingShards();
   // Record what this cycle cost before the numbers stop existing.
   snapshotCycle();

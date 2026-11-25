@@ -241,8 +241,8 @@ console.log('\nBuild stamp:');
   if (!/__APP_VERSION__/.test(vite)) { console.log('  ✗ vite.config.js no longer defines __APP_VERSION__'); bad++; }
   else console.log('  ✓ the client bundle gets its version at build time');
 
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  if (!/id="build-stamp"/.test(html)) { console.log('  ✗ index.html has nowhere to print the build'); bad++; }
+  const html = readFileSync(new URL('../runebound.html', import.meta.url), 'utf8');
+  if (!/id="build-stamp"/.test(html)) { console.log('  ✗ runebound.html has nowhere to print the build'); bad++; }
   else console.log('  ✓ the page has somewhere to print it');
 }
 

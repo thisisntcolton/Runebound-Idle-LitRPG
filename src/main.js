@@ -1,6 +1,7 @@
 // ============================================================
 // RUNEBOUND — entry point
 // ============================================================
+import { state } from "./core/state.js";
 import { load, save, startAutosave } from './core/save.js';
 import { startLoop } from './core/loop.js';
 import { processOffline } from './systems/offline.js';
@@ -118,7 +119,11 @@ if (!hadSave) {
   popup('SYSTEM AWAKENED', '⚔️ Welcome to <b>RUNEBOUND</b><br><span style="font-size:12px;color:var(--text-dim)">Your grind begins now. It never truly ends.</span>', { ttl: 5 });
 }
 
-startLoop();
+startLoop(dt => {
+  const summary = processOffline(dt / 1000);
+  if (summary) { showOfflineModal(summary); emit("state-changed"); }
+  save();
+});
 startAutosave();
 save();
 
@@ -136,9 +141,13 @@ import('./systems/visiting.js').then(({ publish, loadGifts }) => {
 
 // keep lastSeen fresh when tab hides, so offline calc is honest
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') save();
+  if (document.visibilityState === 'hidden') {
+    state.lastSeen = Date.now();
+    save();
+  }
   else {
     const summary = processOffline();
     if (summary) { showOfflineModal(summary); emit('state-changed'); }
+    save();
   }
 });

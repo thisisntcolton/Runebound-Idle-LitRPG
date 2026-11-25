@@ -6,7 +6,7 @@
 // the account UI just says cloud sync is unavailable.
 // ============================================================
 import { state, replaceState } from './state.js';
-import { save as saveLocal, exportSave, migrate } from './save.js';
+import { save as saveLocal, exportSave, migrate, backupSave, saveStatus } from './save.js';
 import { emit } from './events.js';
 import { xpForLevel } from './xp.js';
 
@@ -24,6 +24,8 @@ export const cloud = {
   syncing: false,
 };
 
+let revision = null;
+let ready = false;
 let hooks = { queueModal: () => {}, popup: () => {}, renderView: () => {} };
 export function setCloudUIHooks(h) { hooks = h; }
 
@@ -84,21 +86,23 @@ export async function signOut() {
 export async function pullCloudSave() {
   const { res, data } = await api('/api/save');
   if (res.status === 401) { cloud.status = 'signed-out'; return null; }
+  if (!res.ok) throw new Error(data.error || "cloud_load_failed");
   return data.save ? data : null;
 }
 
 export async function pushCloudSave({ force = false, silent = true } = {}) {
-  if (cloud.status !== 'signed-in' || cloud.syncing) return false;
+  if (cloud.status !== 'signed-in' || cloud.syncing || !ready || pendingRemote || saveStatus().blocked) return false;
   cloud.syncing = true;
   try {
-    state.lastSeen = Date.now();
     const { res, data } = await api('/api/save', {
       method: 'POST',
-      body: JSON.stringify({ save: state, force }),
+      body: JSON.stringify({ save: state, force, revision }),
     });
+    if (res.status === 409) { ready = false; await reconcile(); return false; }
     if (res.status === 429) return false;           // throttled — next tick will retry
     if (res.status === 401) { cloud.status = 'signed-out'; return false; }
     if (!res.ok) throw new Error(data.error || `push failed (${res.status})`);
+    revision = data.revision;
     cloud.lastSync = Date.now();
     cloud.lastError = null;
     if (!silent) emit('notify', { type: 'sys', text: '[ SYSTEM ] Progress synced to the cloud.' });
@@ -141,6 +145,7 @@ function adoptCloudSave(cloudSave) {
   // Always migrate: a cloud save may predate fields this build expects
   // (or have been trimmed server-side), and a missing field would
   // otherwise crash the game loop.
+  backupSave("before-cloud-restore");
   replaceState(migrate(cloudSave));
   saveLocal();
   emit('notify', { type: 'sys', text: '[ SYSTEM ] Cloud save restored.' });
@@ -159,24 +164,20 @@ async function reconcile() {
   }
 
   // Nothing in the cloud yet — upload what we have.
-  if (!remote) { await pushCloudSave({ force: true }); return; }
+  revision = remote?.clientUpdatedAt ?? null;
+  ready = true;
+  if (!remote) { if (!cloud.syncing) await pushCloudSave({ force: true }); return; }
 
   const local = saveSummary(state);
   const cloudSum = saveSummary(remote.save);
 
   // Fresh device with a blank character: just take the cloud one.
-  if (isBlank(local)) { adoptCloudSave(remote.save); return; }
+  if (!cloud.syncing && isBlank(local)) { adoptCloudSave(remote.save); return; }
 
   // Blank cloud save (signed in, never really played there): push local.
-  if (isBlank(cloudSum)) { await pushCloudSave({ force: true }); return; }
+  if (isBlank(cloudSum) && !cloud.syncing) { await pushCloudSave({ force: true }); return; }
 
-  // Cloud is at or behind local on every axis — push local, no need to ask.
-  if (cloudSum.progressXp <= local.progressXp
-      && cloudSum.ascensions <= local.ascensions
-      && cloudSum.lifetimeGold <= local.lifetimeGold) {
-    await pushCloudSave({ force: true });
-    return;
-  }
+  if (!cloud.syncing && JSON.stringify(remote.save) === JSON.stringify(state)) return;
 
   // Genuine divergence — let the player choose.
   const fmtN = n => n.toLocaleString('en-US');
@@ -205,9 +206,10 @@ async function reconcile() {
 let pendingRemote = null;
 
 export function resolveConflict(choice) {
-  if (choice === 'remote' && pendingRemote) adoptCloudSave(pendingRemote);
-  else pushCloudSave({ force: true, silent: false });
+  const remote = pendingRemote;
   pendingRemote = null;
+  if (choice === 'remote' && remote) adoptCloudSave(remote);
+  else pushCloudSave({ force: true, silent: false });
 }
 
 export async function syncNow() {
@@ -248,20 +250,8 @@ export async function initCloud() {
 
   if (cloud.status === 'signed-in') {
     await reconcile();
-    setInterval(() => pushCloudSave(), SYNC_INTERVAL_MS);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden' && cloud.status === 'signed-in') {
-        state.lastSeen = Date.now();
-        // keepalive lets the request finish as the tab goes away
-        fetch('/api/save', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ save: state, force: true }),
-          keepalive: true,
-        }).catch(() => {});
-      }
-    });
+    setInterval(() => { if (document.visibilityState !== "hidden") { if (ready) pushCloudSave(); else if (!cloud.syncing) reconcile(); } }, SYNC_INTERVAL_MS);
+
   }
 
   emit('state-changed');
