@@ -1,3 +1,4 @@
+import {refreshAchievements} from './paths.js';
 import { initLife, finance, annualLife, lifeOptions, syncChildren } from './life.js';
 // ============================================================
 // LINEAGE — 3-Beat Yearly Flow, Energy Pool, Hidden Strain & Routines
@@ -766,4 +767,4 @@ export function beginNewDynasty() {
 
 export { getActionsForCharacter };
 
-export function performLifeOption(id){const c=state.character;if(!c?.alive||state.pendingEvents.length)return false;const a=lifeOptions(c).find(x=>x.id===id);if(!a?.ok)return false;c.energy-=a.cost;c.money-=a.cash;a.run();const recovery=/^(time:|talk:|gift:|prison:4|clinic:)/.test(id);const intense=/^(crime:|path-act:.*:3|media:4)/.test(id);applyStrainDelta(c,recovery?-a.cost*2:intense?a.cost*4:a.cost*2);c.peakMoney=Math.max(c.peakMoney,c.money);c.yearActions.push(a.label);saveGame();return true;}
+export function performLifeOption(id){const c=state.character;if(!c?.alive||state.pendingEvents.length)return false;const a=lifeOptions(c).find(x=>x.id===id);if(!a?.ok)return false;c.energy-=a.cost;c.money-=a.cash;a.run();refreshAchievements(c);const recovery=/^(time:|talk:|gift:|prison:4|clinic:)/.test(id);const intense=/^(crime:|path-act:.*:3|media:4)/.test(id);applyStrainDelta(c,recovery?-a.cost*2:intense?a.cost*4:a.cost*2);c.peakMoney=Math.max(c.peakMoney,c.money);c.yearActions.push(a.label);saveGame();return true;}

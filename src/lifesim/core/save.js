@@ -1,3 +1,4 @@
+import {migrateProgression} from '../systems/paths.js';
 import { initLife } from '../systems/life.js';
 // ============================================================
 // LINEAGE — Isolated Local Save / Export / Import
@@ -55,7 +56,7 @@ export function migrateSave(data) {
       ...(c.progress || {}),
     };
   }
-  if(merged.character) initLife(merged.character);
+  if(merged.character) {initLife(merged.character);migrateProgression(merged.character);}
   return merged;
 }
 

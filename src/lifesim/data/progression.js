@@ -1,0 +1,6 @@
+// Only genuine starting pursuits are selectable. Everything else needs evidence.
+const starts=new Set([221,222,223,224,225,226,227,228,229,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,251,255,256,257,258,261,262,263,264,265,271,272,273,274,275,276,278,279,281,283,286,287,288,289,290,291,292,293,294,295,296,300,306,309,310,311,312,481,482,489]);
+export function pathType(d){return d.category==='career'?'profession':d.category==='business'?'business':d.category==='hobby'||starts.has(d.id)?'pursuit':'earned';}
+export function startAge(d){if(d.id===251)return 10;if(d.category==='fitness')return 10;if(d.category==='social')return 13;if(d.category==='community')return 13;return d.age;}
+export const requirements={251:'Age 10 and Writing level 5',252:'Independently publish a completed novel',253:'Earn and accept a publishing contract for a completed novel',254:'Sell 100,000 novel copies',260:'Publish three novels and sell 500,000 copies',301:'Reach 100,000 followers',304:'Earn a viral hit',320:'Reach 1 million followers and $100,000 annual creator income',250:'Olympic qualification (not yet implemented)'};
+export function requirement(d){return requirements[d.id]||(pathType(d)==='earned'?'Earn through gameplay; some milestones are not yet implemented.':`Age ${startAge(d)}+ and applicable entry requirements`);}
