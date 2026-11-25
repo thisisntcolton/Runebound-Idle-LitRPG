@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {state} from '../src/lifesim/core/state.js';
+import {startLifeFromDraft,canPerformAction,continueAsHeir} from '../src/lifesim/systems/lifecycle.js';
+import {paths,netWorth,migrateProgression,careerGroup} from '../src/lifesim/systems/paths.js';
+import {lifeOptions,finance} from '../src/lifesim/systems/life.js';
+import {ambition} from '../src/lifesim/systems/ambition.js';
+globalThis.localStorage={getItem:()=>null,setItem:()=>{},removeItem:()=>{}};
+startLifeFromDraft();const c=state.character;c.age=9;c.year=c.birthYear+9;c.stage='Child';c.energy=10;c.money=100000;
+assert(!lifeOptions(c).some(o=>o.id==='path-start:253'));assert(lifeOptions(c).find(o=>o.id==='path-start:162').ok);
+paths(c).discovered[253]=9;migrateProgression(c);assert.equal(paths(c).discovered[253],undefined);
+c.life.home='starter';c.life.mortgage=120000;assert(finance(c).housing>0);
+const w=netWorth(c);ambition(c).businesses.push({id:0,rank:2});assert.equal(netWorth(c),w+25);
+paths(c).sentence=2;assert(!canPerformAction(c,{id:'test',stages:['Child'],cost:1}).ok);assert(lifeOptions(c).every(o=>o.id.startsWith('prison:')));paths(c).sentence=0;
+assert.notEqual(careerGroup(61),careerGroup(9));
+c.alive=false;c.age=80;c.year=c.birthYear+80;c.children=[{firstName:'Heir',lastName:c.lastName,birthYear:c.birthYear+30}];paths(c).active[81]={capital:500,rank:1,xp:0,years:2,condition:70};assert(continueAsHeir());assert.equal(state.character.age,50);assert.equal(state.character.year,c.year);assert.equal(paths(state.character).active[81].capital,500);
+console.log('Regression assertions passed');

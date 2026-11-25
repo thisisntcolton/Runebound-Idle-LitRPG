@@ -1,4 +1,4 @@
-import {refreshAchievements} from './paths.js';
+import {paths,netWorth,refreshAchievements} from './paths.js';
 import { initLife, finance, annualLife, lifeOptions, syncChildren } from './life.js';
 // ============================================================
 // LINEAGE — 3-Beat Yearly Flow, Energy Pool, Hidden Strain & Routines
@@ -161,7 +161,7 @@ export function applyStatDelta(c, key, rawDelta) {
   return actual;
 }
 
-function applyStrainDelta(c, rawStrain) {
+export function applyStrainDelta(c, rawStrain) {
   if (!rawStrain) return;
   const p = traitPassives(c);
   const scaled = rawStrain > 0
@@ -280,7 +280,8 @@ export function yearlyCashDelta(c) {
 // Spend Energy on a single action during Beat 2
 export function canPerformAction(c, action) {
   if (!c || !c.alive || !action) return { ok: false, reason: 'Unavailable' };
-  if (state.pendingEvents.length > 0) return { ok: false, reason: 'Resolve event first' };
+  if (state.pendingEvents.length > 0 || c.encounter) return { ok: false, reason: 'Resolve event first' };
+  if(c.paths?.sentence) return {ok:false,reason:'In prison'};
   if (action.id === "work_overtime" && !initLife(c).job) return {ok:false,reason:"Requires job"};
   if (!action.stages.includes(c.stage)) return { ok: false, reason: 'Wrong life stage' };
   if (c.energy < action.cost) return { ok: false, reason: `Needs ${action.cost}⚡` };
@@ -728,7 +729,7 @@ export function resolveChoice(choiceIdx) {
 
 export function continueAsHeir(childIdx = 0) {
   const prev = state.character;
-  if (!prev || !prev.children?.length) return false;
+  if (!prev || prev.alive || !prev.children?.length) return false;
   const child = prev.children[childIdx] || prev.children[0];
 
   const estateRate = prev.flags.estate_trust ? 0.9 : 0.7;
@@ -746,8 +747,9 @@ export function continueAsHeir(childIdx = 0) {
     backgroundId: prev.backgroundId,
     inheritedMoney,
     inheritedHome: Boolean(prev.flags.homeowner),
-    inheritedAssets: {home:prev.life.home,mortgage:prev.life.mortgage,investment:prev.life.investment,car:prev.life.car,ambition: {...prev.life.ambition,skills:{},followers:0,views:0,posts:0,viral:0,creatorIncome:0}},
+    inheritedAssets: {home:prev.life.home,mortgage:prev.life.mortgage,investment:prev.life.investment,loan:prev.life.loan,car:prev.life.car,ambition: {...prev.life.ambition,skills:{},followers:0,views:0,posts:0,viral:0,creatorIncome:0}},
   });
+  const heir=state.character;heir.year=prev.year;heir.age=Math.max(0,prev.year-child.birthYear);heir.stage=stageForAge(heir.age);heir.inheritedWorth=Math.max(0,netWorth(prev));heir.life.education.credentials=heir.age>=18?['highschool']:[];for(const [id,r] of Object.entries(paths(prev).active))if(+id>=81&&+id<=120)paths(heir).active[id]={...r};const pool=computeYearEnergyPool(heir);heir.energy=heir.energyMax=pool.total;heir.energyBreakdown=pool;state.log=[];addLog('Inherited the family estate at age '+heir.age,'milestone');saveGame();
   return true;
 }
 
