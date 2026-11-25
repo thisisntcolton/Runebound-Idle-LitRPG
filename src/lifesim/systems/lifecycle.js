@@ -1,3 +1,4 @@
+import { startEncounter } from './dialogue.js';
 import {paths,netWorth,refreshAchievements} from './paths.js';
 import { initLife, finance, annualLife, lifeOptions, syncChildren } from './life.js';
 // ============================================================
@@ -347,13 +348,16 @@ export function runActionRoutine(seq = []) {
   let executed = 0;
 
   for (const actId of seq) {
-    const res = performEnergyAction(actId);
+    const before={...c.stats,money:c.money};
+    let res;
+    if(getActionById(actId)) res=performEnergyAction(actId);
+    else { if(startEncounter(actId)) break; if(performLifeOption(actId)) res={deltas:Object.fromEntries(Object.entries(before).map(([k,v])=>[k,(k==='money'?c.money:c.stats[k])-v]))}; }
     if (!res) continue;
     executed += 1;
     for (const [k, v] of Object.entries(res.deltas || {})) {
       combinedDeltas[k] = (combinedDeltas[k] || 0) + v;
     }
-    if (!c.alive || c.energy <= 0) break;
+    if (!c.alive || c.encounter || c.energy <= 0) break;
   }
 
   saveGame();
@@ -425,7 +429,7 @@ export function finishYearAndAgeUp() {
     for (const id of chosenActions) counts[id] = (counts[id] || 0) + 1;
     const labels = Object.entries(counts).map(([id, n]) => {
       const a = getActionById(id);
-      return a ? (n > 1 ? `${a.name} ×${n}` : a.name) : id;
+      return a ? (n > 1 ? `${a.name} ×${n}` : a.name) : (c.actionLabels?.[id]||id);
     });
     summaryParts.push(`Spent the year on ${labels.join(', ')}${unspent > 0 ? ` (+${unspent}⚡ auto-rested)` : ''}.`);
   } else if (unspent > 0) {
@@ -769,4 +773,4 @@ export function beginNewDynasty() {
 
 export { getActionsForCharacter };
 
-export function performLifeOption(id){const c=state.character;if(!c?.alive||state.pendingEvents.length)return false;const a=lifeOptions(c).find(x=>x.id===id);if(!a?.ok)return false;c.energy-=a.cost;c.money-=a.cash;a.run();refreshAchievements(c);const recovery=/^(time:|talk:|gift:|prison:4|clinic:)/.test(id);const intense=/^(crime:|path-act:.*:3|media:4)/.test(id);applyStrainDelta(c,recovery?-a.cost*2:intense?a.cost*4:a.cost*2);c.peakMoney=Math.max(c.peakMoney,c.money);c.yearActions.push(a.label);saveGame();return true;}
+export function performLifeOption(id){const c=state.character;if(!c?.alive||c.encounter||state.pendingEvents.length)return false;const a=lifeOptions(c).find(x=>x.id===id);if(!a?.ok)return false;c.energy-=a.cost;c.money-=a.cash;a.run();refreshAchievements(c);const recovery=/^(time:|talk:|gift:|prison:4|clinic:)/.test(id);const intense=/^(crime:|path-act:.*:3|media:4)/.test(id);applyStrainDelta(c,recovery?-a.cost*2:intense?a.cost*4:a.cost*2);c.peakMoney=Math.max(c.peakMoney,c.money);(c.actionLabels??={})[id]=a.label;c.yearActions.push(id);saveGame();return true;}

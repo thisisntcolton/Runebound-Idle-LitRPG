@@ -14,3 +14,9 @@ paths(c).sentence=2;assert(!canPerformAction(c,{id:'test',stages:['Child'],cost:
 assert.notEqual(careerGroup(61),careerGroup(9));
 c.alive=false;c.age=80;c.year=c.birthYear+80;c.children=[{firstName:'Heir',lastName:c.lastName,birthYear:c.birthYear+30}];paths(c).active[81]={capital:500,rank:1,xp:0,years:2,condition:70};assert(continueAsHeir());assert.equal(state.character.age,50);assert.equal(state.character.year,c.year);assert.equal(paths(state.character).active[81].capital,500);
 console.log('Regression assertions passed');
+const {performLifeOption,runActionRoutine}=await import('../src/lifesim/systems/lifecycle.js');
+const {financialRecovery}=await import('../src/lifesim/systems/life.js');
+const h=state.character;state.pendingEvents=[];h.energy=10;h.money=0;h.life.job=null;h.life.retired=false;h.life.home='affordable';h.life.mortgage=0;h.encounter={kind:'thread'};
+assert.equal(performLifeOption('recovery:work'),false);assert.equal(h.energy,10);h.encounter=null;
+assert(performLifeOption('recovery:work'));assert.equal(h.yearActions.at(-1),'recovery:work');assert.equal(runActionRoutine(['recovery:work']).executed,1);assert.equal(h.money,3000);
+assert(finance(h).assistance>0);h.money=-100000;financialRecovery(h,[]);assert(h.money>=0);assert.equal(h.life.bankruptcies,1);console.log('Financial recovery and routine assertions passed');
