@@ -4,12 +4,28 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/runebound",
+      "destination": "/runebound.html"
+    },
+    {
+      "source": "/lifesim",
+      "destination": "/lifesim.html"
+    },
+    {
+      "source": "/((?!api/|runebound\\.html|lifesim\\.html).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
     }
   ]
 }

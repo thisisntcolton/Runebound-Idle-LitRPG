@@ -3,67 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Runebound — an idle LitRPG</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚔️</text></svg>" />
-  <link rel="stylesheet" href="/src/styles.css" />
+  <title>Idle Hub — Runebound & Lineage</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌌</text></svg>" />
+  <link rel="stylesheet" href="/src/hub/hub.css" />
 </head>
 <body>
-  <div id="app">
-    <!-- Top bar: currencies + character summary -->
-    <header id="topbar">
-      <div class="topbar-left">
-        <div class="game-title">⚔️ RUNEBOUND</div>
-        <div class="topbar-sub">an idle LitRPG</div>
-        <div id="build-stamp" class="build-stamp" title="The build this page was served from"></div>
-      </div>
-      <div class="topbar-currencies">
-        <div class="currency" title="Gold — earned from selling loot and slaying monsters">
-          <span class="currency-icon">🪙</span>
-          <span id="gold-display" class="currency-value">0</span>
-        </div>
-        <div class="currency" title="Fate Shards — earned by Ascending. Each grants permanent bonuses.">
-          <span class="currency-icon">💠</span>
-          <span id="shards-display" class="currency-value">0</span>
-        </div>
-        <div class="currency" title="Character Level — rises with your total skill levels">
-          <span class="currency-icon">🎖️</span>
-          <span id="charlevel-display" class="currency-value">Lv. 1</span>
+  <div class="hub-shell">
+    <header class="hub-header">
+      <div class="hub-brand">
+        <span class="hub-logo">🌌</span>
+        <div>
+          <h1>IDLE REALMS HUB</h1>
+          <p class="hub-tagline">One workshop, multiple worlds — saves stay right in your browser &amp; cloud</p>
         </div>
       </div>
-      <div id="buff-bar" class="buff-bar" title="Active potion effects"></div>
-      <button class="btn btn-town btn-sm" data-act="nav" data-view="town" title="Manage Hearthwick">🏘️ Go To Town</button>
-      <button class="btn btn-menagerie btn-sm" data-act="nav" data-view="pets" title="Raise, feed and breed your pets">🐾 Menagerie</button>
-      <div class="topbar-active">
-        <div id="active-action-display" class="active-action">Idle</div>
-      </div>
+      <div id="hub-account" class="hub-account">Checking session…</div>
     </header>
 
-    <div id="layout">
-      <!-- Sidebar navigation -->
-      <nav id="sidebar"></nav>
+    <main class="hub-main">
+      <section class="hub-section-head">
+        <h2>Select a Project</h2>
+        <span id="hub-build" class="hub-build"></span>
+      </section>
 
-      <!-- Main content panel -->
-      <main id="main-panel"></main>
-    </div>
-
-    <!-- LitRPG system message log -->
-    <div id="system-log">
-      <div class="system-log-header">
-        <span>◈ SYSTEM LOG</span>
-        <button id="log-toggle" title="Collapse/expand">—</button>
+      <div id="hub-grid" class="hub-grid">
+        <!-- Populated dynamically by src/hub/main.js with live save stats -->
       </div>
-      <div id="system-log-messages"></div>
-    </div>
+    </main>
 
-    <!-- Level-up / system popups -->
-    <div id="popup-container"></div>
-
-    <!-- Modal overlay (offline progress, ascension confirm, etc.) -->
-    <div id="modal-overlay" class="hidden">
-      <div id="modal-window"></div>
-    </div>
+    <footer class="hub-footer">
+      <span>Local saves persist automatically per game (<code>runebound-save-v1</code> &amp; <code>lifesim-save-v1</code>).</span>
+    </footer>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/hub/main.js"></script>
 </body>
 </html>

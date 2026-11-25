@@ -1,0 +1,4 @@
+import { picture } from './art.js';
+import { scene } from '../systems/dialogue.js';
+import { avatar } from './town.js';
+export function encounterHTML(c,esc){const e=c.encounter,s=scene(c);const clinic=e.kind==='clinic',park=['date','marry'].includes(e.kind);return `<div class="encounter-art">${clinic?'':picture(park?'cafe':'workplace','Encounter setting')}</div><div class="encounter-speaker">${avatar(35)}<div><small>${esc(e.label)}</small><h2>${esc(s.speaker)}</h2></div></div><p class="encounter-text">${esc(s.text)}</p><div class="encounter-options">${s.options.map((o,i)=>`<button class="choice-btn" data-act="dialogue-choice" data-idx="${i}">${esc(o[0])}</button>`).join('')}</div><p class="encounter-note">Your choices may open future chapters. Finish this conversation before continuing the year.</p>`;}

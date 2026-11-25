@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebShire — A little world. A whole lifetime.</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌳</text></svg>" />
+  <link rel="stylesheet" href="/src/lifesim/styles.css" />
+</head>
+<body>
+  <div id="ls-app">
+    <header id="ls-topbar">
+      <div class="ls-topbar-left">
+        <a href="./index.html" class="ls-btn ls-btn-ghost ls-btn-sm" title="Back to Idle Hub">🏠 Hub</a>
+        <div class="ls-brand">
+          <span class="ls-title">Web<span>Shire</span></span>
+          <span class="ls-sub">A little world. A whole lifetime.</span>
+        </div>
+      </div>
+
+      <div id="ls-header-summary" class="ls-header-summary"></div>
+
+      <div class="ls-topbar-right">
+        <button class="ls-btn ls-btn-ghost ls-btn-sm" data-act="open-tree" title="View Family Tree">🌳 Memory Lane</button>
+        <button class="ls-btn ls-btn-ghost ls-btn-sm" data-act="open-settings" title="Save / Export / Reset">⚙️ Save</button>
+      </div>
+    </header>
+
+    <main id="ls-main" class="ls-main">
+      <!-- Left column: Character card, core stat bars, traits & background -->
+      <aside id="ls-sidebar" class="ls-panel ls-sidebar"></aside>
+
+      <!-- Center column: Active Event Card / Character Creation / Death Summary + Age Up button -->
+      <section id="ls-stage" class="ls-stage"></section>
+
+      <!-- Right column: Scrolling Life Log -->
+      <section id="ls-log-panel" class="ls-panel ls-log-panel">
+        <div class="ls-panel-header">
+          <span>📖 MY STORY</span>
+          <span id="ls-log-count" class="ls-dim-tag">0 entries</span>
+        </div>
+        <div id="ls-log-list" class="ls-log-list"></div>
+      </section>
+    </main>
+
+    <!-- Floating delta toast container -->
+    <div id="ls-toast-layer" class="ls-toast-layer"></div>
+
+    <!-- Modal for Family Tree & Save Settings -->
+    <div id="ls-modal-backdrop" class="ls-modal-backdrop hidden">
+      <div id="ls-modal-box" class="ls-modal-box"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/lifesim/main.js"></script>
+</body>
+</html>

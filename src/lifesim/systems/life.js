@@ -1,0 +1,36 @@
+import { ambition, ambitionOptions, extraFinance, annualAmbition } from './ambition.js';
+import { clampStat } from '../core/state.js';
+import { JOBS, COURSES, HOMES, CONDITIONS } from '../data/life.js';
+const names=['Alex','Morgan','Jamie','Taylor','Jordan','Casey','Robin','Sam','Avery','Riley'];
+const name=()=>names[Math.floor(Math.random()*names.length)];
+export function npc(c,role,age,score=60,firstName=name()) { const n={id:String(++c.life.serial),name:firstName,role,birthYear:c.year-age,score,status:'alive'}; c.life.people.push(n); return n; }
+export function initLife(c) {
+ if(c.life) { ambition(c); return c.life; }
+ const l=c.life={serial:0,people:[],education:{grade:clampStat(c.stats.smarts+15),credentials:c.age>=18?['highschool']:[],course:null,years:0},job:null,retired:false,loan:0,home:c.flags.homeowner?'starter':c.age>=18?'rent':'family',mortgage:0,car:false,investment:0,conditions:{},lastFinance:null,babyYear:null};
+ if(c.flags.degree) l.education.credentials.push('computing','business','health');
+ if(c.flags.trade_cert) l.education.credentials.push('trade');
+ npc(c,'Parent',c.age+25,75); npc(c,'Parent',c.age+28,75); if(Math.random()<.6) npc(c,'Sibling',Math.max(0,c.age-2));
+ syncChildren(c); ambition(c); return l;
+}
+export function syncChildren(c){ for(const child of c.children||[]) { if(!child.npcId){ const n=npc(c,'Child',c.year-child.birthYear,85,child.firstName); child.npcId=n.id; } } }
+// Fixed 30-year mortgage at 6% annual interest, settled in yearly installments.
+export function mortgagePayment(balance, price) {
+ const principal=Math.max(0,balance||0), rate=.06;
+ const scheduled=Math.round(price*.8*rate/(1-Math.pow(1+rate,-30)));
+ const interest=Math.round(principal*rate);
+ const payment=Math.min(principal+interest,Math.max(scheduled,interest));
+ return {payment,interest,principal:payment-interest};
+}
+export function housingCosts(l){const h=HOMES.find(h=>h[0]===l.home);const price=h?.[2]||0;const upkeep=h?.[3]||0;const mortgage=mortgagePayment(l.mortgage,price);const propertyTax=Math.round(price*.012);const insurance=Math.round(price*.005);return {upkeep,propertyTax,insurance,mortgage,total:upkeep+propertyTax+insurance+mortgage.payment};}
+export function finance(c,p={}) { const l=initLife(c); if(c.age<18){const x=extraFinance(c),other=x.business+x.royalties+x.creator;return {salary:0,pension:0,other,taxes:0,housing:0,living:0,debt:0,net:other};} const salary=l.job?Math.round(l.job.salary*(p.incomeMult||1)):0; const pension=l.retired?18000:0; const x=extraFinance(c); const other=x.rentals+x.business+x.royalties+x.creator+(p.incomeBonus||0)+Math.floor((c.progress.hustle||0)/3)*350+Math.round(l.investment*.04)+(!salary&&!pension?12000:0)+['gentry_network','family_deli','shop_dividend','indie_royalties'].reduce((s,k)=>s+(c.flags[k]?700:0),0); const taxes=Math.round(Math.max(0,salary+pension+other-12000)*.18); const housing=housingCosts(l).total; const living=x.lifestyle+x.transport+(c.children||[]).filter(x=>c.year-x.birthYear<18).length*3000; const debt=Math.min(l.loan,Math.ceil(l.loan*.08)); return {salary,pension,other,taxes,housing,living,debt,net:salary+pension+other-taxes-housing-living-debt}; }
+export function annualLife(c,summary,stat,p) { const l=initLife(c), e=l.education; if(c.age>=5&&c.age<18)e.grade=clampStat(e.grade+(c.stats.smarts-50)/20-2); if(c.age===17){if(l.home==='family')l.home='rent';e.credentials.push('highschool');summary.push('Graduated high school.');} if(e.course){ const course=COURSES.find(x=>x[0]===e.course); l.loan+=course[3]; if(++e.years>=course[2]){e.credentials.push(course[0]);e.course=null;summary.push(`Graduated ${course[1]}.`);} } if(l.job){const j=l.job;j.years++;j.performance=clampStat(j.performance-5+(c.stats.health-60)/10);if(j.performance<25||c.stats.health<15){summary.push(`Lost job as ${j.name}.`);l.job=null;}else if(j.performance>=80){j.salary=Math.round(j.salary*1.1);j.performance=60;summary.push('🏆 Earned a promotion and 10% raise.');}} {const f=finance(c,p);l.lastFinance=f;c.money+=f.net;l.loan-=f.debt;l.mortgage-=c.age>=18?housingCosts(l).mortgage.principal:0;summary.push(`Annual finances: ${f.net>=0?'+':''}$${f.net.toLocaleString()}.`);} annualAmbition(c,summary); for(const n of l.people){if(n.status==='alive'){n.score=clampStat(n.score-2);if(c.year-n.birthYear>=85&&Math.random()<.15)n.status='deceased';}} if(c.strain>=75)l.conditions.stress=1;if(c.stats.health<45&&c.age>=35)l.conditions.pressure=1;if(Math.random()<.06)l.conditions.flu=1;if(Math.random()<.015)l.conditions.bone=1;for(const [k,v] of Object.entries(l.conditions)){stat(c,'health',-CONDITIONS[k][1]);if(k==='flu'||k==='bone'){if(v>=2)delete l.conditions[k];else l.conditions[k]++;}} }
+export function lifeOptions(c){const l=initLife(c),e=l.education, out=[]; const add=(id,label,cost,ok,run,cash=0)=>out.push({id,label,cost,ok:!!ok&&c.energy>=cost&&(cash===0||c.money>=cash),run,cash}); const adult=c.age>=18;
+ for(const j of JOBS)add('job:'+j.id,`Apply: ${j.name} ($${j.salary}/yr)`,1,adult&&!l.retired&&l.job?.id!==j.id&&c.stats.smarts>=j.smarts&&(!j.credential||e.credentials.includes(j.credential)),()=>{l.job={...j,performance:55,years:0};});
+ for(const [id,label,years,tuition] of COURSES)add('course:'+id,`${label} (${years} yrs, $${tuition}/yr loans)`,1,adult&&!e.course&&!e.credentials.includes(id),()=>{e.course=id;e.years=0;});
+ add('retire','Retire',1,c.age>=65&&!l.retired,()=>{l.retired=true;l.job=null;});
+ add('friend','Meet a friend',1,c.age>=5,()=>npc(c,'Friend',c.age,50));
+ for(const n of l.people.filter(n=>n.status==='alive')){const a=(id,label,cost,ok,run,cash=0)=>add(`${id}:${n.id}`,`${label} — ${n.name}`,cost,ok,run,cash); const boost=x=>n.score=clampStat(n.score+x);a('time','Spend Time',1,true,()=>boost(8));a('talk','Deep Talk',2,true,()=>boost(15));a('gift','Give Gift',1,true,()=>boost(12),100);a('argue','Argue',1,true,()=>boost(-15));a('date','Ask Out',1,adult&&n.role==='Friend'&&c.year-n.birthYear>=18&&n.score>=60&&!l.people.some(x=>['Partner','Spouse'].includes(x.role)&&x.status==='alive'),()=>{n.role='Partner';});a('marry','Propose / Marry',2,n.role==='Partner'&&n.score>=80,()=>{n.role='Spouse';c.flags.married=true;},500);a('divorce','Divorce',1,n.role==='Spouse',()=>{n.role='Ex-spouse';c.flags.married=false;boost(-30);});a('baby','Try for a Baby',2,adult&&c.age<=50&&['Partner','Spouse'].includes(n.role)&&n.score>=65&&l.babyYear!==c.year,()=>{l.babyYear=c.year;if(Math.random()<.65){c.children.push({firstName:name(),lastName:c.lastName,birthYear:c.year});syncChildren(c);}});}
+ for(const [id,label,price] of HOMES.filter(h=>h[0]!=='family'))add('home:'+id,`${label}${price?' — $'+price.toLocaleString():''}`,1,adult&&l.home!==id,()=>{const old=HOMES.find(h=>h[0]===l.home);c.money+=(old?.[2]||0)-l.mortgage;l.home=id;l.mortgage=price*.8;c.flags.homeowner=!!price;},price*.2);
+ add('invest','Invest $1,000',1,adult,()=>{l.investment+=1000;},1000);add('withdraw','Withdraw investments',1,l.investment>0,()=>{c.money+=l.investment;l.investment=0;});
+ for(const [k,[label,,cash]] of Object.entries(CONDITIONS))add('clinic:'+k,`${k==='stress'?'Therapy':'Doctor'}: ${label}`,1,!!l.conditions[k],()=>{delete l.conditions[k];if(k==='stress')c.strain=Math.max(0,c.strain-20);},cash);
+ ambitionOptions(c,add); return out; }
