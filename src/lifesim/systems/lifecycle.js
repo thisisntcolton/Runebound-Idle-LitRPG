@@ -766,4 +766,4 @@ export function beginNewDynasty() {
 
 export { getActionsForCharacter };
 
-export function performLifeOption(id){const c=state.character;if(!c?.alive||state.pendingEvents.length)return false;const a=lifeOptions(c).find(x=>x.id===id);if(!a?.ok)return false;c.energy-=a.cost;c.money-=a.cash;a.run();if(/^(skill:|develop:|upgrade:|business:|post$)/.test(id))applyStrainDelta(c,a.cost*3);c.peakMoney=Math.max(c.peakMoney,c.money);c.yearActions.push(a.label);saveGame();return true;}
+export function performLifeOption(id){const c=state.character;if(!c?.alive||state.pendingEvents.length)return false;const a=lifeOptions(c).find(x=>x.id===id);if(!a?.ok)return false;c.energy-=a.cost;c.money-=a.cash;a.run();const recovery=/^(time:|talk:|gift:|prison:4|clinic:)/.test(id);const intense=/^(crime:|path-act:.*:3|media:4)/.test(id);applyStrainDelta(c,recovery?-a.cost*2:intense?a.cost*4:a.cost*2);c.peakMoney=Math.max(c.peakMoney,c.money);c.yearActions.push(a.label);saveGame();return true;}
