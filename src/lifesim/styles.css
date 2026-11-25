@@ -838,3 +838,4 @@ html,body{background:linear-gradient(#b9dff3,#e6f3d8);background-attachment:fixe
 .ls-pill.energy-header-pill{background:#fff4d8;color:#513b22;border:1px solid #bca47b;font-size:15px;white-space:nowrap}
 .energy-header-pill strong{font-size:18px;font-variant-numeric:tabular-nums}
 @media(max-width:480px){.energy-banner{padding:12px}.energy-count{font-size:28px}.energy-count span{font-size:16px}.energy-pips{gap:3px}.energy-pip{height:18px}}
+.district-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}.life-panel details{margin:8px 0}.life-panel details>summary{cursor:pointer;padding:6px}

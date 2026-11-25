@@ -599,6 +599,7 @@ export function finalizeDeath(cause) {
     cause,
     childrenCount: c.children?.length || 0,
     traits: [...(c.traits || [])],
+    storyHistory: c.journal?.history || [],
   });
 
   if (c.flags.wrote_memoirs) state.dynasty.legacyFlags.memoirs = true;

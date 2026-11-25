@@ -1,3 +1,7 @@
+import {PATHS} from '../data/paths.js';
+import {paths,districts} from '../systems/paths.js';
+import { SAGAS } from '../data/sagas.js';
+import { journal, eligible, startSaga, openSaga } from '../systems/sagas.js';
 import { picture } from './art.js';
 import { ambition, level, SKILLS, CARS, PROPERTIES, BUSINESSES, PROJECTS, LIFESTYLES, extraFinance } from '../systems/ambition.js';
 import { startEncounter, chooseEncounter, dueThread, openThread } from '../systems/dialogue.js';
@@ -410,6 +414,7 @@ function renderStage() {
     : 'None yet — pick actions below, run a routine, or finish early to auto-rest!';
 
   st.innerHTML = `
+    <details class="life-panel"><summary>Life journal · ${journal(c).history.length} memories</summary>${SAGAS.filter(s=>eligible(c,s)).map(s=>{const a=journal(c).arcs[s[0]];return `<p><b>${esc(s[1])}</b> · ${a?`${a.step}/${s[4].length} chapters`: 'Undiscovered'} ${!a||a.step<s[4].length&&a.due<=c.year?`<button class="ls-btn ls-btn-ghost" data-act="${a?'saga-open':'saga-start'}" data-id="${s[0]}">${a?'Continue':'Discover'}</button>`:a.step<s[4].length?` · Next chapter ${a.due}`:' · Complete'}</p>`}).join('')}${journal(c).history.slice().reverse().map(m=>`<p>${m.year} · ${esc(m.title)} — ${esc(m.result)}</p>`).join('')}</details>
     ${dueThread(c)?`<section class="life-panel"><h3>Ongoing chapters</h3><p>${esc(dueThread(c).title)} — someone is waiting to hear from you.</p><button class="ls-btn ls-btn-primary" data-act="open-thread">Continue story</button></section>`:''}
     <div class="energy-banner energy-${curE === 0 ? 'empty' : curE / Math.max(1,maxE) <= .25 ? 'low' : curE / Math.max(1,maxE) <= .5 ? 'medium' : 'high'}">
       <div class="energy-top-row">
@@ -457,7 +462,8 @@ function renderStage() {
       ` : ''}
     </div>
 
-    ${lifeTab==='map'?townMap(lifeTab,esc,townAvailability(c,actions)):lifeTab==='year'?homeScene(homeRoom,homeObject,actions,a=>canPerformAction(c,a),esc,c.life.home):locationScene(lifeTab,esc,townAvailability(c,actions))}
+    ${lifeTab==='map'?`<section class="life-panel"><h3>Explore more of WebShire</h3><div class="district-grid">${Object.entries(districts).map(([id,n])=>`<button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="${id}">${esc(n)}</button>`).join('')}</div></section>`:''}
+    ${lifeTab==='map'?townMap(lifeTab,esc,townAvailability(c,actions)):lifeTab==='year'?homeScene(homeRoom,homeObject,actions,a=>canPerformAction(c,a),esc,c.life.home):districts[lifeTab]?`<section class="life-panel"><h2>${esc(districts[lifeTab])}</h2><button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="map">← Town map</button></section>`:locationScene(lifeTab,esc,townAvailability(c,actions))}
     ${lifeTab==='year'?`<details class="home-all"><summary>All available activities</summary><div class="action-grid">
       ${actions.map(act => {
         const chk = canPerformAction(c, act);
@@ -608,7 +614,7 @@ export function bindEvents() {
 
     const act = btn.dataset.act;
 
-    if(state.character?.encounter && act!=='dialogue-choice')return; if(act==='dialogue-choice'){chooseEncounter(Number(btn.dataset.idx));if(!state.character?.encounter)document.getElementById('ls-modal-backdrop').classList.add('hidden');renderAll();}else if(act==='open-thread'){openThread();renderAll();}else if(act==='home-room'){homeRoom=btn.dataset.id;homeObject='';renderAll();} else if(act==='home-object'){homeObject=btn.dataset.id;renderAll();} else if (act === 'life-tab') { lifeTab=btn.dataset.id; renderAll(); } else if(act==='life-option'){if(!startEncounter(btn.dataset.id))performLifeOption(btn.dataset.id);renderAll();} else if (act === 'reroll-traits' || act === 'reroll-all') {
+    if(state.character?.encounter && act!=='dialogue-choice')return; if(state.character?.paths?.sentence&&['spend-energy','run-routine'].includes(act))return; if(act==='dialogue-choice'){chooseEncounter(Number(btn.dataset.idx));if(!state.character?.encounter)document.getElementById('ls-modal-backdrop').classList.add('hidden');renderAll();}else if(act==='saga-start'||act==='saga-open'){(act==='saga-start'?startSaga:openSaga)(btn.dataset.id);renderAll();}else if(act==='open-thread'){openThread();renderAll();}else if(act==='home-room'){homeRoom=btn.dataset.id;homeObject='';renderAll();} else if(act==='home-object'){homeObject=btn.dataset.id;renderAll();} else if (act === 'life-tab') { lifeTab=btn.dataset.id; renderAll(); } else if(act==='life-option'){if(!startEncounter(btn.dataset.id))performLifeOption(btn.dataset.id);renderAll();} else if (act === 'reroll-traits' || act === 'reroll-all') {
       const firstName = document.getElementById('inp-first')?.value;
       const lastName = document.getElementById('inp-last')?.value;
       const birthYear = Number(document.getElementById('inp-year')?.value) || 1995;
@@ -748,6 +754,12 @@ function townAvailability(c, actions) {
   return Object.fromEntries(Object.entries(groups).map(([id,[items,locked,label,reason]]) => [id,{count:items.length,min:items.length?Math.min(...items.map(a=>a.cost)):0,locked,label,reason,alert:id==='clinic'&&Object.keys(c.life.conditions).length>0}]));
 }
 function renderLifePanel(c){const l=initLife(c),e=l.education;const options=lifeOptions(c);const buttons=xs=>xs.map(a=>`<button class="ls-btn ls-btn-ghost" data-act="life-option" data-id="${esc(a.id)}" ${a.ok?'':'disabled'}>${esc(a.label)} · ${a.cost}⚡ ${a.cash?esc(fmtMoney(a.cash)):''}</button>`).join(' ');const actions=ids=>getActionsForCharacter(c).filter(a=>ids.includes(a.id)).map(a=>`<button class="ls-btn ls-btn-ghost" data-act="spend-energy" data-id="${esc(a.id)}" ${canPerformAction(c,a).ok?'':'disabled'}>${esc(a.name)} · ${a.cost}⚡</button>`).join(' ');
+const p=paths(c);const pathRows=cat=>PATHS.filter(d=>d.category===cat).map(d=>{const r=p.active[d.id];const opts=options.filter(o=>o.id==='path-start:'+d.id||o.id.startsWith('path-act:'+d.id+':'));return `<details><summary>${esc(d.name)} ${r?' · Rank '+r.rank:''}</summary>${buttons(opts)}${!opts.length?'Discovered through life events.':''}</details>`}).join('');
+const districtPatterns={realty:/^(home:|property:|sellproperty:)/,auto:/^(vehicle:|sellvehicle)/,bank:/^(invest$|withdraw$)/,business:/^(business:|upgrade:|sellbusiness:)/,creative:/^(project:|develop:)/,social:/^media:/,fitness:/^gym:/,crime:/^(crime:|prison:)/,love:/^(romance:|date:|marry:|divorce:)/,family:/^(baby:|time:|talk:)/,lifestyle:/^lifestyle:/,assets:/^lifestyle:/};
+if(p.sentence)return `<section class="life-panel"><h3>Prison · ${p.sentence} years remaining</h3>${buttons(options)}</section>`;
+if(lifeTab==='paths')return `<section class="life-panel"><h3>${Object.keys(p.discovered).length}/500 discovered</h3>${PATHS.map(d=>`<p>${p.discovered[d.id]!==undefined?'✓':'○'} ${d.id}. ${esc(d.name)}</p>`).join('')}</section>`;
+if(districts[lifeTab]||lifeTab==='assets'){const re=districtPatterns[lifeTab];return `<section class="life-panel"><h3>${esc(districts[lifeTab]||'Marketplace')}</h3>${lifeTab==='crime'?`<p>Police attention ${p.heat}/100 · Criminal XP ${p.crimeXP} · Convictions ${p.convictions} · Criminal earnings ${fmtMoney(p.crimeCash)}</p>`:''}${lifeTab==='fitness'?`<p>Strength ${p.strength} · Endurance ${p.endurance}</p>`:''}${lifeTab==='social'?`<p>${ambition(c).followers} followers · ${ambition(c).views} views</p>`:''}${re?buttons(options.filter(o=>re.test(o.id))):''}${pathRows(lifeTab)}${lifeTab==='crime'?p.record.slice(-15).map(r=>`<p>${esc(r.text)}</p>`).join(''):''}</section>`;}
+if(lifeTab==='career')return `<section class="life-panel"><h3>${esc(l.job?.name||'Unemployed')}</h3><p>${l.job?fmtMoney(l.job.salary)+'/year · Performance '+l.job.performance:''}</p>${buttons(options.filter(o=>o.id==='retire'))}${pathRows('career')}</section>`;
 if(lifeTab==='school'||lifeTab==='career')return `<section class="life-panel">${lifeTab==='school'?`<h3>Education</h3><p>Grade: ${e.grade}/100 · Credentials: ${esc(e.credentials.join(', ')||'None')} · ${esc(e.course||'Not enrolled')} (${e.years} years)</p>${actions(['child_study','teen_study','study'])}<div>${buttons(options.filter(a=>a.id.startsWith('course:')))}</div>`:`<h3>Career</h3><p>${l.job?esc(`${l.job.name} · ${fmtMoney(l.job.salary)}/yr · Performance ${l.job.performance}/100 · ${l.job.years} years`):l.retired?'Retired':'Unemployed'}</p>${actions(['work_overtime'])}<h4>Job Board</h4>${buttons(options.filter(a=>a.id.startsWith('job:')||a.id==='retire'))}`}</section>`;
 if(lifeTab==='people')return `<section class="life-panel"><h3>Relationships</h3>${buttons(options.filter(a=>a.id==='friend'))}${l.people.map(n=>`<article><b>${esc(n.name)} · ${esc(n.role)}</b> — Age ${c.year-n.birthYear} · ${esc(n.status)}<div><progress max="100" value="${n.score}"></progress> ${n.score}/100</div>${buttons(options.filter(a=>a.id.endsWith(':'+n.id)))}</article>`).join('')}</section>`;
 if(lifeTab==='clinic')return `<section class="life-panel"><h3>Welcome to the clinic</h3><p>${esc(Object.keys(l.conditions).map(k=>CONDITIONS[k][0]).join(', ')||'No diagnosed conditions')}</p>${buttons(options.filter(a=>a.id.startsWith('clinic:')))}</section>`;
