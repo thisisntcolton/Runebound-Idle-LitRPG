@@ -13,7 +13,7 @@ import { townMap, locationScene, avatar } from './town.js';
 import { initLife, lifeOptions, finance, housingCosts } from '../systems/life.js';
 import { performLifeOption, traitPassives } from '../systems/lifecycle.js';
 import { HOMES, CONDITIONS } from '../data/life.js';
-let lifeTab='map';
+let lifeTab='map', pathQuery='', pathCategory='all', pathStatus='all';
 // ============================================================
 // LINEAGE — DOM Renderer & Event Delegation (3-Beat Energy System)
 // ============================================================
@@ -94,9 +94,18 @@ export function renderAll() {
   renderSidebar();
   renderStage();
   renderLog();
+  renderNavigation();
   if(state.character?.encounter){const bd=document.getElementById('ls-modal-backdrop');document.getElementById('ls-modal-box').innerHTML=encounterHTML(state.character,esc);bd.classList.remove('hidden');}
 }
 
+function renderNavigation(){
+ const c=state.character, nav=document.getElementById('ls-primary-nav'), dock=document.getElementById('ls-year-dock');
+ const ready=!!(c?.alive && state.mode!=='create' && !getActiveEvent() && !c.encounter);
+ if(nav){nav.hidden=!ready;nav.innerHTML=ready? [['life','📖 Life'],['map','🗺 Town'],['character','👤 Character'],['people','👥 People'],['assets','💼 Assets']].map(([id,label])=>`<button data-act="life-tab" data-id="${id}" aria-pressed="${lifeTab===id || id==='map'&&!['life','character','people','assets'].includes(lifeTab)}">${label}</button>`).join(''):'';}
+ if(dock){dock.hidden=!ready;dock.innerHTML=ready?`<span>⚡ ${c.energy}/${c.energyMax} Energy · Age ${c.age}</span><button class="age-up-btn" data-act="age-up">Finish Year → Age ${c.age+1}</button>`:'';}
+}
+function pathCollection(c){const p=paths(c);const rows=PATHS.filter(d=>(pathCategory==='all'||d.category===pathCategory)&&(pathStatus==='all'||(p.discovered[d.id]!==undefined)===(pathStatus==='earned'))&&d.name.toLowerCase().includes(pathQuery.toLowerCase()));return `<section class="life-panel"><h2>Life Path Collection</h2><p>${Object.keys(p.discovered).length} / ${PATHS.length} discovered</p><div class="path-filters"><label>Search<input id="path-query" value="${esc(pathQuery)}" placeholder="Find a life path"></label><label>Category<select id="path-category">${['all',...new Set(PATHS.map(d=>d.category))].map(k=>`<option value="${k}" ${k===pathCategory?'selected':''}>${esc(k)}</option>`).join('')}</select></label><label>Status<select id="path-status">${['all','earned','undiscovered'].map(k=>`<option ${k===pathStatus?'selected':''}>${k}</option>`).join('')}</select></label></div><p>${rows.length} results</p><div class="path-results">${rows.map(d=>`<article><b>${p.discovered[d.id]!==undefined?'✓':'○'} ${esc(d.name)}</b><small>${esc(pathType(d))} · ${esc(requirement(d))}</small></article>`).join('')}</div></section>`;}
+function characterDashboard(c){const a=ambition(c),l=initLife(c);return `<section class="life-panel"><h2>Character development</h2><p>${esc(l.job?.name||'No current job')} · ${esc(l.education.credentials.join(', ')||'No qualifications')}</p><div class="district-grid"><button data-act="life-tab" data-id="paths" class="ls-btn ls-btn-ghost">Life paths</button><button data-act="life-tab" data-id="education" class="ls-btn ls-btn-ghost">Train skills</button><button data-act="life-tab" data-id="career" class="ls-btn ls-btn-ghost">Career</button></div><h3>Skills</h3><div class="skill-grid">${SKILLS.map(k=>[k,level(a,k)]).sort((x,y)=>y[1]-x[1]).map(([k,n])=>`<article>${esc(k)} <b>Lv. ${n}</b></article>`).join('')}</div></section>`;}
 function renderTopbar() {
   const el = document.getElementById('ls-header-summary');
   if (!el) return;
@@ -137,6 +146,7 @@ function renderSidebar() {
     { key: 'health', label: '❤️ Health', val: c.stats.health, tip: 'Low Health shrinks your yearly Energy pool; 0% is fatal.' },
     { key: 'happiness', label: '😊 Happiness', val: c.stats.happiness, tip: 'Drifts gently toward your personal baseline (~64% ± traits & milestones).' },
     { key: 'smarts', label: '🧠 Smarts', val: c.stats.smarts, tip: 'Boosts adult income & exam odds. Diminishing returns above 75%; exceptional scores require yearly maintenance.' },
+    { key: 'strain', label: '⚡ Strain', val: c.strain || 0, tip: outlook.tip },
     { key: 'looks', label: '✨ Looks', val: c.stats.looks, tip: 'Exceptional scores require yearly maintenance; aging adds further decline.' },
   ];
 
@@ -415,9 +425,9 @@ function renderStage() {
     : 'None yet — pick actions below, run a routine, or finish early to auto-rest!';
 
   st.innerHTML = `
-    <details class="life-panel"><summary>Life journal · ${journal(c).history.length} memories</summary>${SAGAS.filter(s=>eligible(c,s)).map(s=>{const a=journal(c).arcs[s[0]];return `<p><b>${esc(s[1])}</b> · ${a?`${a.step}/${s[4].length} chapters`: 'Undiscovered'} ${!a||a.step<s[4].length&&a.due<=c.year?`<button class="ls-btn ls-btn-ghost" data-act="${a?'saga-open':'saga-start'}" data-id="${s[0]}">${a?'Continue':'Discover'}</button>`:a.step<s[4].length?` · Next chapter ${a.due}`:' · Complete'}</p>`}).join('')}${journal(c).history.slice().reverse().map(m=>`<p>${m.year} · ${esc(m.title)} — ${esc(m.result)}</p>`).join('')}</details>
+    <details ${lifeTab==='life'?'open':''} class="life-panel"><summary>Life journal · ${journal(c).history.length} memories</summary>${SAGAS.filter(s=>eligible(c,s)).map(s=>{const a=journal(c).arcs[s[0]];return `<p><b>${esc(s[1])}</b> · ${a?`${a.step}/${s[4].length} chapters`: 'Undiscovered'} ${!a||a.step<s[4].length&&a.due<=c.year?`<button class="ls-btn ls-btn-ghost" data-act="${a?'saga-open':'saga-start'}" data-id="${s[0]}">${a?'Continue':'Discover'}</button>`:a.step<s[4].length?` · Next chapter ${a.due}`:' · Complete'}</p>`}).join('')}${journal(c).history.slice().reverse().map(m=>`<p>${m.year} · ${esc(m.title)} — ${esc(m.result)}</p>`).join('')}</details>
     ${dueThread(c)?`<section class="life-panel"><h3>Ongoing chapters</h3><p>${esc(dueThread(c).title)} — someone is waiting to hear from you.</p><button class="ls-btn ls-btn-primary" data-act="open-thread">Continue story</button></section>`:''}
-    <div class="energy-banner energy-${curE === 0 ? 'empty' : curE / Math.max(1,maxE) <= .25 ? 'low' : curE / Math.max(1,maxE) <= .5 ? 'medium' : 'high'}">
+    <details class="year-tools"><summary>Yearly Energy · ${curE}/${maxE} · routines &amp; pace</summary><div class="energy-banner energy-${curE === 0 ? 'empty' : curE / Math.max(1,maxE) <= .25 ? 'low' : curE / Math.max(1,maxE) <= .5 ? 'medium' : 'high'}">
       <div class="energy-top-row">
         <div>
           <div class="energy-heading">⚡ Your Energy to Spend</div>
@@ -456,15 +466,15 @@ function renderStage() {
       ` : ''}
     </div>
 
-    <div class="spent-strip">
+    </details><div class="spent-strip">
       <div><b style="color:var(--text-dim);">This Year:</b> <span>${esc(chosenSummary)}</span></div>
       ${(c.yearActions || []).length >= 2 ? `
         <button class="ls-btn ls-btn-ghost ls-btn-sm" data-act="save-routine">💾 Save as Routine</button>
       ` : ''}
     </div>
 
-    ${lifeTab==='map'?`<section class="life-panel"><h3>Explore more of WebShire</h3><div class="district-grid">${Object.entries(districts).map(([id,n])=>`<button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="${id}">${esc(n)}</button>`).join('')}</div></section>`:''}
-    ${lifeTab==='map'?townMap(lifeTab,esc,townAvailability(c,actions)):lifeTab==='year'?homeScene(homeRoom,homeObject,actions,a=>canPerformAction(c,a),esc,c.life.home):districts[lifeTab]?`<section class="life-panel"><h2>${esc(districts[lifeTab])}</h2><button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="map">← Town map</button></section>`:locationScene(lifeTab,esc,townAvailability(c,actions))}
+    ${lifeTab==='map'?townMap(lifeTab,esc,townAvailability(c,actions)):lifeTab==='year'?homeScene(homeRoom,homeObject,actions,a=>canPerformAction(c,a),esc,c.life.home):['life','character','paths'].includes(lifeTab)?'':districts[lifeTab]?`<section class="life-panel"><h2>${esc(districts[lifeTab])}</h2><button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="map">← Town map</button></section>`:locationScene(lifeTab,esc,townAvailability(c,actions))}
+    ${lifeTab==='map'?`<section class="life-panel"><h3>Explore WebShire</h3><div class="district-grid">${Object.entries({year:'🏠 Home',career:'💼 Work',people:'👥 People',school:'🎓 School',clinic:'❤️ Health',assets:'🛍 Marketplace',...districts}).map(([id,n])=>`<button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="${id}">${esc(n)}</button>`).join('')}</div></section>`:''}
     ${lifeTab==='year'?`<details class="home-all"><summary>All available activities</summary><div class="action-grid">
       ${actions.map(act => {
         const chk = canPerformAction(c, act);
@@ -481,7 +491,7 @@ function renderStage() {
       }).join('')}
     </div>
 
-    </details>`:lifeTab==='map'?'':renderLifePanel(c)}
+    </details>`:lifeTab==='map'?'':lifeTab==='character'?characterDashboard(c):lifeTab==='paths'?pathCollection(c):lifeTab==='life'?`<section class="life-panel"><h2>Your life this year</h2>${(state.log||[]).slice(0,30).map(m=>`<p>${m.year} · ${esc(m.text)}</p>`).join('')}</section>`:renderLifePanel(c)}
     <div class="finish-year-bar">
       <div>
         <div style="font-weight:700;font-size:14px;">
@@ -603,6 +613,7 @@ function openSettingsModal() {
 }
 
 export function bindEvents() {
+  document.addEventListener('change',e=>{if(e.target.id==='path-query')pathQuery=e.target.value;else if(e.target.id==='path-category')pathCategory=e.target.value;else if(e.target.id==='path-status')pathStatus=e.target.value;else return;renderAll();});
   document.addEventListener('change',e=>{const k=e.target.dataset.appearance;if(!k||state.mode!=='create')return;const d=ensureDraft();for(const [key,id] of [['firstName','inp-first'],['lastName','inp-last'],['birthYear','inp-year']])d[key]=document.getElementById(id).value;d.appearance={...d.appearance,[k]:e.target.value};renderAll();});
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
