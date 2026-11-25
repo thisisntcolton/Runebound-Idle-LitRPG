@@ -104,7 +104,7 @@ function renderTopbar() {
   el.innerHTML = `
     <span class="ls-pill gen">Gen ${gen} · ${esc(c.lastName)} Family</span>
     <span class="ls-pill">📅 ${c.year} · Age ${c.age} (${esc(c.stage)})</span>
-    <span class="ls-pill">⚡ ${c.energy ?? 0}/${c.energyMax ?? 0} Energy</span>
+    <span class="ls-pill energy-header-pill" aria-label="Energy remaining">⚡ <strong>${c.energy ?? 0}/${c.energyMax ?? 0}</strong> Energy</span>
     <span class="ls-pill money">💵 ${fmtMoney(c.money)}</span>
   `;
 }
@@ -411,21 +411,19 @@ function renderStage() {
 
   st.innerHTML = `
     ${dueThread(c)?`<section class="life-panel"><h3>Ongoing chapters</h3><p>${esc(dueThread(c).title)} — someone is waiting to hear from you.</p><button class="ls-btn ls-btn-primary" data-act="open-thread">Continue story</button></section>`:''}
-    <div class="energy-banner">
+    <div class="energy-banner energy-${curE === 0 ? 'empty' : curE / Math.max(1,maxE) <= .25 ? 'low' : curE / Math.max(1,maxE) <= .5 ? 'medium' : 'high'}">
       <div class="energy-top-row">
         <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--gold);font-weight:700;">
-            ⚡ YOUR YEARLY ENERGY (AGE ${c.age} · ${c.year})
-          </div>
-          <div style="font-size:18px;font-weight:800;margin-top:2px;">
-            ${curE} <span style="font-size:13.5px;color:var(--text-dim);font-weight:600;">of ${maxE} Energy left</span>
-          </div>
-          <div style="font-size:11.5px;color:var(--text-faint);margin-top:2px;">
-            Pool: ${esc(formatBreakdown(bd))}
-          </div>
+          <div class="energy-heading">⚡ Your Energy to Spend</div>
+          <div class="energy-subheading">Available this year · Age ${c.age} · ${c.year}</div>
         </div>
-        <div class="energy-pips" title="${curE} of ${maxE} Energy available">${pipsHtml}</div>
+        <div class="energy-count">${curE}<span> / ${maxE}</span></div>
       </div>
+      <div class="energy-pips" role="meter" aria-label="Energy remaining" aria-valuemin="0" aria-valuemax="${maxE}" aria-valuenow="${curE}" title="${curE} of ${maxE} Energy available">${pipsHtml}</div>
+      <div class="energy-message">${curE === 0 ? 'All Energy spent this year.' : curE / Math.max(1,maxE) <= .25 ? 'Low Energy — choose your remaining activities carefully.' : `${curE} Energy remaining for activities.`}</div>
+      <div class="energy-detail">Pool: ${esc(formatBreakdown(bd))}</div>
+      <div class="energy-outlook energy-outlook-${esc(outlook.tone)}"><strong>${esc(outlook.label)}</strong> · ${esc(outlook.tip)}</div>
+      ${curE > 0 ? '<div class="energy-detail">Unspent Energy becomes rest when you finish the year.</div>' : ''}
 
       ${(canRepeatLast || presets.length > 0 || customForStage.length > 0) ? `
         <div class="routine-bar">

@@ -817,3 +817,24 @@ html,body{background:linear-gradient(#b9dff3,#e6f3d8);background-attachment:fixe
 .ambition-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;padding:10px 0}.life-panel details{margin:12px 0;padding:10px;border:1px solid #b9aa92;border-radius:10px}.life-panel summary{cursor:pointer;font-weight:700}.ambition-actions button{text-align:left;white-space:normal}
 /* Illustrated world: local painted assets, accessible action overlays. */
 .painted-art{display:block;width:100%;object-fit:cover;border-radius:10px}.home-interior{aspect-ratio:1.5;min-height:240px;background:#443327}.home-interior>.painted-art{height:100%;object-fit:cover;object-position:center}.home-object{bottom:8%;width:auto;max-width:30%;padding:8px;background:#fff4d5dd;border:2px solid #8b6944;border-radius:12px;box-shadow:0 3px 8px #0006}.home-world header .painted-art{width:100px;aspect-ratio:1;float:right;margin:4px 12px}.encounter-art .painted-art{max-height:300px;object-position:center 55%}.market-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;padding:10px 0}.market-card{overflow:hidden;background:#fff4dc;color:#45362b;border:2px solid #b99a69;border-radius:14px;box-shadow:0 3px 0 #b99a6940}.market-card>.painted-art{aspect-ratio:1.3;border-radius:0}.market-card>div{padding:12px}.market-card h4{margin:0 0 6px;color:#365943}.market-card p{font-size:13px}.market-card button{width:100%;white-space:normal}.market-section summary{font-weight:bold;padding:10px;background:#e9d6b0;color:#443327;border-radius:8px}
+
+/* 3.5.2 — readable yearly Energy panel */
+.energy-banner{background:#fff4d8;color:#513b22;border:2px solid #bca47b;padding:18px;gap:10px;--text-faint:#69553a;--text-dim:#69553a;--border:#d7c6a3}
+.energy-top-row{flex-wrap:nowrap;align-items:center}
+.energy-heading{font-size:clamp(17px,2vw,22px);font-weight:800;line-height:1.25;color:#513b22}
+.energy-subheading,.energy-detail{font-size:13px;line-height:1.45;color:#69553a}
+.energy-count{font-size:34px;font-weight:900;white-space:nowrap;line-height:1;color:#513b22;font-variant-numeric:tabular-nums}
+.energy-count span{font-size:20px;font-weight:700;color:#69553a}
+.energy-pips{display:flex;flex-wrap:nowrap;gap:4px;width:100%}
+.energy-pip{flex:1 1 0;min-width:0;width:auto;height:22px;background:#e1d6bd;border:1px solid #a89776;border-radius:5px;box-shadow:none}
+.energy-banner .energy-pip.filled{background:#54844e;border-color:#416b3b;box-shadow:none}
+.energy-medium .energy-pip.filled{background:#d49b32;border-color:#a16b19}
+.energy-low .energy-pip.filled{background:#bd5944;border-color:#913d2d}
+.energy-message{font-size:15px;font-weight:700;color:#513b22;line-height:1.4}
+.energy-outlook{font-size:13px;line-height:1.5;color:#513b22;background:#f3e8ce;border-radius:8px;padding:8px 10px}
+.energy-outlook-warn,.energy-outlook-danger{background:#f9dfd4;color:#842e22}
+.energy-outlook-mild{background:#f6e5b7;color:#705019}
+.energy-banner .routine-bar{background:transparent;border-color:#d7c6a3}
+.ls-pill.energy-header-pill{background:#fff4d8;color:#513b22;border:1px solid #bca47b;font-size:15px;white-space:nowrap}
+.energy-header-pill strong{font-size:18px;font-variant-numeric:tabular-nums}
+@media(max-width:480px){.energy-banner{padding:12px}.energy-count{font-size:28px}.energy-count span{font-size:16px}.energy-pips{gap:3px}.energy-pip{height:18px}}
