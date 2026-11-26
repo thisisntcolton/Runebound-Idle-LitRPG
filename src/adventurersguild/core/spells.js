@@ -1,0 +1,4 @@
+export const spells={firebolt:{name:'Fire Bolt',level:0,range:120,dice:10,attack:true},sacred:{name:'Sacred Flame',level:0,range:60,dice:8,save:1},cure:{name:'Cure Wounds',level:1,range:5,dice:8,heal:true},word:{name:'Healing Word',level:1,range:60,dice:4,heal:true,bonus:true},missile:{name:'Magic Missile',level:1,range:120,dice:4,auto:true},bolt:{name:'Guiding Bolt',level:1,range:120,dice:6,attack:true,count:4}};
+export function spellList(h){return h.type==='Cleric'?['sacred','cure','word','bolt']:h.type==='Wizard'?['firebolt','missile']:h.type==='Ranger'&&h.level>=2?['cure']:[];}
+export function slotMax(h){const l=h.level||1;return ['Cleric','Wizard'].includes(h.type)?Math.min(4,l+1):h.type==='Ranger'&&l>=2?Math.min(4,1+Math.floor(l/2)):0;}
+export function slots(h){return Math.max(0,Math.min(slotMax(h),h.slots??slotMax(h)));}

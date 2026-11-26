@@ -1,6 +1,6 @@
 export const mod=n=>Math.floor((n-10)/2);
 export const pb=l=>2+Math.floor((l-1)/4);
-export const die=(n,r=Math.random)=>1+Math.floor(r()*n);
+export const die=(n,r=Math.random)=>{const value=1+Math.floor(r()*n);r.record?.(n,value);return value;};
 export const skills5={athletics:0,acrobatics:1,'sleight of hand':1,stealth:1,arcana:3,history:3,investigation:3,nature:3,religion:3,'animal handling':4,insight:4,medicine:4,perception:4,survival:4,deception:5,intimidation:5,performance:5,persuasion:5};
 export const rules={Fighter:{hd:10,ac:18,ability:0,weapon:'Longsword',dice:8,saves:[0,2],skills:['athletics','intimidation']},Cleric:{hd:8,ac:18,ability:0,weapon:'Mace',dice:6,saves:[4,5],skills:['medicine','persuasion']},Rogue:{hd:8,ac:14,ability:1,weapon:'Rapier',dice:8,saves:[1,3],skills:['stealth','acrobatics','investigation','sleight of hand']},Ranger:{hd:10,ac:14,ability:1,weapon:'Longbow',dice:8,saves:[0,1],skills:['survival','perception','nature']},Wizard:{hd:6,ac:12,ability:3,weapon:'Fire Bolt',dice:10,saves:[3,4],skills:['investigation','arcana']}};
 export const backgrounds={Soldier:['athletics','intimidation'],Acolyte:['insight','religion'],Criminal:['deception','stealth'],Sage:['arcana','history'],Outlander:['athletics','survival']};
