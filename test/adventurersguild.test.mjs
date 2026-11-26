@@ -12,3 +12,10 @@ test('range, movement, labeled rolls',()=>{let b=begin([hero('Fighter',1)],['wol
 test('combat transition applies flag and history once',()=>{let s=fresh();start(s);s.run.battle=begin(s.heroes,['wolf'],'start');Object.assign(s.run.battle,{time:2,choice:{flag:'test',text:'fight',scene:'start'}});s.run.battle.units.find(u=>u.side).hp=0;assert.ok(battleAction(s,'finish'));assert.equal(s.run.flags.test,true);assert.equal(s.run.history.length,1);assert.equal(s.run.hours,2);assert.equal(battleAction(s,'finish'),false)});
 test('XP cumulative threshold and settlement idempotence',()=>{let s=fresh();start(s);s.run.scene=Object.keys(scenes).find(k=>scenes[k].ending==='success');s.heroes[0].xp=200;assert.ok(settle(s,()=>0));assert.equal(s.heroes[0].xp,300);assert.equal(s.heroes[0].level,2);assert.equal(settle(s),false);assert.equal(xpThresholds[2],900)});
 test('both campaigns start at valid scenes',()=>{for(const c of ['ashmere','littlebranch']){let s=fresh();assert.ok(start(s,c));assert.ok(scenes[s.run.scene]);assert.equal(start(s,c),false)}});
+
+import {rollScore,allocate,creationOptions,starterGear} from '../src/adventurersguild/core/origins.js';
+import {spellList} from '../src/adventurersguild/core/spells.js';
+import {test as originTest} from 'node:test';
+import assertOrigin from 'node:assert/strict';
+originTest('rolled scores drop lowest and duplicate totals are allowed, duplicate indices rejected',()=>{const values=[0,.2,.5,.99];const r=rollScore(()=>values.shift());assertOrigin.deepEqual(r,{dice:[1,2,4,6],total:12});const pool=Array(6).fill(r);assertOrigin.deepEqual(allocate(pool,[0,1,2,3,4,5]),Array(6).fill(12));assertOrigin.throws(()=>allocate(pool,[0,0,2,3,4,5]));});
+originTest('wizard options and selected spells persist independently of defaults',()=>{const h={type:'Wizard',level:1,scores:[8,12,12,16,10,10],gear:{}};const o=creationOptions(h);assertOrigin.equal(o.cantripCount,3);assertOrigin.equal(o.spellCount,6);h.cantrips=['ray','acid','chill'];h.preparedSpells=['missile'];assertOrigin.deepEqual(spellList(JSON.parse(JSON.stringify(h))),['ray','acid','chill','missile']);starterGear(h,0);assertOrigin.equal(h.gear.weapon,1);});
