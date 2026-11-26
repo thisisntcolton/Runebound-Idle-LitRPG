@@ -6,6 +6,9 @@ const s=(title,body,choices)=>({title,body,choices});
 const e=(title,body,ending)=>({title,body,ending,choices:[]});
 export const scenes={
  ...littleBranch,
+ tutorial_tracks:s('A trail in the rain','The ferryman points to wheel ruts. Your companions wait for your orders. A skill check rolls a twenty-sided die and adds the chosen hero’s skill bonus. Even a poor result can reveal a route, but costs precious time.',[k('Read the tracks','survival','tutorial_wolf','tutorial_wolf','tutorial_wolf')]),
+ tutorial_wolf:s('The first fight','A hungry wolf blocks the trail. Your heroes fight automatically, with the front line shielding the back. Watch the battle log to see their attacks and abilities.',[b('Defend your companions',['wolf'],'tutorial_rest')]),
+ tutorial_rest:s('Shelter from the storm','Your companions bind their wounds. Health carries between encounters; resting during a contract can cost time. Beyond the shelter lies the road to the missing courier.',[{...c('Bind wounds and continue','start',0),heal:100}]),
  start:s('The silent bell','The flood bell at Ashmere has fallen silent. A courier carrying the sluice key vanished before the storm. If the gates remain shut at midnight, the lower town will drown. Your party reaches a fork beneath a sky bruised with rain.',[k('Read the tracks','survival','tracks','tracks','ravine'),c('Question the ferryman','ferry')]),
  tracks:s('Wheel ruts','A narrow cart has cut deep grooves toward the old quarry. A strip of blue cloth hangs from a thorn.',[c('Follow the cart','quarry'),k('Survey the ridge','perception','ridge','ridge','wolves')]),
  ferry:s('The ferryman','A lantern swings over the empty ferry. The boatman saw armed strangers escorting a prisoner.',[k('Ask for a shortcut','persuasion','tunnel','ridge','road'),c('Take the main road','road')]),
