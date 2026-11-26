@@ -113,23 +113,10 @@ function renderCards() {
     </article>
 
     <article class="game-card">
-      <div class="card-top">
-        <div class="card-title-group">
-          <span class="card-icon">🧪</span>
-          <div>
-            <div class="card-title">Project Slot #3</div>
-            <div class="card-sub">Future Experiment</div>
-          </div>
-        </div>
-        <span class="card-badge">Slot Open</span>
-      </div>
-      <p class="card-desc">
-        Ready for your next idle prototype. Add an HTML entry in <code>vite.config.js</code> and a card here to expand the hub.
-      </p>
-      <div class="save-box">
-        <div style="grid-column: 1 / -1; color: var(--text-faint);">Architecture supports independent game loops &amp; local saves.</div>
-      </div>
-      <span class="card-btn ghost-btn">Coming Soon</span>
+      <div class="card-top"><div class="card-title-group"><span class="card-icon">🏰</span><div><div class="card-title">Adventurer’s Guild</div><div class="card-sub">Guild Management RPG</div></div></div><span class="card-badge new">v0.1</span></div>
+      <p class="card-desc">Recruit heroes, guide their decisions through branching adventures, and resolve tactical battles.</p>
+      <div class="save-box">${readJson('adventurersguild-save-v1') ? 'Local guild save available.' : 'Found your guild and begin your first contract.'}</div>
+      <a class="card-btn rb-btn" href="./adventurersguild.html">Enter the Guild →</a>
     </article>
   `;
 }

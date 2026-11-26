@@ -24,6 +24,7 @@ export default defineConfig({
         hub: resolve(__dirname, 'index.html'),
         runebound: resolve(__dirname, 'runebound.html'),
         lifesim: resolve(__dirname, 'lifesim.html'),
+        adventurersguild: resolve(__dirname, 'adventurersguild.html'),
       },
     },
   },

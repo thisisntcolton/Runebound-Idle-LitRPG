@@ -12,8 +12,9 @@
       "source": "/lifesim",
       "destination": "/lifesim.html"
     },
+    {"source": "/adventurersguild", "destination": "/adventurersguild.html"},
     {
-      "source": "/((?!api/|runebound\\.html|lifesim\\.html).*)",
+      "source": "/((?!api/|runebound\\.html|lifesim\\.html|adventurersguild\\.html|assets/).*)",
       "destination": "/index.html"
     }
   ],
