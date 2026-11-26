@@ -1,0 +1,8 @@
+export const mod=n=>Math.floor((n-10)/2);
+export const pb=l=>2+Math.floor((l-1)/4);
+export const die=(n,r=Math.random)=>1+Math.floor(r()*n);
+export const skills5={athletics:0,acrobatics:1,'sleight of hand':1,stealth:1,arcana:3,history:3,investigation:3,nature:3,religion:3,'animal handling':4,insight:4,medicine:4,perception:4,survival:4,deception:5,intimidation:5,performance:5,persuasion:5};
+export const rules={Fighter:{hd:10,ac:18,ability:0,weapon:'Longsword',dice:8,saves:[0,2],skills:['athletics','intimidation']},Cleric:{hd:8,ac:18,ability:0,weapon:'Mace',dice:6,saves:[4,5],skills:['medicine','persuasion']},Rogue:{hd:8,ac:14,ability:1,weapon:'Rapier',dice:8,saves:[1,3],skills:['stealth','acrobatics','investigation','sleight of hand']},Ranger:{hd:10,ac:14,ability:1,weapon:'Longbow',dice:8,saves:[0,1],skills:['survival','perception','nature']},Wizard:{hd:6,ac:12,ability:3,weapon:'Fire Bolt',dice:10,saves:[3,4],skills:['investigation','arcana']}};
+export const backgrounds={Soldier:['athletics','intimidation'],Acolyte:['insight','religion'],Criminal:['deception','stealth'],Sage:['arcana','history'],Outlander:['athletics','survival']};
+export function sheet(h){const r=rules[h.type],a=h.scores||[15,14,13,12,10,8],m=a.map(mod),p=pb(h.level),max=Math.max(1,r.hd+m[2]+(h.level-1)*Math.max(1,Math.floor(r.hd/2)+1+m[2]));return {...r,a,m,p,max,ac:h.type==='Wizard'?10+m[1]:h.type==='Rogue'?11+m[1]:h.type==='Ranger'?14+Math.min(2,m[1]):r.ac,attack:m[r.ability]+p,damage:h.type==='Wizard'?0:m[r.ability],trained:h.trained||r.skills};}
+export function skillBonus(h,k){k=k==='lockpicking'?'sleight of hand':k;const s=sheet(h);return (s.m[skills5[k]]||0)+(s.trained.includes(k)?s.p:0);}
