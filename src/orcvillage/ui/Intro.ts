@@ -10,7 +10,7 @@ export function installIntro(onPause:(paused:boolean)=>void, onReset:()=>boolean
  const dialog=document.createElement('dialog');dialog.className='orc-dialog';dialog.setAttribute('aria-labelledby','orc-dialog-title');document.body.append(dialog);
  const eyebrow=document.createElement('p'), title=document.createElement('h2'), body=document.createElement('p'), controls=document.createElement('div'), back=document.createElement('button'), next=document.createElement('button');title.id='orc-dialog-title';controls.className='orc-dialog-controls';controls.append(back,next);dialog.append(eyebrow,title,body,controls);
  let page=0, mode:'intro'|'reset'='intro';
- const close=()=>{dialog.close();onPause(false);};
+ const close=()=>{dialog.close();if(document.activeElement instanceof HTMLElement)document.activeElement.blur();onPause(false);};
  const render=()=>{eyebrow.textContent=`THE ASHES OF BLACKROOT • ${page+1}/${panels.length}`;title.textContent=panels[page][0];body.textContent=panels[page][1];back.textContent=page?'Back':'Skip intro';next.textContent=page===panels.length-1?'Begin rebuilding':'Continue';};
  const finish=()=>{onFinish();close();};
  back.onclick=()=>{if(mode==='reset'){close();return;}if(page===0)finish();else{page--;render();}};

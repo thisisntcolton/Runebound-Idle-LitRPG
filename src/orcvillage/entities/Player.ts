@@ -7,10 +7,10 @@ export class Player extends Phaser.GameObjects.Sprite {
  gatherSound(kind:string){try{const manager=this.scene.sound as Phaser.Sound.WebAudioSoundManager;const ctx=manager.context;if(!ctx||ctx.state!=="running"||manager.mute)return;const n=Math.floor(ctx.sampleRate*.09),b=ctx.createBuffer(1,n,ctx.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n)**2;const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();source.buffer=b;filter.type="bandpass";filter.frequency.value=kind==="wood"?450:kind==="iron"?2400:kind==="stone"?1300:650;gain.gain.value=.12*manager.volume;source.connect(filter);filter.connect(gain);gain.connect(ctx.destination);source.start();}catch(error){console.warn("Gather sound unavailable",error);}}
  // Normalize diagonals so all eight directions move at the same speed.
  move(direction:Phaser.Math.Vector2,delta:number,blocked:(x:number,y:number)=>boolean){// Recover saved positions or newly respawned obstacles before moving.
- if(blocked(this.x,this.y)){
+ if(direction.lengthSq()>0&&blocked(this.x,this.y)){
   let found=false;
-  for(let r=2;r<=400&&!found;r+=2){for(let i=0;i<32;i++){const a=i*Math.PI/16;const nx=Phaser.Math.Clamp(this.x+Math.cos(a)*r,17,343),ny=Phaser.Math.Clamp(this.y+Math.sin(a)*r,101,491);if(!blocked(nx,ny)){this.setPosition(nx,ny);found=true;break;}}}
+  for(let r=2;r<=80&&!found;r+=2){for(let i=0;i<32;i++){const a=i*Math.PI/16;const nx=Phaser.Math.Clamp(this.x+Math.cos(a)*r,17,343),ny=Phaser.Math.Clamp(this.y+Math.sin(a)*r,101,491);if(!blocked(nx,ny)){this.setPosition(nx,ny);found=true;break;}}}
  }
- if(this.swinging&&!this.gatheringBusy){this.swinging=false;this.stop();this.setTexture("gruk",this.facing*8+4);}if(this.swinging){this.setDepth(this.y);return;}
+ if(this.swinging&&(!this.gatheringBusy||direction.lengthSq()>0)){this.swinging=false;this.stop();this.setTexture("gruk",this.facing*8+4);}if(this.swinging){this.setDepth(this.y);return;}
  const v=direction.clone();if(v.length()>1)v.normalize();const step=Math.min(delta,50)/1000*this.speed;const x=Phaser.Math.Clamp(this.x+v.x*step,16,344),y=Phaser.Math.Clamp(this.y+v.y*step,100,492);if(!blocked(x,this.y))this.x=x;if(!blocked(this.x,y))this.y=y;this.setDepth(this.y);if(this.swinging)return;if(v.lengthSq()){this.facing=Math.abs(v.x)>Math.abs(v.y)?(v.x<0?1:2):(v.y<0?3:0);this.play(`gruk-walk-${this.facing}`,true);}else{this.stop();this.setTexture("gruk",this.facing*8+4);}}
 }
