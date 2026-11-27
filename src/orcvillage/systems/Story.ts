@@ -1,10 +1,10 @@
 import {Stock,spend,Building,buildings} from './Economy';
-export interface StoryData {introSeen?:boolean;fire:boolean;urga:boolean;hall:number;huts:number;harvests:Stock;production:number;elapsed:number;entries:string[]}
+export interface StoryData {introSeen?:boolean;hutLevels?:number[];fire:boolean;urga:boolean;hall:number;huts:number;harvests:Stock;production:number;elapsed:number;entries:string[]}
 export const freshStory=():StoryData=>({introSeen:false,fire:false,urga:false,hall:0,huts:0,harvests:{wood:0,stone:0,iron:0,food:0},production:0,elapsed:0,entries:[]});
-export const hallCosts=[{wood:100,stone:50},{wood:1000,stone:500},{wood:5000,stone:2500,iron:250},{wood:20000,stone:10000,iron:2500},{wood:75000,stone:40000,iron:15000}];
+export const hallCosts=[{wood:250,stone:100},{wood:1000,stone:500},{wood:5000,stone:2500,iron:250},{wood:20000,stone:10000,iron:2500},{wood:75000,stone:40000,iron:15000}];
 export class StorySystem {
  constructor(public data:StoryData){}
- get capacity(){return 1+this.data.huts*4+this.data.hall*4;}
+ get capacity(){return 1+(this.data.hutLevels?.length===this.data.huts?this.data.hutLevels.reduce((n,l)=>n+([0,4,6,8,12,20][l]??4),0):this.data.huts*4)+this.data.hall*4;}
  population(workers:Stock){return 1+Number(this.data.urga)+Object.values(workers).reduce((a,b)=>a+b,0);}
  record(text:string){if(!this.data.entries.includes(text))this.data.entries.push(text);}
  restoreFire(s:Stock){if(this.data.fire||!spend(s,{wood:10}))return false;this.data.fire=true;this.record("A fire won't bring the clan back... But it's a start.");return true;}

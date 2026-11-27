@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
 const images: Record<string,string> = {
+  'rabbit-anim.png': new URL('./sprites/rabbit-anim.png', import.meta.url).href,
+  'goblin-anim.png': new URL('./sprites/goblin-anim.png', import.meta.url).href,
+  'bandit-anim.png': new URL('./sprites/bandit-anim.png', import.meta.url).href,
+
   'bandit.png': new URL('./sprites/bandit.png', import.meta.url).href,
   'barrel.png': new URL('./sprites/barrel.png', import.meta.url).href,
   'bear.png': new URL('./sprites/bear.png', import.meta.url).href,
@@ -34,5 +38,5 @@ const images: Record<string,string> = {
   'well.png': new URL('./sprites/well.png', import.meta.url).href,
   'wolf.png': new URL('./sprites/wolf.png', import.meta.url).href,
 };
-export function preloadArt(s:Phaser.Scene){for(const [path,url] of Object.entries(images)){const key=path.split('/').pop()!.replace('.png','');if(key==='gruk')s.load.spritesheet(key,url,{frameWidth:48,frameHeight:56});else s.load.image(key,url);}}
-export function createArt(s:Phaser.Scene){for(let r=0;r<4;r++){for(const [name,offset,repeat,frameRate] of [['walk',0,-1,9],['swing',4,0,12]] as const){const key=`gruk-${name}-${r}`;if(!s.anims.exists(key))s.anims.create({key,frames:s.anims.generateFrameNumbers('gruk',{start:r*8+offset,end:r*8+offset+3}),repeat,frameRate});}}}
+export function preloadArt(s:Phaser.Scene){for(const [path,url] of Object.entries(images)){const key=path.split('/').pop()!.replace('.png','');if(key==='gruk')s.load.spritesheet(key,url,{frameWidth:48,frameHeight:56});else if(key.endsWith("-anim"))s.load.spritesheet(key,url,{frameWidth:48,frameHeight:48});else s.load.image(key,url);}}
+export function createArt(s:Phaser.Scene){for(const kind of ["rabbit","goblin","bandit"]){for(const [name,start,repeat] of [["walk",0,-1],["attack",4,0]] as const){const key=kind+"-"+name;if(!s.anims.exists(key))s.anims.create({key,frames:s.anims.generateFrameNumbers(kind+"-anim",{start,end:start+3}),repeat,frameRate:10});}}for(let r=0;r<4;r++){for(const [name,offset,repeat,frameRate] of [['walk',0,-1,9],['swing',4,0,12]] as const){const key=`gruk-${name}-${r}`;if(!s.anims.exists(key))s.anims.create({key,frames:s.anims.generateFrameNumbers('gruk',{start:r*8+offset,end:r*8+offset+3}),repeat,frameRate});}}}
