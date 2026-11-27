@@ -1,0 +1,3 @@
+# Orc Village gathering expansion
+Install over the Game 4 repository, then npm install, npm run typecheck:orc, npm run build.
+Four resource types, renewable nodes, two 70-level tool tracks, camp construction and worker hiring. Existing v1 saves migrate in place. Iron requires pickaxe level 11; berries are available immediately. Farms add two harvest nodes. Workers produce hourly during active gameplay only, consuming one food each per hour; no offline production. Buildings are one-time purchases with map labels; defensive/combat functionality is not implemented. Hunting is deferred. Higher tool tiers use the same hit curve with faster cooldowns and added material costs. Timing targets are unverified.

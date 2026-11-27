@@ -1,0 +1,16 @@
+export const resources = ['wood','stone','iron','food'] as const;
+export type Resource = typeof resources[number];
+export type Stock = Record<Resource,number>;
+export const empty = ():Stock => ({wood:0,stone:0,iron:0,food:0});
+export const nodes = {wood:{hp:5,yield:3,respawn:30000,action:'CHOP'},stone:{hp:8,yield:3,respawn:60000,action:'MINE'},iron:{hp:12,yield:2,respawn:120000,action:'MINE'},food:{hp:3,yield:2,respawn:90000,action:'GATHER'}};
+export const buildings = {hut:{wood:300},stockpile:{wood:500},mill:{wood:750,stone:150},quarry:{wood:500,stone:500},farm:{wood:600,stone:100},tower:{wood:800,stone:600},barracks:{wood:1500,stone:750,iron:100},smith:{wood:1000,stone:1500,iron:250},hall:{wood:5000,stone:3000,iron:500},fortress:{wood:15000,stone:20000,iron:5000}} satisfies Record<string,Partial<Stock>>;
+export type Building=keyof typeof buildings;
+export const affordable=(s:Stock,c:Partial<Stock>)=>resources.every(r=>s[r]>=(c[r]??0));
+export function spend(s:Stock,c:Partial<Stock>){if(!affordable(s,c))return false;for(const r of resources)s[r]-=c[r]??0;return true;}
+export const costText=(c:Partial<Stock>)=>resources.filter(r=>c[r]).map(r=>`${c[r]} ${r}`).join(' + ');
+export const tiers=['Crude','Stone','Iron','Steel','Orcish Forged','Mithril','Adamantite'];
+export const toolName=(l:number)=>`${tiers[Math.floor((l-1)/10)]} ${((l-1)%10)+1}`;
+export function toolCost(l:number):Partial<Stock>|null {if(l>=70)return null;const tier=Math.floor(l/10),step=(l-1)%10;return {wood:Math.round(150*1.5**step*2**tier),...(tier>=1?{stone:100*tier*(step+1)}:{}),...(tier>=2?{iron:50*(tier-1)*(step+1)}:{})};}
+export const hits=(l:number)=>[5,5,4,4,3,3,3,2,2,1][(l-1)%10];
+export const damage=(l:number,hp:number)=>Math.max(1,hp/hits(l)+1e-9);
+export const cooldown=(l:number)=>Math.max(250,1000-((l-1)%10)*45-Math.floor((l-1)/10)*60);

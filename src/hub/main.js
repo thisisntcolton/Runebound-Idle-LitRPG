@@ -122,7 +122,7 @@ function renderCards() {
     <article class="game-card ls">
       <div class="card-top"><div class="card-title-group"><span class="card-icon">🪓</span><div><div class="card-title">Orc Village</div><div class="card-sub">Pixel-art Gathering RPG</div></div></div><span class="card-badge new">Game 4 · v1.0</span></div>
       <p class="card-desc">Guide Gruk, chop trees, stockpile wood and upgrade your axe in a peaceful Orc settlement.</p>
-      <div class="save-box">${orc?.version === 1 && [1,2,3].includes(orc.axeLevel) ? `Axe level ${orc.axeLevel} · Camp wood ${escapeHtml(orc.storage)}` : 'Start a new settlement. Progress saves locally.'}</div>
+      <div class="save-box">${[1,2].includes(orc?.version) && Number.isInteger(orc.axeLevel) ? `Axe level ${orc.axeLevel} · Camp wood ${escapeHtml(orc.version === 2 ? orc.storage?.wood ?? 0 : orc.storage)}` : 'Start a new settlement. Progress saves locally.'}</div>
       <a class="card-btn ls-btn" href="./orcvillage.html">${orc?.version === 1 ? 'Continue Orc Village' : 'Play Orc Village'} →</a>
     </article>
   `;
