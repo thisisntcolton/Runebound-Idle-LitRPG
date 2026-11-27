@@ -11,6 +11,6 @@ export class Player extends Phaser.GameObjects.Sprite {
   let found=false;
   for(let r=2;r<=80&&!found;r+=2){for(let i=0;i<32;i++){const a=i*Math.PI/16;const nx=Phaser.Math.Clamp(this.x+Math.cos(a)*r,17,343),ny=Phaser.Math.Clamp(this.y+Math.sin(a)*r,101,491);if(!blocked(nx,ny)){this.setPosition(nx,ny);found=true;break;}}}
  }
- if(this.swinging&&(!this.gatheringBusy||direction.lengthSq()>0)){this.swinging=false;this.stop();this.setTexture("gruk",this.facing*8+4);}if(this.swinging){this.setDepth(this.y);return;}
+ if(this.swinging&&!this.gatheringBusy){this.swinging=false;this.stop();this.setTexture("gruk",this.facing*8+4);}
  const v=direction.clone();if(v.length()>1)v.normalize();const step=Math.min(delta,50)/1000*this.speed;const x=Phaser.Math.Clamp(this.x+v.x*step,16,344),y=Phaser.Math.Clamp(this.y+v.y*step,100,492);if(!blocked(x,this.y))this.x=x;if(!blocked(this.x,y))this.y=y;this.setDepth(this.y);if(this.swinging)return;if(v.lengthSq()){this.facing=Math.abs(v.x)>Math.abs(v.y)?(v.x<0?1:2):(v.y<0?3:0);this.play(`gruk-walk-${this.facing}`,true);}else{this.stop();this.setTexture("gruk",this.facing*8+4);}}
 }
