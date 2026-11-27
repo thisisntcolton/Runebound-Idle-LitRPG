@@ -1,0 +1,4 @@
+# Blackroot v0.4.7 — responsive interface
+Apply over v0.4.6 render recovery. Only Orc Village files are changed. Save schema and game economy are unchanged. Resource counters show carried/stored. Settings contains Help, Story and Reset. The world camera follows Gruk and fills the viewport; on wide screens some vertical world area is intentionally outside the camera. Controls use screen-space pointer capture. Quest details start collapsed. Existing building interactions and animation assets are retained. No new terrain or art included.
+
+Validation: TypeScript no-emit check passed against locally available Phaser types. Full production build and real mobile browser tests not performed. Test portrait, landscape, rotation, simultaneous movement/chopping, opening/closing menus, intro/reset, and region transitions before deploying.

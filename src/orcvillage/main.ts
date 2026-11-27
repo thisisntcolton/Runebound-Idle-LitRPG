@@ -36,3 +36,5 @@ game.events.once(Phaser.Core.Events.DESTROY, () => {
   window.removeEventListener('orientationchange', scheduleResize);
   window.visualViewport?.removeEventListener('resize', scheduleResize);
 });
+
+document.querySelector(".orc-tools")?.addEventListener("click",()=>{const settings=document.querySelector<HTMLDetailsElement>(".orc-settings");if(settings)settings.open=false;});
