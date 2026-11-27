@@ -1,0 +1,15 @@
+export interface CampaignQuest {name:string;goal:string;ready:boolean;story:string;reward:number}
+export interface CampaignState {urga:boolean;chest:boolean;pole:boolean;fishXP:number;well:boolean;plots:number;farmXP:number;granary:boolean;rabbitVictory:boolean;leatherGear:number;armed:boolean;regions:number;relic:boolean;hall:number;population:number;fortress:boolean;irrigation:boolean}
+export function campaign(s:CampaignState):CampaignQuest[]{return [
+ {name:'A Place at the Fire',goal:'Welcome Urga and build a wooden chest',ready:s.urga&&s.chest,story:'Urga places a scorched wooden carving in the chest. “We should keep what remains of our home. Not everything can be replaced.”',reward:15},
+ {name:'The River Provides',goal:`Craft a fishing pole and earn Fishing XP (${s.fishXP}/15)`,ready:s.pole&&s.fishXP>=15,story:'For the first time since returning, Gruk brings home a meal that did not require chasing it through the woods.',reward:20},
+ {name:'Seeds in the Ashes',goal:'Build a well and farm plot; harvest potatoes',ready:s.well&&s.plots>=4&&s.farmXP>=25,story:'Green shoots rise through the blackened earth. Urga smiles. “Perhaps the soil remembers us.”',reward:25},
+ {name:'The Beast of Hunter’s Glade',goal:'Defeat the Rabbit King, by any means',ready:s.rabbitVictory,story:'The glade is safe again. Gruk decides that future clan histories need not mention how much trouble one rabbit caused.',reward:30},
+ {name:'Dressed for Trouble',goal:`Own all six leather armor pieces (${s.leatherGear}/6) and a combat weapon`,ready:s.leatherGear>=6&&s.armed,story:'Gruk tightens the last leather strap. No longer dressed like a refugee, he looks like someone who might bring others home.',reward:35},
+ {name:'Beyond the Blackened Trees',goal:`Discover all nine regions (${s.regions}/9)`,ready:s.regions>=9,story:'Old trails connect the scattered ruins. Blackroot was never as isolated as Gruk once believed.',reward:40},
+ {name:'The Stolen Memory',goal:'Recover the clan relic from Goblin Territory',ready:s.relic,story:'The relic bears the Blackroot mark beneath a layer of soot. The goblins took more than supplies. Someone wanted the clan forgotten.',reward:50},
+ {name:'Bread for the Clan',goal:'Build irrigation and a granary',ready:s.irrigation&&s.granary,story:'No survivor should have to choose between feeding their family and rebuilding their home.',reward:50},
+ {name:'A Hall Worth Returning To',goal:`Great Hall level 2 and population 15 (${s.hall}/2, ${s.population}/15)`,ready:s.hall>=2&&s.population>=15,story:'Voices fill the hall again. The survivors begin speaking of Blackroot in the present tense.',reward:75},
+ {name:'Walls Against the Dark',goal:'Construct Blackroot Fortress',ready:s.fortress,story:'The gates close at dusk. For once, the people inside sleep without fear of the forest.',reward:100},
+ {name:'Blackroot Lives Again',goal:`Great Hall level 5 and population 100 (${s.hall}/5, ${s.population}/100)`,ready:s.hall>=5&&s.population>=100,story:'The clan was broken. The halls were burned. But Gruk remembered. One tree at a time. One stone at a time. One Orc at a time. Blackroot lives again.',reward:150}
+];}
