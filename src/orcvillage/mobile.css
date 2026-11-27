@@ -16,3 +16,5 @@ body { position: fixed; inset: 0; }
 .orc-tools { right: calc(env(safe-area-inset-right, 0px) + 6px); }
 .orc-tools button { min-height: 44px; }
 .orc-dialog { max-height: calc(var(--orc-visible-height, 100dvh) - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
+.orc-side-panel{position:fixed;z-index:5;white-space:pre-wrap;overflow:auto;padding:clamp(12px,3vw,40px);background:#283322;color:#fff0c9;border-left:1px solid #9b966d;font:clamp(14px,1.5vw,22px)/1.6 system-ui;touch-action:pan-y}.orc-side-panel[hidden]{display:none}.orc-tools button,.orc-back,.orc-dialog button{min-height:64px;min-width:64px}#game{top:calc(env(safe-area-inset-top,0px) + 72px);height:calc(var(--orc-visible-height,100dvh) - 72px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+#game{margin:0;padding:0;min-height:0}.orc-side-panel{box-sizing:border-box;touch-action:pan-y;overscroll-behavior:contain}.orc-dialog{margin:auto;max-width:calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));}.orc-tools{flex-wrap:wrap;justify-content:flex-end}.orc-back{display:flex;align-items:center;min-width:64px}

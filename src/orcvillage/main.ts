@@ -14,7 +14,7 @@ measureViewport();
 const game = new Phaser.Game({
   type: Phaser.AUTO, parent, width: 360, height: 640,
   pixelArt: true, backgroundColor: '#283322',
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 3 }, scene: [MainScene],
 });
 let frame = 0;
@@ -22,7 +22,7 @@ function scheduleResize() {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
     measureViewport();
-    if (game.isBooted) game.scale.refresh();
+    if (game.isBooted) game.scale.resize(parent.clientWidth,parent.clientHeight);
   });
 }
 const observer = new ResizeObserver(scheduleResize);
