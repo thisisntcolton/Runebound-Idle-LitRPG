@@ -10,7 +10,13 @@ export function spend(s:Stock,c:Partial<Stock>){if(!affordable(s,c))return false
 export const costText=(c:Partial<Stock>)=>resources.filter(r=>c[r]).map(r=>`${c[r]} ${r}`).join(' + ');
 export const tiers=['Crude','Stone','Iron','Steel','Orcish Forged','Mithril','Adamantite'];
 export const toolName=(l:number)=>`${tiers[Math.floor((l-1)/10)]} ${((l-1)%10)+1}`;
-export function toolCost(l:number):Partial<Stock>|null {if(l>=70)return null;const tier=Math.floor(l/10),step=(l-1)%10;return {wood:Math.round(150*1.5**step*2**tier),...(tier>=1?{stone:100*tier*(step+1)}:{}),...(tier>=2?{iron:50*(tier-1)*(step+1)}:{})};}
-export const hits=(l:number)=>[5,5,4,4,3,3,3,2,2,1][(l-1)%10];
+// Continuous progression shared by axe and pickaxe. Tier gates remain intact.
+export function toolCost(l:number):Partial<Stock>|null {
+ if(l>=70)return null;
+ const tier=Math.floor(l/10);
+ return {wood:Math.round(150*1.5**Math.min(l-1,8)*1.12**Math.max(0,l-9)),...(tier>=1?{stone:100*(l-9)}:{}),...(tier>=2?{iron:50*(l-19)}:{})};
+}
+export const hits=(l:number)=>[5,5,4,4,3,3,3,2,2,1][Math.min(9,Math.max(0,l-1))];
 export const damage=(l:number,hp:number)=>Math.max(1,hp/hits(l)+1e-9);
-export const cooldown=(l:number)=>Math.max(250,1000-((l-1)%10)*45-Math.floor((l-1)/10)*60);
+export const cooldown=(l:number)=>Math.max(250,1000-Math.min(9,Math.max(0,l-1))*45-Math.max(0,l-10)*5);
+export const bonusYield=(l:number)=>Math.floor(Math.max(0,l-1)/10);
