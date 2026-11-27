@@ -1,0 +1,3 @@
+# Blackroot overhaul — foundation
+Extract over the gathering expansion. Run npm install, npm run typecheck:orc, npm run build.
+Story tab: restore fire, hut, recruit Urga, upgrade hall. Food nodes require Urga. Housing is repeatable; population includes Gruk, Urga and workers. Food consumption includes all residents. Existing saves migrate without deleting resources. Active production timer persists. The quest tracker is a milestone sequence, not the full 60-quest campaign. Exploration, named survivors beyond Urga, full journal, final cinematic and building artwork remain future work. Full Phaser compilation and mobile testing are unverified.
