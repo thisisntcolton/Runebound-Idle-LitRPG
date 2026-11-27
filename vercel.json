@@ -12,9 +12,16 @@
       "source": "/lifesim",
       "destination": "/lifesim.html"
     },
-    {"source": "/adventurersguild", "destination": "/adventurersguild.html"},
     {
-      "source": "/((?!api/|runebound\\.html|lifesim\\.html|adventurersguild\\.html|assets/).*)",
+      "source": "/adventurersguild",
+      "destination": "/adventurersguild.html"
+    },
+    {
+      "source": "/orcvillage",
+      "destination": "/orcvillage.html"
+    },
+    {
+      "source": "/((?!api/|runebound\\.html|lifesim\\.html|adventurersguild\\.html|orcvillage\\.html|assets/).*)",
       "destination": "/index.html"
     }
   ],

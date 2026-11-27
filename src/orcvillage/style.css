@@ -1,0 +1,3 @@
+*{box-sizing:border-box}html,body,#game{margin:0;width:100%;height:100%;overflow:hidden;background:#20291d;touch-action:none;overscroll-behavior:none}#game{height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}canvas{display:block;image-rendering:pixelated}
+
+.orc-back{position:fixed;z-index:10;top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));padding:10px;color:#fff;background:#293322;border:1px solid #9b966d;border-radius:6px;font:14px system-ui;text-decoration:none} #game{height:calc(100dvh - 48px);margin-top:48px}

@@ -55,6 +55,7 @@ function summarizeLifesim() {
 function renderCards() {
   const rb = summarizeRunebound();
   const ls = summarizeLifesim();
+  const orc = readJson('orc-village-v1');
   const grid = document.getElementById('hub-grid');
 
   grid.innerHTML = `
@@ -117,6 +118,12 @@ function renderCards() {
       <p class="card-desc">Recruit heroes, guide their decisions through branching adventures, and resolve tactical battles.</p>
       <div class="save-box">${readJson('adventurersguild-save-v1') ? 'Local guild save available.' : 'Found your guild and begin your first contract.'}</div>
       <a class="card-btn rb-btn" href="./adventurersguild.html">Enter the Guild →</a>
+    </article>
+    <article class="game-card ls">
+      <div class="card-top"><div class="card-title-group"><span class="card-icon">🪓</span><div><div class="card-title">Orc Village</div><div class="card-sub">Pixel-art Gathering RPG</div></div></div><span class="card-badge new">Game 4 · v1.0</span></div>
+      <p class="card-desc">Guide Gruk, chop trees, stockpile wood and upgrade your axe in a peaceful Orc settlement.</p>
+      <div class="save-box">${orc?.version === 1 && [1,2,3].includes(orc.axeLevel) ? `Axe level ${orc.axeLevel} · Camp wood ${escapeHtml(orc.storage)}` : 'Start a new settlement. Progress saves locally.'}</div>
+      <a class="card-btn ls-btn" href="./orcvillage.html">${orc?.version === 1 ? 'Continue Orc Village' : 'Play Orc Village'} →</a>
     </article>
   `;
 }

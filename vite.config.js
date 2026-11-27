@@ -21,6 +21,7 @@ export default defineConfig({
     target: 'es2020',
     rollupOptions: {
       input: {
+        orcvillage: resolve(__dirname, 'orcvillage.html'),
         hub: resolve(__dirname, 'index.html'),
         runebound: resolve(__dirname, 'runebound.html'),
         lifesim: resolve(__dirname, 'lifesim.html'),
