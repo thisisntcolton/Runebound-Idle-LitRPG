@@ -1,5 +1,5 @@
 import {Resource,Stock,spend} from './Economy';
-export const skills=['Woodcutting','Mining','Hunting','Combat','Leatherworking','Smithing','Construction','Cooking'] as const;
+export const skills=['Woodcutting','Mining','Hunting','Combat','Leatherworking','Smithing','Construction','Cooking','Fishing'] as const;
 export type Skill=typeof skills[number];
 export const threshold=(level:number)=>Math.round(10000000*Math.pow((level-1)/98,3.5));
 export function level(xp:number){let l=1;while(l<99&&xp>=threshold(l+1))l++;return l;}
