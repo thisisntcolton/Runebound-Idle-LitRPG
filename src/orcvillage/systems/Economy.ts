@@ -16,8 +16,12 @@ export function toolCost(l:number):Partial<Stock>|null {
  const tier=Math.floor(l/10);
  return {wood:Math.round(150*1.5**Math.min(l-1,8)*1.12**Math.max(0,l-9)),...(tier>=1?{stone:100*(l-9)}:{}),...(tier>=2?{iron:50*(l-19)}:{})};
 }
-// Fixed node health and yield; upgrades affect cadence only, capped at 3x.
+// Preserve total work time while making tool milestones visible in strike count.
 export const efficiency=(l:number)=>Math.min(3,1+Math.max(0,l-1)*0.05);
-export const damage=(_l:number,_hp:number)=>1;
-export const cooldown=(l:number)=>Math.ceil(1000/efficiency(l));
+export function hitsRequired(l:number,hp:number):number {
+ const ratio=l>=31?.4:l>=5?.6:l>=3?.8:1;
+ return Math.min(hp,Math.max(2,Math.ceil(hp*ratio)));
+}
+export const damage=(l:number,hp:number)=>hp/hitsRequired(l,hp);
+export const cooldown=(l:number,hp=5)=>Math.ceil(1000*hp/(efficiency(l)*hitsRequired(l,hp)));
 export const bonusYield=(_l:number)=>0;
