@@ -1,0 +1,2 @@
+import Phaser from 'phaser';
+export class HealthBar {private g:Phaser.GameObjects.Graphics;constructor(scene:Phaser.Scene){this.g=scene.add.graphics().setDepth(880);}update(sprite:Phaser.GameObjects.Sprite,hp:number,max:number,color:number){const x=Math.round(sprite.x-18),y=Math.round(sprite.getTopCenter().y-8);this.g.clear().setVisible(true).fillStyle(0x20231a).fillRect(x,y,36,6).fillStyle(0x592d29).fillRect(x+1,y+1,34,4).fillStyle(color).fillRect(x+1,y+1,Math.floor(34*Math.max(0,Math.min(1,hp/max))),4);}hide(){this.g.clear();}destroy(){this.g.destroy();}}
