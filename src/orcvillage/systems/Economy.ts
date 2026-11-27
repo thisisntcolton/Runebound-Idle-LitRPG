@@ -19,9 +19,10 @@ export function toolCost(l:number):Partial<Stock>|null {
 // Preserve total work time while making tool milestones visible in strike count.
 export const efficiency=(l:number)=>Math.min(3,1+Math.max(0,l-1)*0.05);
 export function hitsRequired(l:number,hp:number):number {
+ if(hp===8)return l>=31?3:l>=11?4:l>=5?5:l>=3?6:l>=2?7:8;
  const ratio=l>=31?.4:l>=5?.6:l>=3?.8:1;
  return Math.min(hp,Math.max(2,Math.ceil(hp*ratio)));
 }
 export const damage=(l:number,hp:number)=>hp/hitsRequired(l,hp);
-export const cooldown=(l:number,hp=5)=>Math.ceil(1000*hp/(efficiency(l)*hitsRequired(l,hp)));
+export const cooldown=(l:number,hp=5)=>hp===8||hp===12?Math.ceil(1000/efficiency(l)):Math.ceil(1000*hp/(efficiency(l)*hitsRequired(l,hp)));
 export const bonusYield=(_l:number)=>0;
