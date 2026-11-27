@@ -1,0 +1,7 @@
+// Run with node test/orc-foundations.test.cjs; transpile isolated modules using installed TypeScript.
+const ts=require('typescript'),fs=require('fs'),assert=require('node:assert/strict');
+const listeners={};global.window={addEventListener:(k,f)=>listeners[k]=f,removeEventListener:(k)=>delete listeners[k]};global.HTMLElement=class {};global.document={querySelector:()=>null,querySelectorAll:()=>[],activeElement:null};
+const m={exports:{}};new Function('exports',ts.transpileModule(fs.readFileSync('src/orcvillage/systems/InputSystem.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(m.exports);
+let menu=false,blocked=false,actions=0,closed=0,opened=0,released=0;const dispose=m.exports.installGameInput({blocked:()=>blocked,menu:()=>menu,act:()=>actions++,release:()=>released++,close:()=>closed++,open:()=>opened++,eat:()=>{}});
+function key(code,repeat=false){let prevented=false;listeners.keydown({code,repeat,preventDefault(){prevented=true},stopImmediatePropagation(){}});return prevented;}
+assert.equal(key('Space'),true);assert.equal(actions,1);key('Space',true);assert.equal(actions,1);key('Escape');assert.equal(opened,0);menu=true;key('Escape');assert.equal(closed,1);assert.equal(key('Space'),false);assert.equal(actions,1);menu=false;blocked=true;key('Space');assert.equal(actions,1);blocked=false;key('KeyE');assert.equal(opened,1);listeners.keyup({code:'Space'});assert.ok(released>0);dispose();assert.equal(Object.keys(listeners).length,0);console.log('Input regression assertions passed');
