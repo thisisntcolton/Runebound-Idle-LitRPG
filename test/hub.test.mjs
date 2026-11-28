@@ -1,0 +1,6 @@
+﻿import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readSave, runebound, lineage, guild, blackroot } from '../src/hub/saves.js';
+test('save readers handle missing and malformed data without writes',()=>{const storage={getItem:k=>k==='bad'?'{':null,setItem:()=>assert.fail('write')};assert.equal(readSave('bad',storage),null);assert.equal(readSave('missing',storage),null);});
+test('Blackroot accepts both supported schemas and preserves collections',()=>{for(const version of [1,2]){const save={version,axeLevel:12,wild:{gold:200,fishCaught:{a:2,b:1}}};const before=JSON.stringify(save);const result=blackroot(save);assert.ok(result.summary.includes('2 fish discovered'));assert.equal(JSON.stringify(save),before);}assert.equal(blackroot({version:3}),null);});
+test('game adapters reject malformed records and summarize valid data',()=>{assert.equal(runebound({skills:[]}),null);assert.equal(lineage({character:null}),null);assert.equal(guild({version:1,heroes:[{type:'invalid'}],party:[]}),null);assert.ok(runebound({skills:{wood:{xp:0}}}));assert.ok(lineage({character:{firstName:'Ada',age:20,alive:true}}));assert.ok(guild({version:1,heroes:[{type:'Fighter'}],party:[1]}));});

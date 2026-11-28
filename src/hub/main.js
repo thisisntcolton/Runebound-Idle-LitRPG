@@ -1,155 +1,29 @@
-import { buildLabel } from '../core/build.js';
-import { levelForXp } from '../core/xp.js';
-import { fmt } from '../core/format.js';
-
-const buildEl = document.getElementById('hub-build');
-if (buildEl) buildEl.textContent = buildLabel();
-
-function readJson(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+﻿import { games, featuredGame, savesForGames } from './games.js';
+const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let saves = savesForGames();
+const summary = save => save?.summary?.length ? escape(save.summary.join(' · ')) : 'Your adventure awaits';
+const action = save => save ? 'Continue Adventure' : 'Play Now';
+const launch = (game, save, label = action(save)) => `<a class="button primary" href="${game.url}">${label}<span aria-hidden="true"> ↗</span></a>`;
+const details = game => `<button class="button text-button" type="button" data-details="${game.id}">Game Details <span aria-hidden="true">→</span></button>`;
+function render() {
+  const featured = featuredGame, save = saves[featured.id];
+  document.querySelector('#featured').innerHTML = `<p class="eyebrow"><span class="line"></span> FEATURED WORLD</p><p class="hero-game">${escape(featured.name)}</p><h1>${escape(featured.tagline)}</h1><p class="hero-description">${escape(featured.description)}</p><div class="tags">${featured.features.map(x=>`<span>${escape(x)}</span>`).join('')}</div><div class="actions">${launch(featured,save)}${details(featured)}</div>`;
+  const returning = games.filter(g=>saves[g.id]).sort((a,b)=>(saves[b.id].lastPlayed ?? 0)-(saves[a.id].lastPlayed ?? 0));
+  document.querySelector('#continue').innerHTML = returning.length ? `<div class="section-heading"><div><p class="eyebrow">PICK UP WHERE YOU LEFT OFF</p><h2>Continue playing</h2></div></div><div class="continue-list">${returning.map(g=>`<a href="${g.url}" class="continue-card" style="--accent:${g.accent}"><span class="continue-mark" aria-hidden="true">${g.symbol}</span><span><strong>${escape(g.name)}</strong><small>${summary(saves[g.id])}</small></span><span aria-hidden="true">→</span></a>`).join('')}</div>` : `<div class="discovery"><div><p class="eyebrow">YOUR STORY STARTS HERE</p><h2>A world for every adventure.</h2><p>Choose a realm below and make it your own.</p></div><a class="button secondary" href="#games">Discover games <span aria-hidden="true">↓</span></a></div>`;
+  document.querySelector('#game-grid').innerHTML = games.map(g=>`<article class="game-card" style="--accent:${g.accent}"><div class="cover cover-${g.id}" aria-hidden="true"><span>${g.symbol}</span><small>IDLE REALMS / ${escape(g.name.toUpperCase())}</small></div><div class="card-body"><p class="eyebrow">${escape(g.genre)}</p><h3>${escape(g.name)}</h3><p class="card-tagline">${escape(g.tagline)}</p><p class="card-description">${escape(g.description)}</p><p class="save-summary">${saves[g.id] ? summary(saves[g.id]) : 'Begin a new adventure'}</p><div class="card-actions">${launch(g,saves[g.id],saves[g.id]?'Continue':'Play Now')}${details(g)}</div></div></article>`).join('');
 }
-
-function timeAgo(ts) {
-  if (!ts) return 'Never';
-  const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (sec < 60) return 'Just now';
-  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
-  return `${Math.floor(sec / 86400)}d ago`;
+const dialog = document.querySelector('#game-dialog'); let opener;
+function openDetails(game, trigger) {
+  opener = trigger; const save = saves[game.id];
+  document.querySelector('#dialog-content').innerHTML = `<div class="dialog-cover cover cover-${game.id}" style="--accent:${game.accent}" aria-hidden="true"><span>${game.symbol}</span></div><div class="dialog-body"><button class="dialog-close" type="button" aria-label="Close game details">×</button><p class="eyebrow">${escape(game.genre)}</p><h2 id="dialog-title">${escape(game.name)}</h2><p class="dialog-tagline">${escape(game.tagline)}</p><p>${escape(game.description)}</p><h3>Explore this world</h3><ul>${game.features.map(f=>`<li>${escape(f)}</li>`).join('')}</ul><p class="save-summary">${save ? `Your adventure: ${summary(save)}` : 'No saved adventure yet.'}${game.version ? ` · Version ${escape(game.version)}` : ''}</p>${launch(game,save)}</div>`;
+  dialog.showModal(); dialog.querySelector('.dialog-close').focus();
 }
-
-function summarizeRunebound() {
-  const s = readJson('runebound-save-v1');
-  if (!s || !s.skills) return null;
-  let totalLevel = 0;
-  for (const k of Object.keys(s.skills)) {
-    totalLevel += levelForXp(s.skills[k]?.xp || 0);
-  }
-  return {
-    hero: s.look?.name || 'Adventurer',
-    totalLevel,
-    gold: fmt(Math.floor(s.gold || 0)),
-    shards: fmt(Math.floor(s.shards || 0)),
-    lastSeen: timeAgo(s.lastSeen),
-  };
-}
-
-function summarizeLifesim() {
-  const s = readJson('lifesim-save-v1');
-  if (!s || !s.character) return null;
-  const c = s.character;
-  return {
-    name: `${c.firstName} ${c.lastName}`,
-    ageStage: c.alive ? `Age ${c.age} (${c.stage})` : `Passed at ${c.age}`,
-    generation: `Gen ${s.dynasty?.generation || 1}`,
-    money: `$${Number(c.money || 0).toLocaleString()}`,
-    lastSeen: timeAgo(s.lastSeen),
-  };
-}
-
-function renderCards() {
-  const rb = summarizeRunebound();
-  const ls = summarizeLifesim();
-  const orc = readJson('orc-village-v1');
-  const grid = document.getElementById('hub-grid');
-
-  grid.innerHTML = `
-    <article class="game-card rb">
-      <div class="card-top">
-        <div class="card-title-group">
-          <span class="card-icon">⚔️</span>
-          <div>
-            <div class="card-title">Runebound</div>
-            <div class="card-sub">Idle LitRPG</div>
-          </div>
-        </div>
-        <span class="card-badge live">v2.0</span>
-      </div>
-      <p class="card-desc">
-        Skills, combat, gear, classes, a town to build, pets to raise, a codex that remembers, and a cycle waiting to be broken.
-      </p>
-      <div class="save-box">
-        ${rb ? `
-          <div><div class="save-stat-label">Character</div><div class="save-stat-val">${escapeHtml(rb.hero)}</div></div>
-          <div><div class="save-stat-label">Total Level</div><div class="save-stat-val">${rb.totalLevel}</div></div>
-          <div><div class="save-stat-label">Gold / Shards</div><div class="save-stat-val">🪙 ${rb.gold} · 💠 ${rb.shards}</div></div>
-          <div><div class="save-stat-label">Last Played</div><div class="save-stat-val">${rb.lastSeen}</div></div>
-        ` : `
-          <div style="grid-column: 1 / -1; color: var(--text-dim);">No local save yet — start a fresh adventure.</div>
-        `}
-      </div>
-      <a class="card-btn rb-btn" href="./runebound.html">${rb ? 'Continue Runebound →' : 'Play Runebound →'}</a>
-    </article>
-
-    <article class="game-card ls">
-      <div class="card-top">
-        <div class="card-title-group">
-          <span class="card-icon">🌳</span>
-          <div>
-            <div class="card-title">Lineage</div>
-            <div class="card-sub">Generational Life Sim</div>
-          </div>
-        </div>
-        <span class="card-badge new">Phase 1 MVP</span>
-      </div>
-      <p class="card-desc">
-        Guide a character year-by-year from birth to death, weigh tough life choices, and carry your family story forward across generations.
-      </p>
-      <div class="save-box">
-        ${ls ? `
-          <div><div class="save-stat-label">Current Life</div><div class="save-stat-val">${escapeHtml(ls.name)}</div></div>
-          <div><div class="save-stat-label">Status</div><div class="save-stat-val">${escapeHtml(ls.ageStage)}</div></div>
-          <div><div class="save-stat-label">Dynasty / Cash</div><div class="save-stat-val">${ls.generation} · ${ls.money}</div></div>
-          <div><div class="save-stat-label">Last Played</div><div class="save-stat-val">${ls.lastSeen}</div></div>
-        ` : `
-          <div style="grid-column: 1 / -1; color: var(--text-dim);">No family tree started yet — begin Generation 1.</div>
-        `}
-      </div>
-      <a class="card-btn ls-btn" href="./lifesim.html">${ls ? 'Continue Lineage →' : 'Start a Life →'}</a>
-    </article>
-
-    <article class="game-card">
-      <div class="card-top"><div class="card-title-group"><span class="card-icon">🏰</span><div><div class="card-title">Adventurer’s Guild</div><div class="card-sub">Guild Management RPG</div></div></div><span class="card-badge new">v0.1</span></div>
-      <p class="card-desc">Recruit heroes, guide their decisions through branching adventures, and resolve tactical battles.</p>
-      <div class="save-box">${readJson('adventurersguild-save-v1') ? 'Local guild save available.' : 'Found your guild and begin your first contract.'}</div>
-      <a class="card-btn rb-btn" href="./adventurersguild.html">Enter the Guild →</a>
-    </article>
-    <article class="game-card ls">
-      <div class="card-top"><div class="card-title-group"><span class="card-icon">🪓</span><div><div class="card-title">Orc Village</div><div class="card-sub">Pixel-art Gathering RPG</div></div></div><span class="card-badge new">Game 4 · v1.0</span></div>
-      <p class="card-desc">Guide Gruk, chop trees, stockpile wood and upgrade your axe in a peaceful Orc settlement.</p>
-      <div class="save-box">${[1,2].includes(orc?.version) && Number.isInteger(orc.axeLevel) ? `Axe level ${orc.axeLevel} · Camp wood ${escapeHtml(orc.version === 2 ? orc.storage?.wood ?? 0 : orc.storage)}` : 'Start a new settlement. Progress saves locally.'}</div>
-      <a class="card-btn ls-btn" href="./orcvillage.html">${orc?.version === 1 ? 'Continue Orc Village' : 'Play Orc Village'} →</a>
-    </article>
-  `;
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
-async function checkAccount() {
-  const el = document.getElementById('hub-account');
-  try {
-    const res = await fetch('/api/me', { credentials: 'same-origin' });
-    const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) throw new Error('local');
-    const data = await res.json();
-    if (data.user) {
-      el.innerHTML = `${data.user.avatar ? `<img src="${escapeHtml(data.user.avatar)}" alt="" />` : '🟢'} <span>Signed in as <b>${escapeHtml(data.user.name)}</b></span>`;
-    } else {
-      el.textContent = '⚪ Local Mode (Sign in inside Runebound Settings)';
-    }
-  } catch {
-    el.textContent = '💾 Offline / Local Save Mode';
-  }
-}
-
-renderCards();
-checkAccount();
+document.addEventListener('click', e => { const button = e.target.closest('[data-details]'); if (button) openDetails(games.find(g=>g.id===button.dataset.details),button); if (e.target.closest('.dialog-close')) dialog.close(); if (e.target.closest('.mobile-menu a')) document.querySelector('.mobile-menu').open = false; });
+dialog.addEventListener('click', e=>{ if(e.target===dialog) dialog.close(); });
+dialog.addEventListener('close',()=>opener?.focus());
+dialog.addEventListener('keydown', e=>{ if (e.key === 'Escape') { e.preventDefault(); dialog.close(); } });
+window.addEventListener('storage',()=>{saves=savesForGames();render();});
+const updates = [{ game:'Blackroot', title:'Mobile First HUD', version:'0.8.9', text:'A compact mobile interface and adjustable touch controls.' }];
+document.querySelector('#updates').innerHTML = updates.map(u=>`<article class="update"><div class="update-icon" aria-hidden="true">ᛉ</div><div><p class="eyebrow">${escape(u.game)} · UPDATE ${escape(u.version)}</p><h3>${escape(u.title)}</h3><p>${escape(u.text)}</p></div><button class="button text-button" type="button" data-details="blackroot">Explore Blackroot →</button></article>`).join('');
+async function checkAccount() { const el=document.querySelector('#hub-account'); try { const res=await fetch('/api/me',{credentials:'same-origin'}); if (!(res.headers.get('content-type')||'').includes('application/json')) throw new Error('Unavailable'); const data=await res.json(); el.textContent=data.user?.name ? `Signed in as ${data.user.name}` : 'Playing locally'; } catch { el.textContent='Playing locally'; } }
+render(); checkAccount();

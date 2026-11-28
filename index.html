@@ -1,41 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Idle Hub — Runebound, Lineage, Adventurer’s Guild & Orc Village</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌌</text></svg>" />
-  <link rel="stylesheet" href="/src/hub/hub.css" />
-</head>
-<body>
-  <div class="hub-shell">
-    <header class="hub-header">
-      <div class="hub-brand">
-        <span class="hub-logo">🌌</span>
-        <div>
-          <h1>IDLE REALMS HUB</h1>
-          <p class="hub-tagline">One workshop, multiple worlds — local saves per game; cloud where supported</p>
-        </div>
-      </div>
-      <div id="hub-account" class="hub-account">Checking session…</div>
-    </header>
-
-    <main class="hub-main">
-      <section class="hub-section-head">
-        <h2>Select a Project</h2>
-        <span id="hub-build" class="hub-build"></span>
-      </section>
-
-      <div id="hub-grid" class="hub-grid">
-        <!-- Populated dynamically by src/hub/main.js with live save stats -->
-      </div>
-    </main>
-
-    <footer class="hub-footer">
-      <span>Local saves persist automatically per game (<code>runebound-save-v1</code> · <code>lifesim-save-v1</code> · <code>adventurersguild-save-v1</code> · <code>orc-village-v1</code>).</span>
-    </footer>
-  </div>
-
-  <script type="module" src="/src/hub/main.js"></script>
-</body>
-</html>
+﻿<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#111511"><meta name="description" content="Discover four worlds of adventure at Idle Realms."><title>Idle Realms — Many worlds. Endless adventures.</title><link rel="stylesheet" href="/src/hub/hub.css"></head>
+<body><a class="skip" href="#main">Skip to content</a><header class="site-header"><div class="header-inner"><a class="brand" href="#home"><span class="brand-mark" aria-hidden="true">ᛟ</span><span>IDLE <b>REALMS</b><small>Many worlds. Endless adventures.</small></span></a><nav class="desktop-nav" aria-label="Main navigation"><a href="#home">Home</a><a href="#games">Games</a><a href="#news">News</a></nav><div id="hub-account" class="account" aria-live="polite">Checking account…</div><details class="mobile-menu"><summary aria-label="Open navigation">☰</summary><nav aria-label="Mobile navigation"><a href="#home">Home</a><a href="#games">Games</a><a href="#news">News</a></nav></details></div></header>
+<main id="main"><section id="home" class="hero" aria-label="Featured game"><div class="hero-art" aria-hidden="true"><span>ᛉ</span></div><div id="featured" class="hero-content"></div><div class="hero-index" aria-hidden="true">01 / 04 <span>FEATURED WORLD</span></div></section><div class="content"><section id="continue" class="section continue-section"></section><section id="games" class="section"><div class="section-heading"><div><p class="eyebrow">FIND YOUR NEXT ADVENTURE</p><h2>Explore the realms</h2></div><p>Four worlds. Countless stories.</p></div><div id="game-grid" class="game-grid"></div></section><section id="news" class="section news"><div class="section-heading"><div><p class="eyebrow">FROM THE REALMS</p><h2>Latest updates</h2></div></div><div id="updates"></div></section></div></main>
+<footer><div><a class="footer-brand" href="#home">ᛟ &nbsp; IDLE REALMS</a><p>Many worlds. Endless adventures.</p></div><div><strong>Explore</strong><a href="#games">Games</a><a href="#news">Updates</a></div><div><strong>About</strong><p>Independent worlds, made for your next adventure.</p></div></footer><dialog id="game-dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div></dialog><script type="module" src="/src/hub/main.js"></script></body></html>
