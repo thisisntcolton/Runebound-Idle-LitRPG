@@ -821,7 +821,7 @@ export function settingsPanel() {
     ${accountSection()}
     <div class="section-title">Save management</div>
     <div class="panel-desc">The game autosaves every 10 seconds and on close. Offline progress accrues for up to ${offlineCapHours()}h.</div>
-    <div class="panel-desc">${local.blocked ? "⚠ Local saving paused: export your progress and check the original save before reloading." : `Last local save: ${local.lastSaved ? new Date(local.lastSaved).toLocaleTimeString() : "Not yet saved"}`}</div>
+    <div class="panel-desc">${local.blocked ? "⚠ Local saving paused: export your progress and check the original save before reloading." : local.storageError ? "Saving failed: export your progress and check browser storage." : `Last local save: ${local.lastSaved ? new Date(local.lastSaved).toLocaleTimeString() : "Not yet saved"}`}</div>
     <div style="display:flex; gap:8px; margin-bottom:10px">
       <button class="btn btn-sm" data-act="export-save">📤 Export save</button>
       <button class="btn btn-sm" data-act="import-save">📥 Import save</button>

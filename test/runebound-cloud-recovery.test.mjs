@@ -1,0 +1,11 @@
+﻿import test from 'node:test';
+import assert from 'node:assert/strict';
+import {defaultState,state} from '../src/core/state.js';
+import {load,saveStatus} from '../src/core/save.js';
+import {initCloud,cloud} from '../src/core/cloud.js';
+const key='runebound-save-v1',map=new Map([[key,'{bad']]);
+globalThis.localStorage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k)};
+globalThis.document={visibilityState:'visible'};globalThis.window={location:{search:'',pathname:'/runebound.html'},history:{replaceState(){}}};
+const remote=defaultState();remote.gold=900;remote.lifetimeGold=900;
+globalThis.fetch=async path=>({ok:true,status:200,headers:{get:()=> 'application/json'},json:async()=>path==='/api/me'?{user:{name:'Tester'},providers:[]}:{save:remote,clientUpdatedAt:1}});
+test('cloud restore repairs a blocked corrupt local save and preserves raw backup',async()=>{assert.equal(load(),false);const originalSetInterval=globalThis.setInterval;globalThis.setInterval=()=>0;try{await initCloud();}finally{globalThis.setInterval=originalSetInterval;}assert.equal(state.gold,900);assert.equal(JSON.parse(map.get(key)).gold,900);assert.equal(map.get(key+'-backup-before-cloud-restore'),'{bad');assert.equal(saveStatus().blocked,false);assert.equal(cloud.lastError,null);});

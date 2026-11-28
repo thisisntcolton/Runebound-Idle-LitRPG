@@ -577,7 +577,7 @@ function handleAction(target) {
       const ta = document.getElementById('save-io');
       if (ta && ta.value.trim()) {
         if (importSave(ta.value)) { renderView(); }
-        else ta.value = '⚠ Invalid save string';
+        else emit('notify', { type: 'sys', text: 'Import failed: check the save string and browser storage. Your current save was preserved.' });
       }
       break;
     }

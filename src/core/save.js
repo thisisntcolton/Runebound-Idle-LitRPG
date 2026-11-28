@@ -8,21 +8,26 @@ const KEY = 'runebound-save-v1';
 let lastWritten = null;
 let blocked = false;
 let backupAt = 0;
-export function saveStatus() { return { blocked, lastSaved: blocked ? null : state.lastSeen }; }
+let lastSaved = null;
+let storageError = false;
+export function saveStatus() { return { blocked, lastSaved, storageError }; }
 export function backupSave(label = 'manual') {
   try { localStorage.setItem(`${KEY}-backup-${label}`, JSON.stringify(state)); } catch (e) { console.warn('Backup failed', e); }
 }
 function parseSave(raw) {
   const data = JSON.parse(raw);
   if (!data || typeof data !== 'object' || Array.isArray(data) || !data.skills || typeof data.skills !== 'object' || Array.isArray(data.skills)) throw new Error('Invalid save');
+  for (const [id, skill] of Object.entries(data.skills)) {
+    if (!skill || typeof skill !== 'object' || Array.isArray(skill) || typeof skill.xp !== 'number' || !Number.isFinite(skill.xp) || skill.xp < 0) throw new Error(`Invalid skill: ${id}`);
+  }
   return data;
 }
 
 export function save() {
   try {
-    if (blocked) return;
+    if (blocked) return false;
     const previous = localStorage.getItem(KEY);
-    if (previous !== lastWritten) { blocked = true; emit("notify", {type:"sys", text:"Another tab changed your save. Export this session and reload before continuing."}); return; }
+    if (previous !== lastWritten) { blocked = true; emit("notify", {type:"sys", text:"Another tab changed your save. Export this session and reload before continuing."}); return false; }
     if (typeof document === "undefined" || document.visibilityState !== "hidden") state.lastSeen = Date.now();
     if (previous && Date.now() - backupAt >= 300000) {
       localStorage.setItem(`${KEY}-backup-previous`, previous); backupAt = Date.now();
@@ -30,8 +35,14 @@ export function save() {
     const next = JSON.stringify(state);
     localStorage.setItem(KEY, next);
     lastWritten = next;
+    lastSaved = Date.now();
+    storageError = false;
+    return true;
   } catch (e) {
     console.warn('Save failed', e);
+    if (!storageError) emit('notify', {type:'sys', text:'Saving failed. Export your progress and check browser storage.'});
+    storageError = true;
+    return false;
   }
 }
 
@@ -42,6 +53,7 @@ export function load() {
     lastWritten = raw;
     const data = parseSave(raw);
     replaceState(migrate(data));
+    lastSaved = Number.isFinite(data.lastSeen) ? data.lastSeen : null;
     return true;
   } catch (e) {
     console.warn('Load failed; original preserved', e);
@@ -78,20 +90,33 @@ export function exportSave() {
   return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
 }
 
+/** Replace a save only after validation, a backup of the existing raw value, and a successful write. */
+export function restoreSave(data, label = 'before-import') {
+  try {
+    const validated = parseSave(JSON.stringify(data));
+    const nextState = migrate(validated);
+    const previous = localStorage.getItem(KEY);
+    if (previous !== null) localStorage.setItem(`${KEY}-backup-${label}`, previous);
+    const next = JSON.stringify(nextState);
+    localStorage.setItem(KEY, next);
+    lastWritten = next;
+    lastSaved = Date.now();
+    blocked = false;
+    storageError = false;
+    replaceState(nextState);
+  } catch (e) {
+    console.warn('Restore failed; current save preserved', e);
+    return false;
+  }
+  emit('state-changed');
+  return true;
+}
+
 export function importSave(text) {
   try {
     const data = JSON.parse(decodeURIComponent(escape(atob(text.trim()))));
-    parseSave(JSON.stringify(data));
-    backupSave("before-import");
-    blocked = false;
-    lastWritten = localStorage.getItem(KEY);
-    replaceState(migrate(data));
-    save();
-    emit('state-changed');
-    return true;
-  } catch (e) {
-    return false;
-  }
+    return restoreSave(data, 'before-import');
+  } catch { return false; }
 }
 
 export function hardReset() {
@@ -99,6 +124,8 @@ export function hardReset() {
   localStorage.removeItem(KEY);
   lastWritten = null;
   blocked = false;
+  lastSaved = null;
+  storageError = false;
   replaceState(defaultState());
   emit('state-changed');
 }

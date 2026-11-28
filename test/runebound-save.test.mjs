@@ -1,0 +1,13 @@
+﻿import test from 'node:test';
+import assert from 'node:assert/strict';
+import { state, defaultState, replaceState } from '../src/core/state.js';
+import { load, save, restoreSave, importSave, saveStatus } from '../src/core/save.js';
+const map=new Map(); let failKey=null;
+globalThis.localStorage={getItem:k=>map.get(k)??null,setItem:(k,v)=>{if(k===failKey)throw Error('quota');map.set(k,String(v));},removeItem:k=>map.delete(k)};
+const key='runebound-save-v1';
+const encode=o=>Buffer.from(JSON.stringify(o),'utf8').toString('base64');
+test('malformed nested skill records are rejected without overwriting the existing save',()=>{const raw=JSON.stringify(defaultState());map.set(key,raw);assert.equal(load(),true);const broken={skills:{attack:[]}};assert.equal(importSave(encode(broken)),false);assert.equal(map.get(key),raw);assert.equal(Number.isFinite(state.skills.attack.xp),true);});
+test('import failure preserves current state and raw save',()=>{const prior=map.get(key),gold=state.gold;const next=defaultState();next.gold=12345;failKey=key;assert.equal(importSave(encode(next)),false);assert.equal(map.get(key),prior);assert.equal(state.gold,gold);assert.equal(map.get(key+'-backup-before-import'),prior);failKey=null;});
+test('corrupt save can be restored with its raw value backed up',()=>{const raw='{bad json';map.set(key,raw);assert.equal(load(),false);assert.equal(saveStatus().blocked,true);const next=defaultState();next.gold=4321;assert.equal(restoreSave(next,'before-cloud-restore'),true);assert.equal(map.get(key+'-backup-before-cloud-restore'),raw);assert.equal(state.gold,4321);assert.equal(saveStatus().blocked,false);assert.equal(save(),true);});
+test('storage write failures are reported and subsequent success clears them',()=>{failKey=key;assert.equal(save(),false);assert.equal(saveStatus().storageError,true);failKey=null;assert.equal(save(),true);assert.equal(saveStatus().storageError,false);});
+test('a cross-tab change prevents autosave',()=>{map.set(key,'other tab');assert.equal(save(),false);assert.equal(saveStatus().blocked,true);assert.equal(map.get(key),'other tab');});

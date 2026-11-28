@@ -6,7 +6,7 @@
 // the account UI just says cloud sync is unavailable.
 // ============================================================
 import { state, replaceState } from './state.js';
-import { save as saveLocal, exportSave, migrate, backupSave, saveStatus } from './save.js';
+import { restoreSave, exportSave, saveStatus } from './save.js';
 import { emit } from './events.js';
 import { xpForLevel } from './xp.js';
 
@@ -142,15 +142,15 @@ function isBlank(sum) {
 }
 
 function adoptCloudSave(cloudSave) {
-  // Always migrate: a cloud save may predate fields this build expects
-  // (or have been trimmed server-side), and a missing field would
-  // otherwise crash the game loop.
-  backupSave("before-cloud-restore");
-  replaceState(migrate(cloudSave));
-  saveLocal();
+  if (!restoreSave(cloudSave, 'before-cloud-restore')) {
+    cloud.lastError = 'Could not restore the cloud save to browser storage. Your current save was preserved.';
+    emit('notify', { type:'sys', text:cloud.lastError });
+    return false;
+  }
+  cloud.lastError = null;
   emit('notify', { type: 'sys', text: '[ SYSTEM ] Cloud save restored.' });
-  emit('state-changed');
   hooks.renderView();
+  return true;
 }
 
 // Decide between local and cloud on sign-in / boot.
@@ -172,7 +172,7 @@ async function reconcile() {
   const cloudSum = saveSummary(remote.save);
 
   // Fresh device with a blank character: just take the cloud one.
-  if (!cloud.syncing && isBlank(local)) { adoptCloudSave(remote.save); return; }
+  if (!cloud.syncing && isBlank(local)) { if (!adoptCloudSave(remote.save)) ready = false; return; }
 
   // Blank cloud save (signed in, never really played there): push local.
   if (isBlank(cloudSum) && !cloud.syncing) { await pushCloudSave({ force: true }); return; }
@@ -208,8 +208,9 @@ let pendingRemote = null;
 export function resolveConflict(choice) {
   const remote = pendingRemote;
   pendingRemote = null;
-  if (choice === 'remote' && remote) adoptCloudSave(remote);
-  else pushCloudSave({ force: true, silent: false });
+  if (choice === 'remote' && remote) {
+    if (!adoptCloudSave(remote)) ready = false;
+  } else pushCloudSave({ force: true, silent: false });
 }
 
 export async function syncNow() {
