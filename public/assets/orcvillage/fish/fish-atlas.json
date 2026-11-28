@@ -1,0 +1,2013 @@
+{
+  "frames": {
+    "001-river-minnow": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "002-creek-chub": {
+      "frame": {
+        "x": 102,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "003-bluegill": {
+      "frame": {
+        "x": 204,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "004-yellow-perch": {
+      "frame": {
+        "x": 306,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "005-pumpkinseed": {
+      "frame": {
+        "x": 408,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "006-white-sucker": {
+      "frame": {
+        "x": 510,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "007-common-carp": {
+      "frame": {
+        "x": 612,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "008-rock-bass": {
+      "frame": {
+        "x": 714,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "009-dace": {
+      "frame": {
+        "x": 816,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "010-gudgeon": {
+      "frame": {
+        "x": 918,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "011-rudd": {
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "012-roach": {
+      "frame": {
+        "x": 102,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "013-bleak": {
+      "frame": {
+        "x": 204,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "014-bullhead-catfish": {
+      "frame": {
+        "x": 306,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "015-brook-stickleback": {
+      "frame": {
+        "x": 408,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "016-sculpin": {
+      "frame": {
+        "x": 510,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "017-stone-loach": {
+      "frame": {
+        "x": 612,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "018-river-ruffe": {
+      "frame": {
+        "x": 714,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "019-green-sunfish": {
+      "frame": {
+        "x": 816,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "020-mudminnow": {
+      "frame": {
+        "x": 918,
+        "y": 64,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "021-rainbow-trout": {
+      "frame": {
+        "x": 0,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "022-brown-trout": {
+      "frame": {
+        "x": 102,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "023-brook-trout": {
+      "frame": {
+        "x": 204,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "024-smallmouth-bass": {
+      "frame": {
+        "x": 306,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "025-largemouth-bass": {
+      "frame": {
+        "x": 408,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "026-walleye": {
+      "frame": {
+        "x": 510,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "027-channel-catfish": {
+      "frame": {
+        "x": 612,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "028-northern-pike": {
+      "frame": {
+        "x": 714,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "029-arctic-grayling": {
+      "frame": {
+        "x": 816,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "030-river-barbel": {
+      "frame": {
+        "x": 918,
+        "y": 128,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "031-tench": {
+      "frame": {
+        "x": 0,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "032-bream": {
+      "frame": {
+        "x": 102,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "033-zander": {
+      "frame": {
+        "x": 204,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "034-charr": {
+      "frame": {
+        "x": 306,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "035-sauger": {
+      "frame": {
+        "x": 408,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "036-freshwater-drum": {
+      "frame": {
+        "x": 510,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "037-bowfin": {
+      "frame": {
+        "x": 612,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "038-burbot": {
+      "frame": {
+        "x": 714,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "039-cutthroat-trout": {
+      "frame": {
+        "x": 816,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "040-ide": {
+      "frame": {
+        "x": 918,
+        "y": 192,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "041-asp": {
+      "frame": {
+        "x": 0,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "042-nase": {
+      "frame": {
+        "x": 102,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "043-fallfish": {
+      "frame": {
+        "x": 204,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "044-quillback": {
+      "frame": {
+        "x": 306,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "045-white-bass": {
+      "frame": {
+        "x": 408,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "046-atlantic-salmon": {
+      "frame": {
+        "x": 510,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "047-chinook-salmon": {
+      "frame": {
+        "x": 612,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "048-steelhead": {
+      "frame": {
+        "x": 714,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "049-muskellunge": {
+      "frame": {
+        "x": 816,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "050-flathead-catfish": {
+      "frame": {
+        "x": 918,
+        "y": 256,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "051-alligator-gar": {
+      "frame": {
+        "x": 0,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "052-paddlefish": {
+      "frame": {
+        "x": 102,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "053-tiger-trout": {
+      "frame": {
+        "x": 204,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "054-golden-trout": {
+      "frame": {
+        "x": 306,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "055-taimen": {
+      "frame": {
+        "x": 408,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "056-huchen": {
+      "frame": {
+        "x": 510,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "057-wels-catfish": {
+      "frame": {
+        "x": 612,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "058-lake-sturgeon": {
+      "frame": {
+        "x": 714,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "059-longnose-gar": {
+      "frame": {
+        "x": 816,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "060-american-eel": {
+      "frame": {
+        "x": 918,
+        "y": 320,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "061-payara": {
+      "frame": {
+        "x": 0,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "062-peacock-bass": {
+      "frame": {
+        "x": 102,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "063-golden-dorado": {
+      "frame": {
+        "x": 204,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "064-goliath-tigerfish": {
+      "frame": {
+        "x": 306,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "065-mahseer": {
+      "frame": {
+        "x": 408,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "066-redtail-catfish": {
+      "frame": {
+        "x": 510,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "067-pacu": {
+      "frame": {
+        "x": 612,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "068-arowana": {
+      "frame": {
+        "x": 714,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "069-electric-eel": {
+      "frame": {
+        "x": 816,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "070-pacu-fin-lungfish": {
+      "frame": {
+        "x": 918,
+        "y": 384,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "071-glimmerfin-darter": {
+      "frame": {
+        "x": 0,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "072-cinderbelly-trout": {
+      "frame": {
+        "x": 102,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "073-ironscale-gar": {
+      "frame": {
+        "x": 204,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "074-mossback-carp": {
+      "frame": {
+        "x": 306,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "075-whispering-eel": {
+      "frame": {
+        "x": 408,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "076-stormchaser-salmon": {
+      "frame": {
+        "x": 510,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "077-glassbone-perch": {
+      "frame": {
+        "x": 612,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "078-brimstone-catfish": {
+      "frame": {
+        "x": 714,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "079-frostgill-grayling": {
+      "frame": {
+        "x": 816,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "080-copperwhisker-loach": {
+      "frame": {
+        "x": 918,
+        "y": 448,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "081-duskweaver-pike": {
+      "frame": {
+        "x": 0,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "082-siltdrake": {
+      "frame": {
+        "x": 102,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "083-quicksilver-chub": {
+      "frame": {
+        "x": 204,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "084-thornback-sturgeon": {
+      "frame": {
+        "x": 306,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "085-lanternjaw-angler": {
+      "frame": {
+        "x": 408,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "086-mirejaw-bullhead": {
+      "frame": {
+        "x": 510,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "087-sunburst-koi": {
+      "frame": {
+        "x": 612,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "088-galewing-flying-carp": {
+      "frame": {
+        "x": 714,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "089-stonehide-pleco": {
+      "frame": {
+        "x": 816,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "090-bloodfin-piranha": {
+      "frame": {
+        "x": 918,
+        "y": 512,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "091-aetherfin-trout": {
+      "frame": {
+        "x": 0,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "092-gorgon-eel": {
+      "frame": {
+        "x": 102,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "093-chrono-carp": {
+      "frame": {
+        "x": 204,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "094-starlight-minnow": {
+      "frame": {
+        "x": 306,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "095-ogre-tooth-payara": {
+      "frame": {
+        "x": 408,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "096-jade-scale-mahseer": {
+      "frame": {
+        "x": 510,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "097-thunderdrum": {
+      "frame": {
+        "x": 612,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "098-spirit-fin-salmon": {
+      "frame": {
+        "x": 714,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "099-abyssal-river-kraken-eel": {
+      "frame": {
+        "x": 816,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    },
+    "100-old-man-of-the-river": {
+      "frame": {
+        "x": 918,
+        "y": 576,
+        "w": 100,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 64
+      }
+    }
+  },
+  "meta": {
+    "image": "fish-atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 640
+    },
+    "scale": "1"
+  }
+}
