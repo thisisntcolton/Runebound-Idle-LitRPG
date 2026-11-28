@@ -2,19 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WebShire — A little world. A whole lifetime.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Lineage — One life ends. A legacy begins.</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌳</text></svg>" />
   <link rel="stylesheet" href="/src/lifesim/styles.css" />
+  <link rel="stylesheet" href="/src/lifesim/ui/lineage.css" />
 </head>
 <body>
   <div id="ls-app">
     <header id="ls-topbar">
       <div class="ls-topbar-left">
-        <a href="./index.html" class="ls-btn ls-btn-ghost ls-btn-sm" title="Back to Idle Hub">🏠 Hub</a>
+        <a href="./index.html" class="ls-btn ls-btn-ghost ls-btn-sm" title="Back to Idle Realms">🏠 Hub</a>
         <div class="ls-brand">
-          <span class="ls-title">Web<span>Shire</span></span>
-          <span class="ls-sub">A little world. A whole lifetime.</span>
+          <span class="ls-title">LINEAGE</span>
+          <span class="ls-sub">One life ends. A legacy begins.</span>
         </div>
       </div>
 
@@ -26,7 +27,6 @@
       </div>
     </header>
 
-    <nav id="ls-primary-nav" aria-label="Main navigation" hidden></nav>
     <main id="ls-main" class="ls-main">
       <!-- Left column: Character card, core stat bars, traits & background -->
       <aside id="ls-sidebar" class="ls-panel ls-sidebar"></aside>
@@ -45,6 +45,7 @@
     </main>
 
     <div id="ls-year-dock" hidden></div>
+    <nav id="ls-primary-nav" aria-label="Main navigation" hidden></nav>
     <!-- Floating delta toast container -->
     <div id="ls-toast-layer" class="ls-toast-layer"></div>
 

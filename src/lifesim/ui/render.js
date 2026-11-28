@@ -13,7 +13,7 @@ import { townMap, locationScene, avatar } from './town.js';
 import { initLife, lifeOptions, finance, housingCosts } from '../systems/life.js';
 import { performLifeOption, traitPassives } from '../systems/lifecycle.js';
 import { HOMES, CONDITIONS } from '../data/life.js';
-let lifeTab='map', pathQuery='', pathCategory='all', pathStatus='all';
+let lifeTab='life', pathQuery='', pathCategory='all', pathStatus='all';
 // ============================================================
 // LINEAGE — DOM Renderer & Event Delegation (3-Beat Energy System)
 // ============================================================
@@ -95,14 +95,17 @@ export function renderAll() {
   renderStage();
   renderLog();
   renderNavigation();
+  document.body.classList.toggle('lineage-live',!!(state.character?.alive && state.mode==='live'));
+  document.body.classList.toggle('lineage-story',lifeTab==='life' && !!state.character?.alive && !getActiveEvent());
   if(state.character?.encounter){const bd=document.getElementById('ls-modal-backdrop');document.getElementById('ls-modal-box').innerHTML=encounterHTML(state.character,esc);bd.classList.remove('hidden');}
 }
 
 function renderNavigation(){
  const c=state.character, nav=document.getElementById('ls-primary-nav'), dock=document.getElementById('ls-year-dock');
  const ready=!!(c?.alive && state.mode!=='create' && !getActiveEvent() && !c.encounter);
- if(nav){nav.hidden=!ready;nav.innerHTML=ready? [['life','📖 Life'],['map','🗺 Town'],['character','👤 Character'],['people','👥 People'],['assets','💼 Assets']].map(([id,label])=>`<button data-act="life-tab" data-id="${id}" aria-pressed="${lifeTab===id || id==='map'&&!['life','character','people','assets'].includes(lifeTab)}">${label}</button>`).join(''):'';}
- if(dock){dock.hidden=!ready;dock.innerHTML=ready?`<span>⚡ ${c.energy}/${c.energyMax} Energy · Age ${c.age}</span><button class="age-up-btn" data-act="age-up">Finish Year → Age ${c.age+1}</button>`:'';}
+ const active=['life','activities','people','assets'].includes(lifeTab)?lifeTab:'activities';
+ if(nav){nav.hidden=!ready;nav.innerHTML=ready? [['life','Life'],['activities','Activities'],['people','People'],['assets','Assets']].map(([id,label])=>`<button data-act="life-tab" data-id="${id}" aria-current="${active===id?'page':'false'}">${label}</button>`).join(''):'';}
+ if(dock){dock.hidden=!ready;dock.innerHTML=ready?`<span>Energy ${c.energy}/${c.energyMax} | Age ${c.age}</span><button class="age-up-btn" data-act="age-up">+ AGE UP <small>Advance to age ${c.age+1}</small></button>`:'';}
 }
 function pathCollection(c){const p=paths(c);const rows=PATHS.filter(d=>(pathCategory==='all'||d.category===pathCategory)&&(pathStatus==='all'||(p.discovered[d.id]!==undefined)===(pathStatus==='earned'))&&d.name.toLowerCase().includes(pathQuery.toLowerCase()));return `<section class="life-panel"><h2>Life Path Collection</h2><p>${Object.keys(p.discovered).length} / ${PATHS.length} discovered</p><div class="path-filters"><label>Search<input id="path-query" value="${esc(pathQuery)}" placeholder="Find a life path"></label><label>Category<select id="path-category">${['all',...new Set(PATHS.map(d=>d.category))].map(k=>`<option value="${k}" ${k===pathCategory?'selected':''}>${esc(k)}</option>`).join('')}</select></label><label>Status<select id="path-status">${['all','earned','undiscovered'].map(k=>`<option ${k===pathStatus?'selected':''}>${k}</option>`).join('')}</select></label></div><p>${rows.length} results</p><div class="path-results">${rows.map(d=>`<article><b>${p.discovered[d.id]!==undefined?'✓':'○'} ${esc(d.name)}</b><small>${esc(pathType(d))} · ${esc(requirement(d))}</small></article>`).join('')}</div></section>`;}
 function characterDashboard(c){const a=ambition(c),l=initLife(c);return `<section class="life-panel"><h2>Character development</h2><p>${esc(l.job?.name||'No current job')} · ${esc(l.education.credentials.join(', ')||'No qualifications')}</p><div class="district-grid"><button data-act="life-tab" data-id="paths" class="ls-btn ls-btn-ghost">Life paths</button><button data-act="life-tab" data-id="education" class="ls-btn ls-btn-ghost">Train skills</button><button data-act="life-tab" data-id="career" class="ls-btn ls-btn-ghost">Career</button></div><h3>Skills</h3><div class="skill-grid">${SKILLS.map(k=>[k,level(a,k)]).sort((x,y)=>y[1]-x[1]).map(([k,n])=>`<article>${esc(k)} <b>Lv. ${n}</b></article>`).join('')}</div></section>`;}
@@ -179,7 +182,7 @@ function renderSidebar() {
     </div>
     <div class="char-header">${avatar(c.age,c.appearance)}
       <div class="char-name">${esc(c.firstName)} ${esc(c.lastName)}</div>
-      <div class="char-meta">Born ${c.birthYear} · Age ${c.age}</div>
+      <div class="char-meta">Age ${c.age} | Generation ${state.dynasty?.generation || 1}</div><button class="ls-btn ls-btn-ghost ls-btn-sm" data-act="life-tab" data-id="character">View profile</button>
       <span class="stage-badge">${esc(c.stage)}</span>
     </div>
 
@@ -425,7 +428,7 @@ function renderStage() {
     : 'None yet — pick actions below, run a routine, or finish early to auto-rest!';
 
   st.innerHTML = `
-    <details ${lifeTab==='life'?'open':''} class="life-panel"><summary>Life journal · ${journal(c).history.length} memories</summary>${SAGAS.filter(s=>eligible(c,s)).map(s=>{const a=journal(c).arcs[s[0]];return `<p><b>${esc(s[1])}</b> · ${a?`${a.step}/${s[4].length} chapters`: 'Undiscovered'} ${!a||a.step<s[4].length&&a.due<=c.year?`<button class="ls-btn ls-btn-ghost" data-act="${a?'saga-open':'saga-start'}" data-id="${s[0]}">${a?'Continue':'Discover'}</button>`:a.step<s[4].length?` · Next chapter ${a.due}`:' · Complete'}</p>`}).join('')}${journal(c).history.slice().reverse().map(m=>`<p>${m.year} · ${esc(m.title)} — ${esc(m.result)}</p>`).join('')}</details>
+    <details class="life-panel"><summary>Life journal · ${journal(c).history.length} memories</summary>${SAGAS.filter(s=>eligible(c,s)).map(s=>{const a=journal(c).arcs[s[0]];return `<p><b>${esc(s[1])}</b> · ${a?`${a.step}/${s[4].length} chapters`: 'Undiscovered'} ${!a||a.step<s[4].length&&a.due<=c.year?`<button class="ls-btn ls-btn-ghost" data-act="${a?'saga-open':'saga-start'}" data-id="${s[0]}">${a?'Continue':'Discover'}</button>`:a.step<s[4].length?` · Next chapter ${a.due}`:' · Complete'}</p>`}).join('')}${journal(c).history.slice().reverse().map(m=>`<p>${m.year} · ${esc(m.title)} — ${esc(m.result)}</p>`).join('')}</details>
     ${dueThread(c)?`<section class="life-panel"><h3>Ongoing chapters</h3><p>${esc(dueThread(c).title)} — someone is waiting to hear from you.</p><button class="ls-btn ls-btn-primary" data-act="open-thread">Continue story</button></section>`:''}
     <details class="year-tools"><summary>Yearly Energy · ${curE}/${maxE} · routines &amp; pace</summary><div class="energy-banner energy-${curE === 0 ? 'empty' : curE / Math.max(1,maxE) <= .25 ? 'low' : curE / Math.max(1,maxE) <= .5 ? 'medium' : 'high'}">
       <div class="energy-top-row">
@@ -473,8 +476,8 @@ function renderStage() {
       ` : ''}
     </div>
 
-    ${lifeTab==='map'?townMap(lifeTab,esc,townAvailability(c,actions)):lifeTab==='year'?homeScene(homeRoom,homeObject,actions,a=>canPerformAction(c,a),esc,c.life.home):['life','character','paths'].includes(lifeTab)?'':districts[lifeTab]?`<section class="life-panel"><h2>${esc(districts[lifeTab])}</h2><button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="map">← Town map</button></section>`:locationScene(lifeTab,esc,townAvailability(c,actions))}
-    ${lifeTab==='map'?`<section class="life-panel"><h3>Explore WebShire</h3><div class="district-grid">${Object.entries({year:'🏠 Home',career:'💼 Work',people:'👥 People',school:'🎓 School',clinic:'❤️ Health',assets:'🛍 Marketplace',...districts}).map(([id,n])=>`<button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="${id}">${esc(n)}</button>`).join('')}</div></section>`:''}
+    ${lifeTab==='activities'?`<section class="life-panel"><h2>Activities</h2><p>Choose how to spend your year.</p><div class="action-grid">${actions.map(a=>{const check=canPerformAction(c,a);return `<button class="action-card" data-act="spend-energy" data-id="${esc(a.id)}" ${check.ok?'':'disabled'}><span>${esc(a.name)} - ${a.cost} Energy</span><small>${esc(check.ok?a.desc:check.reason)}</small></button>`}).join('')}</div><h3>Explore more</h3><div class="district-grid">${Object.entries({year:'Everyday activities',school:'Education',career:'Career',clinic:'Health',...districts,map:'Explore town',character:'Character profile',paths:'Life paths'}).map(([id,n])=>`<button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="${id}">${esc(n)}</button>`).join('')}</div></section>`:lifeTab==='map'?townMap(lifeTab,esc,townAvailability(c,actions)):lifeTab==='year'?homeScene(homeRoom,homeObject,actions,a=>canPerformAction(c,a),esc,c.life.home):['life','character','paths','people','assets'].includes(lifeTab)?'':districts[lifeTab]?`<section class="life-panel"><h2>${esc(districts[lifeTab])}</h2><button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="map">← Town map</button></section>`:locationScene(lifeTab,esc,townAvailability(c,actions))}
+    ${lifeTab==='map'?`<section class="life-panel"><h3>Explore Lineage</h3><div class="district-grid">${Object.entries({year:'🏠 Home',career:'💼 Work',people:'👥 People',school:'🎓 School',clinic:'❤️ Health',assets:'🛍 Marketplace',...districts}).map(([id,n])=>`<button class="ls-btn ls-btn-ghost" data-act="life-tab" data-id="${id}">${esc(n)}</button>`).join('')}</div></section>`:''}
     ${lifeTab==='year'?`<details class="home-all"><summary>All available activities</summary><div class="action-grid">
       ${actions.map(act => {
         const chk = canPerformAction(c, act);
@@ -491,7 +494,7 @@ function renderStage() {
       }).join('')}
     </div>
 
-    </details>`:lifeTab==='map'?'':lifeTab==='character'?characterDashboard(c):lifeTab==='paths'?pathCollection(c):lifeTab==='life'?`<section class="life-panel"><h2>Your life this year</h2>${(state.log||[]).slice(0,30).map(m=>`<p>${m.year} · ${esc(m.text)}</p>`).join('')}</section>`:renderLifePanel(c)}
+    </details>`:lifeTab==='map'||lifeTab==='activities'?'':lifeTab==='character'?characterDashboard(c):lifeTab==='paths'?pathCollection(c):lifeTab==='life'?'':renderLifePanel(c)}
     <div class="finish-year-bar">
       <div>
         <div style="font-weight:700;font-size:14px;">
@@ -530,18 +533,18 @@ function renderLog() {
 
   for (let i = 0; i < entries.length; i++) {
     const cur = entries[i];
-    const curStage = cur.stage || stageForAge(cur.age || 0);
-    const prevNewer = i > 0 ? (entries[i - 1].stage || stageForAge(entries[i - 1].age || 0)) : null;
+    const curStage = cur.age;
+    const prevNewer = i > 0 ? entries[i - 1].age : null;
 
     if (i === 0 || curStage !== prevNewer) {
       htmlParts.push(
-        `<div class="log-divider">${stageIcons[curStage] || '◈'} ${esc(curStage)} Years</div>`
+        `<div class="log-divider">Age ${esc(curStage)}</div>`
       );
     }
 
     htmlParts.push(`
       <div class="log-item ${esc(cur.tone || 'neutral')}">
-        <span class="log-age">Age ${cur.age} (${cur.year}):</span>
+
         <span>${esc(cur.text)}</span>
       </div>
     `);
@@ -601,7 +604,7 @@ function openSettingsModal() {
       <button class="ls-btn ls-btn-ghost ls-btn-sm" data-act="close-modal">✕</button>
     </div>
     <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">
-      WebShire autosaves after every action and year to <code>lifesim-save-v1</code>. Copy the string below to back up your dynasty, or wipe to roll a fresh character.
+      Lineage autosaves after every action and year. Copy the string below to back up your dynasty, or wipe to roll a fresh character.
     </p>
     <textarea id="ls-save-box" rows="4" style="width:100%;background:#0c111c;border:1px solid var(--border);border-radius:8px;padding:8px;font-family:var(--font-mono);font-size:11.5px;margin-bottom:12px;">${esc(exported)}</textarea>
     <div class="ls-btn-row">
@@ -709,7 +712,7 @@ export function bindEvents() {
         alert('Invalid save string.');
       }
     } else if (act === 'hard-reset') {
-      if (confirm('Erase your current WebShire family tree and start fresh?')) {
+      if (confirm('Erase your current Lineage family tree and start fresh?')) {
         resetAllData();
         document.getElementById('ls-modal-backdrop')?.classList.add('hidden');
         renderAll();
@@ -754,7 +757,7 @@ function townAvailability(c, actions) {
   const available = actions.filter(a => canPerformAction(c,a).ok);
   const select = ids => available.filter(a => ids.includes(a.id));
   const opts = re => options.filter(a => a.ok && re.test(a.id));
-  const schoolLabel = c.age < 5 ? 'WebShire Academy' : c.age < 13 ? 'Elementary School' : c.age < 18 ? 'High School' : c.age < 23 ? 'WebShire College' : 'Continuing Education';
+  const schoolLabel = c.age < 5 ? 'Lineage Academy' : c.age < 13 ? 'Elementary School' : c.age < 18 ? 'High School' : c.age < 23 ? 'Lineage College' : 'Continuing Education';
   const groups = {
     year: [available, false],
     school: [[...select(['child_study','teen_study','study']), ...opts(/^course:/)], c.age < 5, schoolLabel, 'Opens at age 5'],
@@ -770,7 +773,7 @@ const p=paths(c);const pathRows=cat=>PATHS.filter(d=>d.category===cat).map(d=>{c
 const districtPatterns={realty:/^(home:|property:|sellproperty:)/,auto:/^(vehicle:|sellvehicle)/,bank:/^(invest$|withdraw$|recovery:)/,wealth:/^recovery:/,recovery:/^recovery:/,business:/^(business:|upgrade:|sellbusiness:)/,creative:/^(project:|develop:|publish-independent:|submit-novel:|accept-novel:)/,social:/^media:/,fitness:/^gym:/,crime:/^(crime:|prison:)/,love:/^(romance:|date:|marry:|divorce:)/,family:/^(baby:|time:|talk:)/,lifestyle:/^lifestyle:/,assets:/^(lifestyle:|skill:)/,education:/^(course:|skill:)/};
 if(p.sentence)return `<section class="life-panel"><h3>Prison · ${p.sentence} years remaining</h3>${buttons(options)}</section>`;
 if(lifeTab==='paths')return `<section class="life-panel"><h3>${Object.keys(p.discovered).length}/500 discovered</h3><p>Net worth ${fmtMoney(netWorth(c))}</p>${PATHS.map(d=>`<p>${p.discovered[d.id]!==undefined?'✓':'○'} ${d.id}. ${esc(d.name)} · ${esc(pathType(d))} · ${esc(requirement(d))}</p>`).join('')}</section>`;
-if(districts[lifeTab]||lifeTab==='assets'){const re=districtPatterns[lifeTab];return `<section class="life-panel"><h3>${esc(districts[lifeTab]||'Marketplace')}</h3>${lifeTab==='crime'?`<p>Organization ${esc(p.organization?.name||"Independent")} · Rank ${p.organization?["Associate","Member","Enforcer","Lieutenant","Underboss","Boss","Crime lord"][p.organization.rank]:"None"} · Members ${p.organization?.members||0} · Loyalty ${p.organization?.loyalty||0} · Influence ${p.organization?.influence||0} · Prison years ${p.sentence} · Police attention ${p.heat}/100 · Criminal XP ${p.crimeXP} · Convictions ${p.convictions} · Criminal earnings ${fmtMoney(p.crimeCash)}</p>`:''}${lifeTab==='fitness'?`<p>Strength ${p.strength} · Endurance ${p.endurance}</p>`:''}${lifeTab==='bank'||lifeTab==='wealth'?`<p>Net worth ${fmtMoney(netWorth(c))}</p>${Object.entries(finance(c,traitPassives(c))).map(([k,v])=>`<p>${esc(k)}: ${fmtMoney(v)}</p>`).join('')}`:''}${lifeTab==='creative'?ambition(c).projects.map(p=>`<p>${esc(PROJECTS[p.id][0])} · ${p.progress}% · ${p.copies||0} copies</p>`).join(''):''}${lifeTab==='social'?`<p>${ambition(c).followers} followers · ${ambition(c).views} views</p>`:''}${re?buttons(options.filter(o=>re.test(o.id))):''}${pathRows(lifeTab)}${lifeTab==='crime'?p.record.slice(-15).map(r=>`<p>${esc(r.text)}</p>`).join(''):''}</section>`;}
+if(districts[lifeTab] && lifeTab!=='assets'){const re=districtPatterns[lifeTab];return `<section class="life-panel"><h3>${esc(districts[lifeTab]||'Marketplace')}</h3>${lifeTab==='crime'?`<p>Organization ${esc(p.organization?.name||"Independent")} · Rank ${p.organization?["Associate","Member","Enforcer","Lieutenant","Underboss","Boss","Crime lord"][p.organization.rank]:"None"} · Members ${p.organization?.members||0} · Loyalty ${p.organization?.loyalty||0} · Influence ${p.organization?.influence||0} · Prison years ${p.sentence} · Police attention ${p.heat}/100 · Criminal XP ${p.crimeXP} · Convictions ${p.convictions} · Criminal earnings ${fmtMoney(p.crimeCash)}</p>`:''}${lifeTab==='fitness'?`<p>Strength ${p.strength} · Endurance ${p.endurance}</p>`:''}${lifeTab==='bank'||lifeTab==='wealth'?`<p>Net worth ${fmtMoney(netWorth(c))}</p>${Object.entries(finance(c,traitPassives(c))).map(([k,v])=>`<p>${esc(k)}: ${fmtMoney(v)}</p>`).join('')}`:''}${lifeTab==='creative'?ambition(c).projects.map(p=>`<p>${esc(PROJECTS[p.id][0])} · ${p.progress}% · ${p.copies||0} copies</p>`).join(''):''}${lifeTab==='social'?`<p>${ambition(c).followers} followers · ${ambition(c).views} views</p>`:''}${re?buttons(options.filter(o=>re.test(o.id))):''}${pathRows(lifeTab)}${lifeTab==='crime'?p.record.slice(-15).map(r=>`<p>${esc(r.text)}</p>`).join(''):''}</section>`;}
 if(lifeTab==='career')return `<section class="life-panel"><h3>${esc(l.job?.name||'Unemployed')}</h3><p>${l.job?fmtMoney(l.job.salary)+'/year · Performance '+l.job.performance:''}</p>${buttons(options.filter(o=>o.id==='retire'))}${pathRows('career')}</section>`;
 if(lifeTab==='school'||lifeTab==='career')return `<section class="life-panel">${lifeTab==='school'?`<h3>Education</h3><p>Grade: ${e.grade}/100 · Credentials: ${esc(e.credentials.join(', ')||'None')} · ${esc(e.course||'Not enrolled')} (${e.years} years)</p>${actions(['child_study','teen_study','study'])}<div>${buttons(options.filter(a=>a.id.startsWith('course:')))}</div>`:`<h3>Career</h3><p>${l.job?esc(`${l.job.name} · ${fmtMoney(l.job.salary)}/yr · Performance ${l.job.performance}/100 · ${l.job.years} years`):l.retired?'Retired':'Unemployed'}</p>${actions(['work_overtime'])}<h4>Job Board</h4>${buttons(options.filter(a=>a.id.startsWith('job:')||a.id==='retire'))}`}</section>`;
 if(lifeTab==='people')return `<section class="life-panel"><h3>Relationships</h3>${buttons(options.filter(a=>a.id==='friend'))}${l.people.map(n=>`<article><b>${esc(n.name)} · ${esc(n.role)}</b> — Age ${c.year-n.birthYear} · ${esc(n.status)}<div><progress max="100" value="${n.score}"></progress> ${n.score}/100</div>${buttons(options.filter(a=>a.id.endsWith(':'+n.id)))}</article>`).join('')}</section>`;
