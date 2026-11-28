@@ -38,3 +38,10 @@ game.events.once(Phaser.Core.Events.DESTROY, () => {
 });
 
 document.querySelector(".orc-tools")?.addEventListener("click",()=>{const settings=document.querySelector<HTMLDetailsElement>(".orc-settings");if(settings)settings.open=false;});
+
+// Keep browser selection and long-press menus out of the game surface.
+const gameplayTarget=(target:EventTarget|null)=>target instanceof Element && !!target.closest('#game,#orc-header,.orc-readable-hud');
+const suppress=(event:Event)=>{if(gameplayTarget(event.target))event.preventDefault();};
+document.addEventListener('selectstart',suppress);
+document.addEventListener('contextmenu',suppress);
+game.events.once(Phaser.Core.Events.DESTROY,()=>{document.removeEventListener('selectstart',suppress);document.removeEventListener('contextmenu',suppress);});
