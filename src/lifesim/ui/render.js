@@ -1,3 +1,4 @@
+import { creationScreen } from './creation.js';
 import {pathType,requirement} from '../data/progression.js';
 import {PATHS} from '../data/paths.js';
 import {paths,districts,netWorth} from '../systems/paths.js';
@@ -90,6 +91,7 @@ export function showDeltas(deltas = {}) {
 }
 
 export function renderAll() {
+  document.body.classList.toggle('lineage-creation', state.mode === 'create' || !state.character);
   renderTopbar();
   renderSidebar();
   renderStage();
@@ -254,59 +256,7 @@ function renderStage() {
     const bg = getBackground(d.backgroundId);
     const traits = (d.traits || []).map(getTrait).filter(Boolean);
 
-    st.innerHTML = `
-      <div class="event-card">
-        <div class="event-kicker">
-          <span>🌱 NEW LIFE · GENERATION ${state.dynasty?.generation || 1}</span>
-          <span>ENERGY &amp; STRAIN UPDATE</span>
-        </div>
-        <div class="story-scene" aria-hidden="true">☁️ <span>🌳 🏡 🌳</span> ☀️</div><h2 class="event-title">Begin Your Story</h2>
-        <p class="event-prompt" style="margin-bottom:16px;">
-          Choose a name and birth year, or reroll your starting background and traits. Each year now plays in three beats: resolve start-of-year events, spend your yearly ⚡ Energy pool (watch out for burnout!), and wrap up the year.
-        </p>
-
-        <div class="form-grid">
-          <div class="form-field">
-            <label for="inp-first">First Name</label>
-            <input id="inp-first" type="text" maxlength="24" value="${esc(d.firstName)}" />
-          </div>
-          <div class="form-field">
-            <label for="inp-last">Last Name</label>
-            <input id="inp-last" type="text" maxlength="24" value="${esc(d.lastName)}" />
-          </div>
-          <div class="form-field">
-            <label for="inp-year">Birth Year</label>
-            <input id="inp-year" type="number" min="1900" max="2025" value="${Number(d.birthYear) || 1995}" />
-          </div>
-        </div>
-
-        <div class="appearance-editor">${avatar(25,d.appearance)}<div>${[['skin','Skin tone',['#f3c69e','#e8bb91','#ad7751','#805238','#57392b']],['hair','Hair color',['#76513c','#292725','#e5c779','#ae5438']],['eyes','Eye color',['#41566a','#627f49','#76513b']],['shirt','Clothing',['#6599c6','#c97878','#7da76b','#987bb7']],['style','Hair style',['classic','spiky','bald']]].map(([k,label,values])=>`<label>${label}<select data-appearance="${k}">${values.map(v=>`<option value="${v}" ${d.appearance?.[k]===v?'selected':''}>${v.startsWith('#')?['Option '+(values.indexOf(v)+1)][0]:v}</option>`).join('')}</select></label>`).join('')}</div></div>
-        <div class="rolled-preview">
-          <div>
-            <div class="trait-section-title" style="margin-top:0;">Rolled Family Background</div>
-            <div><b>${esc(bg.name)}</b> <span style="color:var(--accent);font-size:12.5px;">(${esc(bg.effectsSummary)})</span></div>
-            <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${esc(bg.blurb)}</div>
-          </div>
-          <div>
-            <div class="trait-section-title" style="margin-top:4px;">Rolled Starting Traits</div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              ${traits.map(t => `
-                <div class="trait-chip" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                  <span><b>${esc(t.name)}</b> — <span style="color:var(--text-dim)">${esc(t.desc)}</span></span>
-                  <span style="color:var(--accent);font-size:11.5px;font-weight:600;">${esc(t.effectsSummary)}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-
-        <div class="ls-btn-row">
-          <button class="ls-btn ls-btn-primary" data-act="begin-life">👶 Be Born &amp; Start Life</button>
-          <button class="ls-btn ls-btn-ghost" data-act="reroll-traits">🎲 Reroll Traits &amp; Background</button>
-          <button class="ls-btn ls-btn-ghost" data-act="reroll-all">🔀 Randomize Everything</button>
-        </div>
-      </div>
-    `;
+    st.innerHTML = creationScreen(d,bg,traits,state.dynasty?.generation);
     return;
   }
 
@@ -617,7 +567,7 @@ function openSettingsModal() {
 
 export function bindEvents() {
   document.addEventListener('change',e=>{if(e.target.id==='path-query')pathQuery=e.target.value;else if(e.target.id==='path-category')pathCategory=e.target.value;else if(e.target.id==='path-status')pathStatus=e.target.value;else return;renderAll();});
-  document.addEventListener('change',e=>{const k=e.target.dataset.appearance;if(!k||state.mode!=='create')return;const d=ensureDraft();for(const [key,id] of [['firstName','inp-first'],['lastName','inp-last'],['birthYear','inp-year']])d[key]=document.getElementById(id).value;d.appearance={...d.appearance,[k]:e.target.value};renderAll();});
+  document.addEventListener('change',e=>{const k=e.target.dataset.appearance;if(!k||state.mode!=='create')return;const d=ensureDraft();for(const [key,id] of [['firstName','inp-first'],['lastName','inp-last'],['birthYear','inp-year']])d[key]=document.getElementById(id).value;d.appearance={...d.appearance,[k]:e.target.value};renderAll();document.querySelector('.creation-dialog')?.showModal();});
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-act]');
     if (!btn) {
@@ -628,6 +578,8 @@ export function bindEvents() {
     }
 
     const act = btn.dataset.act;
+    if (act === 'customize-draft') { document.querySelector('.creation-dialog')?.showModal(); return; }
+    if (act === 'close-customize') { const d=ensureDraft(); for(const [key,id] of [['firstName','inp-first'],['lastName','inp-last'],['birthYear','inp-year']]) d[key]=document.getElementById(id)?.value || d[key]; document.querySelector('.creation-dialog')?.close(); renderAll(); return; }
 
     if(state.character?.encounter && act!=='dialogue-choice')return; if(state.character?.paths?.sentence&&['spend-energy','run-routine'].includes(act))return; if(act==='dialogue-choice'){chooseEncounter(Number(btn.dataset.idx));if(!state.character?.encounter)document.getElementById('ls-modal-backdrop').classList.add('hidden');renderAll();}else if(act==='saga-start'||act==='saga-open'){(act==='saga-start'?startSaga:openSaga)(btn.dataset.id);renderAll();}else if(act==='open-thread'){openThread();renderAll();}else if(act==='home-room'){homeRoom=btn.dataset.id;homeObject='';renderAll();} else if(act==='home-object'){homeObject=btn.dataset.id;renderAll();} else if (act === 'life-tab') { lifeTab=btn.dataset.id; renderAll(); } else if(act==='life-option'){if(!startEncounter(btn.dataset.id))performLifeOption(btn.dataset.id);renderAll();} else if (act === 'reroll-traits' || act === 'reroll-all') {
       const firstName = document.getElementById('inp-first')?.value;
