@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MainScene } from './scenes/MainScene';
 import './style.css';
 import './mobile.css';
+import { installMobilePreferences } from './ui/MobilePreferences';
 
 const parent = document.getElementById('game')!;
 function measureViewport() {
@@ -11,6 +12,7 @@ function measureViewport() {
   document.documentElement.style.setProperty('--orc-visible-height', `${Math.floor(height)}px`);
 }
 measureViewport();
+const disposePreferences = installMobilePreferences();
 const game = new Phaser.Game({
   type: Phaser.AUTO, parent, width: 360, height: 640,
   pixelArt: true, backgroundColor: '#283322',
@@ -22,6 +24,7 @@ function scheduleResize() {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
     measureViewport();
+    window.dispatchEvent(new Event('orc-layout-change'));
     if (game.isBooted) game.scale.resize(parent.clientWidth,parent.clientHeight);
   });
 }
@@ -31,13 +34,13 @@ window.addEventListener('resize', scheduleResize);
 window.addEventListener('orientationchange', scheduleResize);
 window.visualViewport?.addEventListener('resize', scheduleResize);
 game.events.once(Phaser.Core.Events.DESTROY, () => {
-  observer.disconnect(); cancelAnimationFrame(frame);
+  disposePreferences(); observer.disconnect(); cancelAnimationFrame(frame);
   window.removeEventListener('resize', scheduleResize);
   window.removeEventListener('orientationchange', scheduleResize);
   window.visualViewport?.removeEventListener('resize', scheduleResize);
 });
 
-document.querySelector(".orc-tools")?.addEventListener("click",()=>{const settings=document.querySelector<HTMLDetailsElement>(".orc-settings");if(settings)settings.open=false;});
+document.querySelector(".orc-tools")?.addEventListener("click",(event)=>{if (!(event.target instanceof HTMLButtonElement)) return;const settings=document.querySelector<HTMLDetailsElement>(".orc-settings");if(settings)settings.open=false;});
 
 // Keep browser selection and long-press menus out of the game surface.
 const gameplayTarget=(target:EventTarget|null)=>target instanceof Element && !!target.closest('#game,#orc-header,.orc-readable-hud');
