@@ -1,0 +1,6 @@
+import type {Skill} from './Progression';
+export function mastery(l:number){const n=Math.max(0,Math.min(98,l-1));return {speed:n*.0025,gather:n*.001,craft:n*.0015,build:n*.001,farm:n*.0015};}
+export const extraUnit=(chance:number,roll=Math.random())=>Number(roll<chance);
+export const saveMaterial=(cost:number,chance:number,roll=Math.random())=>cost>1?cost-extraUnit(chance,roll):cost;
+export const masteryRank=(l:number)=>l>=99?'Grandmaster':l>=75?'Master':l>=50?'Expert':l>=25?'Journeyman':l>=10?'Apprentice':'Novice';
+export function masteryText(sk:Skill,l:number){const m=mastery(l),p=(v:number)=>(v*100).toFixed(2)+'%';switch(sk){case 'Woodcutting':case 'Mining':return `Speed +${p(m.speed)} • Extra resource chance ${p(m.gather)}`;case 'Hunting':return `Extra pelt chance ${p(m.speed)} • Stamina savings ${p(m.gather)}`;case 'Combat':return `Damage +${p(m.speed)} • Stamina savings ${p(m.gather)}`;case 'Leatherworking':case 'Smithing':return `Material saving chance ${p(m.craft)}`;case 'Construction':return `Building wood refund chance ${p(m.build)}`;case 'Cooking':return `Food hunger recovery +${p(m.speed)}`;case 'Fishing':return `Speed +${p(m.speed)} • Reaction window ${(3+(l-1)*.01).toFixed(2)}s`;case 'Farming':return `Growth speed +${p(m.speed)} • Extra food chance ${p(m.farm)}`;}}
